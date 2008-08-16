@@ -541,7 +541,7 @@
 				$origin_id			= phpgw::get_var('origin_id', 'int');
 
 				//23.jun 08: This will be handled by the interlink code - just doing a quick hack for now...
-				if($origin == 'tts' && $origin_id && !$values['descr'])
+				if($origin == '.ticket' && $origin_id && !$values['descr'])
 				{
 					$boticket= CreateObject('property.botts');
 					$ticket = $boticket->read_single($origin_id);
@@ -580,15 +580,17 @@
 				$origin_id	= $values['origin_id'];
 			}
 
+			$interlink 	= CreateObject('property.interlink');
+
 			if(isset($origin) && $origin)
 			{
 				unset($values['origin']);
 				unset($values['origin_id']);
-				$values['origin'][0]['type']= $origin;
-				$values['origin'][0]['link']=$this->bocommon->get_origin_link($origin);
+				$values['origin'][0]['location']= $origin;
+				$values['origin'][0]['descr']= $interlink->get_location_name($origin);
 				$values['origin'][0]['data'][]= array(
-					'id'=> $origin_id,
-					'type'=> $origin
+					'id'	=> $origin_id,
+					'link'	=> $interlink->get_relation_link(array('location' => $origin), $origin_id),
 					);
 			}
 
@@ -632,7 +634,21 @@
 				if(!$values['status'])
 				{
 					$receipt['error'][]=array('msg'=>lang('Please select a status !'));
+					$error_id=true;
 				}
+
+				if(isset($values['budget']) && $values['budget'] && !ctype_digit($values['budget']))
+				{
+					$receipt['error'][]=array('msg'=>lang('budget') . ': ' . lang('Please enter an integer !'));
+					$error_id=true;
+				}
+
+				if(isset($values['reserve']) && $values['reserve'] && !ctype_digit($values['reserve']))
+				{
+					$receipt['error'][]=array('msg'=>lang('reserve') . ': ' . lang('Please enter an integer !'));
+					$error_id=true;
+				}
+
 
 				if($id)
 				{
@@ -661,7 +677,9 @@
 						unset($values['project_id']);
 					}
 
-					if (isset($GLOBALS['phpgw_info']['server']['smtp_server']) && $GLOBALS['phpgw_info']['server']['smtp_server'])
+					if ( isset($GLOBALS['phpgw_info']['server']['smtp_server']) 
+						&& $GLOBALS['phpgw_info']['server']['smtp_server']
+						&& $config->config_data['mailnotification'] )
 					{
 						if (!is_object($GLOBALS['phpgw']->send))
 						{
@@ -733,11 +751,6 @@
 							}
 						}
 					}
-					else
-					{
-						$receipt['error'][]=array('msg'=>lang('SMTP server is not set! (admin section)'));
-						$bypass_error=true;
-					}
 				}
 
 				if($receipt['error'] && !isset($bypass_error))
@@ -745,6 +758,7 @@
 					if(isset($values['location']) && is_array($values['location']))
 					{
 						$location_code=implode("-", $values['location']);
+						$values['extra']['view'] = true;
 						$values['location_data'] = $bolocation->read_single($location_code,$values['extra']);
 					}
 
@@ -906,35 +920,6 @@
 			$jscal->add_listener('values_start_date');
 			$jscal->add_listener('values_end_date');
 
-			if (isset($values['origin']) AND is_array($values['origin']))
-			{
-				for ($i=0;$i<count($values['origin']);$i++)
-				{
-					$values['origin'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',$values['origin'][$i]['link']);
-					if(substr($values['origin'][$i]['type'],0,6)=='entity')
-					{
-						$type		= explode("_",$values['origin'][$i]['type']);
-						$entity_id	= $type[1];
-						$cat_id		= $type[2];
-
-						if(!is_object($boadmin_entity))
-						{
-							$boadmin_entity	= CreateObject('property.boadmin_entity');
-						}
-						$entity_category = $boadmin_entity->read_single_category($entity_id,$cat_id);
-						$values['origin'][$i]['descr'] = $entity_category['name'];
-					}
-					else
-					{
-						$values['origin'][$i]['descr']= lang($values['origin'][$i]['type']);
-						if($values['origin'][$i]['type'] == 'request')
-						{
-							$selected_request = true;
-						}
-					}
-				}
-			}
-
 			$data = array
 			(
 				'tabs'							=> self::_generate_tabs(),
@@ -944,7 +929,7 @@
 				'value_origin'					=> isset($values['origin']) ? $values['origin'] : '',
 				'value_origin_type'				=> (isset($origin)?$origin:''),
 				'value_origin_id'				=> (isset($origin_id)?$origin_id:''),
-				'selected_request'				=> (isset($selected_request)?$selected_request:''),
+		//		'selected_request'				=> (isset($selected_request)?$selected_request:''),
 
 				'lang_select_request'				=> lang('Select request'),
 				'lang_select_request_statustext'		=> lang('Add request for this project'),
@@ -1203,31 +1188,6 @@
 
 //_debug_array($values);
 			$msgbox_data = $this->bocommon->msgbox_data($receipt);
-
-			if (isset($values['origin']) AND is_array($values['origin']))
-			{
-				for ($i=0;$i<count($values['origin']);$i++)
-				{
-					$values['origin'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',$values['origin'][$i]['link']);
-					if(substr($values['origin'][$i]['type'],0,6)=='entity')
-					{
-						$type		= explode("_",$values['origin'][$i]['type']);
-						$entity_id	= $type[1];
-						$cat_id		= $type[2];
-
-						if(!is_object($boadmin_entity))
-						{
-							$boadmin_entity	= CreateObject('property.boadmin_entity');
-						}
-						$entity_category = $boadmin_entity->read_single_category($entity_id,$cat_id);
-						$values['origin'][$i]['descr'] = $entity_category['name'];
-					}
-					else
-					{
-						$values['origin'][$i]['descr']= lang($values['origin'][$i]['type']);
-					}
-				}
-			}
 
 			$categories = $this->cats->formatted_xslt_list(array('selected' => $this->cat_id));
 

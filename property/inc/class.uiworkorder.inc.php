@@ -528,12 +528,10 @@
 				if(!$values['title'])
 				{
 					$receipt['error'][]=array('msg'=>lang('Please enter a workorder title !'));
-					$error_id=true;
 				}
 				if(!$values['project_id'])
 				{
 					$receipt['error'][]=array('msg'=>lang('Please select a valid project !'));
-					$error_id=true;
 				}
 
 				if(!$values['status'])
@@ -543,6 +541,21 @@
 				if(!$values['b_account_id'])
 				{
 					$receipt['error'][]=array('msg'=>lang('Please select a budget account !'));
+				}
+
+				if(isset($values['budget']) && $values['budget'] && !ctype_digit($values['budget']))
+				{
+					$receipt['error'][]=array('msg'=>lang('budget') . ': ' . lang('Please enter an integer !'));
+				}
+
+				if(isset($values['addition_rs']) && $values['addition_rs'] && !ctype_digit($values['addition_rs']))
+				{
+					$receipt['error'][]=array('msg'=>lang('Rig addition') . ': ' . lang('Please enter an integer !'));
+				}
+
+				if(isset($values['addition_percentage']) && $values['addition_percentage'] && !ctype_digit($values['addition_percentage']))
+				{
+					$receipt['error'][]=array('msg'=>lang('Percentage addition') . ': ' . lang('Please enter an integer !'));
 				}
 
 				if($id)
@@ -603,7 +616,7 @@
 						}
 					}
 //-----------
-					if ($values['approval'] && $values['mail_address'])
+					if ($values['approval'] && $values['mail_address'] && $config->config_data['mailnotification'])
 					{
 						$coordinator_name=$GLOBALS['phpgw_info']['user']['fullname'];
 						$coordinator_email=$GLOBALS['phpgw_info']['user']['preferences']['property']['email'];
@@ -669,7 +682,7 @@
 					$GLOBALS['phpgw']->session->appsession('receipt','property',$receipt);
 					$GLOBALS['phpgw']->redirect_link('/index.php',array('menuaction'=> 'property.uiworkorder.view', 'id'=>$id));
 				}
-				if (isset($receipt['notice_owner']) AND is_array($receipt['notice_owner']))
+				if (isset($receipt['notice_owner']) AND is_array($receipt['notice_owner']) && $config->config_data['mailnotification'])
 				{
 					if($this->account!=$project['coordinator'] && $config->config_data['workorder_approval'])
 					{

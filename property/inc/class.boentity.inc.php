@@ -319,6 +319,9 @@
 				unset($values['files']);
 			}
 
+			$interlink 	= CreateObject('property.interlink');
+			$values['origin'] = $interlink->get_relation('property', ".entity.{$data['entity_id']}.{$data['cat_id']}", $data['id'], 'origin');
+			$values['target'] = $interlink->get_relation('property', ".entity.{$data['entity_id']}.{$data['cat_id']}", $data['id'], 'target');
 			return $values;
 		}
 
@@ -356,26 +359,24 @@
 				'location'	=> ".entity.{$entity_id}.{$cat_id}",
 				'allrows'	=> true
 			);
+
 			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
 
-			if ( isset($custom_functions) 
-				&& is_array($custom_functions) )
+			foreach ( $custom_functions as $entry )
 			{
-				foreach ( $custom_functions as $entry )
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					// prevent path traversal
-					if ( preg_match('/\.\./', $entry['file_name']) )
-					{
-						continue;
-					}
+					continue;
+				}
 
-					$file = PHPGW_APP_INC . "/custom/{$entry['file_name']}";
-					if ( $entry['active'] && is_file($file) )
-					{
-						require_once PHPGW_APP_INC . "/custom/{$entry['file_name']}";
-					}
+				$file = PHPGW_APP_INC . "/custom/{$entry['file_name']}";
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once PHPGW_APP_INC . "/custom/{$entry['file_name']}";
 				}
 			}
+
 			return $receipt;
 		}
 

@@ -295,18 +295,27 @@
 
 				$receipt['message'][]= array('msg' => lang('Ticket has been updated'));
 
-				$custom_functions = $GLOBALS['phpgw']->custom_functions->find(array('appname'=>'property','location' => $this->acl_location,'allrows'=>true));
+				$criteria = array
+				(
+					'appname'	=> 'property',
+					'location'	=> $this->acl_location,
+					'allrows'	=> true
+				);
 
-				foreach($custom_functions as $entry)
+				$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
+
+				foreach ( $custom_functions as $entry )
 				{
-					if ( $entry['active'] )
+					// prevent path traversal
+					if ( preg_match('/\.\./', $entry['file_name']) )
 					{
-						// this is insecure
-						$file = realpath(PHPGW_APP_INC . "/custom/{$entry['file_name']}");
-						if ( $entry['active'] )
-						{
-							include_once $file;
-						}
+						continue;
+					}
+
+					$file = PHPGW_APP_INC . "/custom/{$entry['file_name']}";
+					if ( $entry['active'] && is_file($file) )
+					{
+						require_once PHPGW_APP_INC . "/custom/{$entry['file_name']}";
 					}
 				}
 			}

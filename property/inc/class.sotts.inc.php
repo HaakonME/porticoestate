@@ -242,53 +242,16 @@
 			{
 				$entity[$i]['entity_id']=$this->db->f('entity_id');
 				$entity[$i]['cat_id']=$this->db->f('cat_id');
-				$entity[$i]['type']='entity';
+				$entity[$i]['type']=".entity.{$this->db->f('entity_id')}.{$this->db->f('cat_id')}";
 				$uicols[]	= $this->db->f('name');
 				$i++;
 			}
 
-			$entity[$i]['type']='project';
+			$entity[$i]['type']='.project';
 			$uicols[]	= lang('project');
 
 			$this->uicols	= $uicols;
 			return $entity;
-		}
-
-		function get_child_date($id,$type,$entity_id='',$cat_id='')
-		{
-			$table= 'fm_origin';
-			if($cat_id)
-			{
-				$and = " AND destination = 'entity_" . $entity_id . '_' . $cat_id . "'";
-			}
-			else
-			{
-				$and = " AND destination = '$type'";
-			}
-
-			$sql = "SELECT * FROM $table WHERE origin_id='$id' and origin ='tts' $and";
-
-			$this->db->query($sql,__LINE__,__FILE__);
-
-			$i=0;
-			$date_info = array();
-			while ($this->db->next_record())
-			{
-				$date_info['date_info'][$i]['entry_date']= $GLOBALS['phpgw']->common->show_date($this->db->f('entry_date'),$this->dateformat);
-				if($cat_id)
-				{
-					$date_info['date_info'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.uientity.view','entity_id'=> $entity_id,'cat_id'=> $cat_id, 'id'=> $this->db->f('destination_id')));
-					$date_info['date_info'][$i]['descr']=$this->soadmin_entity->read_category_name($entity_id,$cat_id);
-				}
-				else
-				{
-					$date_info['date_info'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.ui' . $type . '.view','id'=> $this->db->f('destination_id')));
-					$date_info['date_info'][$i]['descr']=lang($type);
-				}
-				$i++;
-			}
-//_debug_array($date_info);
-			return $date_info;
 		}
 
 		function read_single($id)
@@ -331,53 +294,6 @@
 
 			}
 
-// ------------- get origin---------------
-			$sql = "SELECT * FROM fm_origin WHERE destination = 'tts' AND destination_id='$id' ORDER by origin DESC";
-
-			$this->db->query($sql,__LINE__,__FILE__);
-
-			$last_type = false;
-			$i=-1;
-			while ($this->db->next_record())
-			{
-				if($last_type != $this->db->f('origin'))
-				{
-					$i++;
-				}
-				$ticket['origin'][$i]['type'] = $this->db->f('origin');
-				$ticket['origin'][$i]['link'] = $this->bocommon->get_origin_link($this->db->f('origin'));
-				$ticket['origin'][$i]['data'][]= array(
-					'id'=> $this->db->f('origin_id'),
-					'type'=> $this->db->f('origin')
-					);
-
-				$last_type=$this->db->f('origin');
-			}
-//------------end get origin---------------
-//--- --------get destination
-
-			$sql = "SELECT * FROM fm_origin WHERE origin = 'tts' AND origin_id='$id' ORDER by destination DESC";
-
-			$this->db->query($sql,__LINE__,__FILE__);
-
-			$last_type = false;
-			$i=-1;
-			while ($this->db->next_record())
-			{
-				if($last_type != $this->db->f('destination'))
-				{
-					$i++;
-				}
-				$ticket['destination'][$i]['type'] = $this->db->f('destination');
-				$ticket['destination'][$i]['link'] = $this->bocommon->get_origin_link($this->db->f('destination'));
-				$ticket['destination'][$i]['data'][]= array(
-					'id'=> $this->db->f('destination_id'),
-					'type'=> $this->db->f('destination')
-					);
-
-				$last_type=$this->db->f('destination');
-			}
-//-------------
 			return $ticket;
 		}
 
@@ -472,17 +388,19 @@
 			{
 				if($ticket['origin'][0]['data'][0]['id'])
 				{
-					$this->db->query("INSERT INTO  fm_origin (origin,origin_id,destination,destination_id,user_id,entry_date) "
-						. "VALUES ('"
-						. $ticket['origin'][0]['type']. "','"
-						. $ticket['origin'][0]['data'][0]['id']. "',"
-						. "'tts',"
-						. $id . ","
-						. $this->account . ","
-						. time() . ")",__LINE__,__FILE__);
+					$interlink_data = array
+					(
+						'location1_id'		=> $GLOBALS['phpgw']->locations->get_id('property', $ticket['origin'][0]['location']),
+						'location1_item_id' => $ticket['origin'][0]['data'][0]['id'],
+						'location2_id'		=> $GLOBALS['phpgw']->locations->get_id('property', '.ticket'),			
+						'location2_item_id' => $ticket['project_id'],
+						'account_id'		=> $this->account
+					);
+					
+					$interlink 	= CreateObject('property.interlink');
+					$interlink->add($interlink_data,$this->db);
 				}
 			}
-
 
 			if($this->db->transaction_commit())
 			{

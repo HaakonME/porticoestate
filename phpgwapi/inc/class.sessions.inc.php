@@ -433,14 +433,18 @@
 				session_destroy();
 				$this->phpgw_setcookie(session_name());
 			}
-			else
+			else if ( $GLOBALS['phpgw_info']['server']['sessions_type'] == 'php' )
 			{
 				$sessions = $this->list_sessions(0, '', '', true);
 
 				if ( isset($sessions[$sessionid]) )
 				{
-					unlink($sessions[$sessionid]['php_session_file']);
+					unlink($sessions[$sessionid]['session_file']);
 				}
+			}
+			else
+			{
+				phpgwapi_session_handler_db::destroy($sessionid);
 			}
 
 			return true;
@@ -653,7 +657,7 @@
 		public function list_sessions($start, $order, $sort, $all_no_sort = false)
 		{
 			// We cache the data for 5mins system wide as this is an expensive operation
-			$last_updated = phpgwapi_cache::system_get('phpgwapi', 'session_list_saved');
+			$last_updated = 0; //phpgwapi_cache::system_get('phpgwapi', 'session_list_saved');
 
 			if ( is_null($last_updated) 
 				|| $last_updated < 60 * 5 )
@@ -1019,9 +1023,11 @@
 		{
 			session_id($this->_sessionid);
 
-			if ( isset($GLOBALS['phpgw_info']['menuaction']) )
+			$menuaction = phpgw::get_var('menuaction');
+
+			if ( $menuaction )
 			{
-				$action = $GLOBALS['phpgw_info']['menuaction'];
+				$action = $menuaction;
 			}
 			else
 			{
@@ -1293,20 +1299,37 @@
 				return $values;
 			}
 
-			$dir = new RecursiveDirectoryIterator();
-			foreach ( $dir as $filename )
+			$dir = new RecursiveDirectoryIterator($path);
+			foreach ( $dir as $file )
 			{
+				$filename = $file->getFilename();
 				// only try php session files
 				if ( !preg_match('/^sess_([a-f0-9]+)$/', $filename) )
 				{
 					continue;
 				}
 
-				$data = unserialize(file_get_contents($filename));
+				$rawdata = file_get_contents("{$path}/{$filename}");
+
+				//taken from http://no.php.net/manual/en/function.session-decode.php#79244
+				$vars = preg_split('/([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff^|]*)\|/',
+				$rawdata, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+				$data = array();
+
+		/*		for($i=0; $vars[$i]; $i++)
+				{
+					$data[$vars[$i++]]=unserialize($vars[$i]);
+				}
+		*/
+				if(isset($vars[3]))
+				{
+					$data[$vars[0]]=unserialize($vars[1]);
+					$data[$vars[2]]=unserialize($vars[3]);
+				}
 
 				// skip invalid or anonymous sessions
 				if ( !isset($data['phpgw_session'])
-					|| $data['phpgw_session']['session_install_id'] != $this->_install_id
+					|| $data['phpgw_session']['session_install_id'] != $GLOBALS['phpgw_info']['server']['install_id']
 					|| !isset($data['phpgw_session']['session_flags'])
 					|| $data['phpgw_session']['session_flags'] == 'A' )
 				{
@@ -1315,16 +1338,16 @@
 
 				$values[$data['phpgw_session']['session_id']] = array
 				(
-					'id'		=> $data['phpgw_session']['session_id'],
-					'lid'		=> $data['phpgw_session']['session_lid'],
-					'ip'		=> $data['phpgw_session']['session_ip'],
-					'action'	=> $data['phpgw_session']['session_action'],
-					'dla'		=> $data['phpgw_session']['session_dla'],
-					'logints'	=> $data['phpgw_session']['session_logintime']
+					'id'				=> $data['phpgw_session']['session_id'],
+					'lid'				=> $data['phpgw_session']['session_lid'],
+					'ip'				=> $data['phpgw_session']['session_ip'],
+					'action'			=> $data['phpgw_session']['session_action'],
+					'dla'				=> $data['phpgw_session']['session_dla'],
+					'logints'			=> $data['phpgw_session']['session_logintime'],
+					'session_file'		=> "{$path}/{$filename}"
 				);
 			}
 			return $values;
-
 		}
 
 		/**
@@ -1457,7 +1480,7 @@
 		protected function _setup_cache($write_cache = true)
 		{
 			$this->_data                = $GLOBALS['phpgw']->accounts->read_repository()->toArray();
-			$this->_data['acl']         = $GLOBALS['phpgw']->acl->read();
+//			$this->_data['acl']         = $GLOBALS['phpgw']->acl->read(); // This one is never used
 			$this->_data['preferences'] = $GLOBALS['phpgw']->preferences->read_repository();
 			$this->_data['apps']        = $GLOBALS['phpgw']->applications->read_repository();
 
@@ -1495,5 +1518,16 @@
 
 			$this->_account_lid = $login;
 			$this->_account_domain = $GLOBALS['phpgw_info']['server']['default_domain'];
+		}
+
+		/**
+		* commit the sessiondata to the session handler
+		*
+		* @return bool
+		*/
+		function commit_session()
+		{
+			session_write_close();
+			return true;
 		}
 	}

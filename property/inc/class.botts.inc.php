@@ -296,6 +296,7 @@
 
 		function read($start_date='',$end_date='', $external='')
 		{
+			$interlink 	= CreateObject('property.interlink');
 			$start_date	= $this->bocommon->date_to_timestamp($start_date);
 			$end_date	= $this->bocommon->date_to_timestamp($end_date);
 
@@ -311,7 +312,7 @@
 			}
 			else
 			{
-				$entity[0]['type']='project';
+				$entity[0]['type']='.project';
 				$this->uicols[]	= lang('project');
 			}
 
@@ -356,18 +357,16 @@
 				{
 					for ($j=0;$j<count($entity);$j++)
 					{
-						$ticket['child_date'][$j] = $this->so->get_child_date($ticket['id'],$entity[$j]['type'],(isset($entity[$j]['entity_id'])?$entity[$j]['entity_id']:''),(isset($entity[$j]['cat_id'])?$entity[$j]['cat_id']:''));
+						$ticket['child_date'][$j] = $interlink->get_child_date('property', '.ticket', $entity[$j]['type'], $ticket['id'], isset($entity[$j]['entity_id'])?$entity[$j]['entity_id']:'',isset($entity[$j]['cat_id'])?$entity[$j]['cat_id']:'');
 					}
 				}
 			}
-
 //_debug_array($tickets);
 			return $tickets;
 		}
 
 		function read_single($id)
 		{
-
 			$this->so->update_view($id);
 
 			$ticket = $this->so->read_single($id);
@@ -375,7 +374,10 @@
 			$ticket['user_lid'] = $GLOBALS['phpgw']->accounts->id2name($ticket['user_id']);
 			$ticket['group_lid'] = $GLOBALS['phpgw']->accounts->id2name($ticket['group_id']);
 
-
+			$interlink 	= CreateObject('property.interlink');
+			$ticket['origin'] = $interlink->get_relation('property', '.ticket', $id, 'origin');
+			$ticket['target'] = $interlink->get_relation('property', '.ticket', $id, 'target');
+//_debug_array($ticket);
 			if(isset($ticket['finnish_date2']) && $ticket['finnish_date2'])
 			{
 				$ticket['finnish_date']=$ticket['finnish_date2'];
@@ -593,17 +595,27 @@
 				$receipt = $this->mail_ticket($receipt['id'],$fields_updated,$receipt,$ticket['location_code']);
 			}
 
-			$custom = createObject('property.custom_functions');
-			$custom_functions = $custom->find(array('appname'=>'property','location' => $this->acl_location,'allrows'=>true));
+			$criteria = array
+			(
+				'appname'	=> 'property',
+				'location'	=> $this->acl_location,
+				'allrows'	=> true
+			);
 
-			if (isSet($custom_functions) AND is_array($custom_functions))
+			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
+
+			foreach ( $custom_functions as $entry )
 			{
-				foreach($custom_functions as $entry)
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					if (is_file(PHPGW_APP_INC . "/custom/{$entry['file_name']}") && $entry['active'])
-					{
-						include_once(PHPGW_APP_INC . "/custom/{$entry['file_name']}");
-					}
+					continue;
+				}
+
+				$file = PHPGW_APP_INC . "/custom/{$entry['file_name']}";
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once PHPGW_APP_INC . "/custom/{$entry['file_name']}";
 				}
 			}
 

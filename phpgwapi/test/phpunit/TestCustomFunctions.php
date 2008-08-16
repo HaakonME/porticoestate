@@ -159,7 +159,7 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
         (
             'appname'    => 'phpgwapi',
             'location'    => '.test',
-            'start'        => -1,
+            'start'        => 0,
             'sort'        => 'DESC',
             'order'        => 'file_name',
             'query'        => 'test.php'

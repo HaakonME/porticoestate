@@ -214,7 +214,7 @@
 			return $category_list;
 		}
 
-		function set_permission2($values,$r_processed, $grantor = 0, $type = 0)
+		function set_permission2($values,$r_processed, $grantor = -1, $type = 0)
 		{
 			if ( !is_array($values) )
 			{
@@ -272,6 +272,7 @@
 
 		function set_permission($values,$r_processed,$set_grant = false)
 		{
+			$this->acl->enable_inheritance = phpgw::get_var('enable_inheritance', 'bool', 'POST');
 
 			$process = explode('_', $r_processed);
 
@@ -285,7 +286,7 @@
 				$values['mask'] = array();
 			}
 
-			$grantor = 0;
+			$grantor = -1;
 			if($set_grant)
 			{
 				if($this->granting_group)
@@ -309,6 +310,8 @@
 				$receipt['message'][] = array('msg' => lang('%1 userlists cleared from cache',$cleared));
 			}
 
+			phpgwapi_cache::user_clear('phpgwapi', 'menu', -1);
+
 			return $receipt;
 		}
 
@@ -324,7 +327,7 @@
 				$check_account_type = array('groups','accounts');
 			}
 
-			$grantor = 0;
+			$grantor = -1;
 			if($get_grants)
 			{
 				if($this->granting_group)

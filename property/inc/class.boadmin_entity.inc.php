@@ -34,13 +34,40 @@
 
 	class property_boadmin_entity
 	{
-		var $start;
-		var $query;
-		var $filter;
-		var $sort;
-		var $order;
-		var $cat_id;
-		var $entity_id;
+		/**
+		* @var integer $start info for pagination
+		*/
+		public $start;
+
+		/**
+		* @var string $query user input: search string
+		*/
+		public $query;
+
+		/**
+		* @var string $sort how to sort: ASC or DESC
+		*/
+		public $sort;
+
+		/**
+		* @var string $order field to order by
+		*/
+		public $order;
+
+		/**
+		* @var integer $entity_id entity type
+		*/
+		public $entity_id;
+
+		/**
+		* @var integer $cat_id category of entity type
+		*/
+		public $cat_id;
+
+		/**
+		* @var bool $use_session read vars from session or not
+		*/
+		protected $use_session;
 
 		/**
 		 * @var object $custom reference to custom fields object
@@ -54,24 +81,6 @@
 			'save'				=> true,
 			'delete'			=> true,
 			'check_perms'		=> true
-		);
-		var $soap_functions = array(
-			'list' => array(
-				'in'  => array('int','int','struct','string','int'),
-				'out' => array('array')
-			),
-			'read' => array(
-				'in'  => array('int','struct'),
-				'out' => array('array')
-			),
-			'save' => array(
-				'in'  => array('int','struct'),
-				'out' => array()
-			),
-			'delete' => array(
-				'in'  => array('int','struct'),
-				'out' => array()
-			)
 		);
 
 		function __construct($session=false)
@@ -90,7 +99,6 @@
 			$query	= phpgw::get_var('query');
 			$sort	= phpgw::get_var('sort');
 			$order	= phpgw::get_var('order');
-			$filter	= phpgw::get_var('filter', 'int');
 			$cat_id	= phpgw::get_var('cat_id', 'int');
 			$allrows	= phpgw::get_var('allrows', 'bool');
 			$entity_id	= phpgw::get_var('entity_id', 'int');
@@ -107,10 +115,6 @@
 			if(isset($query))
 			{
 				$this->query = $query;
-			}
-			if(!empty($filter))
-			{
-				$this->filter = $filter;
 			}
 			if(isset($sort))
 			{
@@ -149,7 +153,6 @@
 
 			$this->start	= isset($data['start'])?$data['start']:'';
 			$this->query	= isset($data['query'])?$data['query']:'';
-		//	$this->filter	= isset($data['filter'])?$data['filter']:'';
 			$this->sort		= isset($data['sort'])?$data['sort']:'';
 			$this->order	= isset($data['order'])?$data['order']:'';
 			$this->cat_id	= isset($data['cat_id'])?$data['cat_id']:'';
@@ -278,7 +281,7 @@
 			}
 			else if($attrib_id && $cat_id && $entity_id && !$custom_function_id)
 			{
-				$this->custom->delete('.entity.' . $entity_id . '.' . $cat_id,'property',$attrib_id);
+				$this->custom->delete('property', ".entity.{$entity_id}.{$cat_id}", $attrib_id);
 				$this->so->delete_history($entity_id, $cat_id,$attrib_id);
 			}
 			else if($custom_function_id && $acl_location)
@@ -319,7 +322,6 @@
 			{
 				if ( $this->custom->edit($attrib) )
 				{
-					$this->custom->edit($attrib);
 					return array
 					(
 						'msg'	=> array('msg' => lang('Field has been updated'))
@@ -370,18 +372,18 @@
 				$acl_location = '.entity.' . $entity_id . '.' . $cat_id;
 			}
 
-			$custom_function =$this->custom->find(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
+			$values = $GLOBALS['phpgw']->custom_functions->find(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'appname'=>'property','location' => $acl_location,'allrows'=>$this->allrows));
 
-			$this->total_records = $this->custom->total_records;
+			$this->total_records = $GLOBALS['phpgw']->custom_functions->total_records;
 
-			return $custom_function;
+			return $values;
 		}
 
 		function resort_custom_function($id,$resort)
 		{
 			$location = '.entity.' . $this->entity_id . '.' . $this->cat_id;
-			return $this->custom->resort($id, $resort, 'property', $location);
+			return $GLOBALS['phpgw']->custom_functions->resort($id, $resort, 'property', $location);
 		}
 
 		function save_custom_function($custom_function,$action='')
@@ -397,7 +399,7 @@
 				if ($custom_function['id'] != '')
 				{
 
-					$receipt = $this->custom->edit($custom_function);
+					$receipt = $GLOBALS['phpgw']->custom_functions->edit($custom_function);
 				}
 			}
 			else
@@ -419,7 +421,7 @@
 			{
 				$location = '.entity.' . $entity_id . '.' . $cat_id;
 			}
-			return $this->custom->get('property',$location,$id);
+			return $GLOBALS['phpgw']->custom_functions->get('property',$location,$id);
 		}
 	}
 

@@ -675,20 +675,29 @@
 				}
 			}
 
-			$acl_location = '.location.' . $type_id;
-			$custom_functions = $this->custom->find(array('appname'=>'property','location' => $acl_location,'allrows'=>true));
+			$criteria = array
+			(
+				'appname'	=> 'property',
+				'location'	=> ".location.{$type_id}",
+				'allrows'	=> true
+			);
 
-			if (isSet($custom_functions) AND is_array($custom_functions))
+			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
+
+			foreach ( $custom_functions as $entry )
 			{
-				foreach($custom_functions as $entry)
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					if (is_file(PHPGW_APP_INC . "/custom/{$entry['file_name']}") && $entry['active'])
-					{
-						include_once (PHPGW_APP_INC . "/custom/{$entry['file_name']}");
-					}
+					continue;
+				}
+
+				$file = PHPGW_APP_INC . "/custom/{$entry['file_name']}";
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once PHPGW_APP_INC . "/custom/{$entry['file_name']}";
 				}
 			}
-
 
 			return $receipt;
 		}
@@ -737,5 +746,32 @@
 		{
 			return $this->so->get_tenant_location($tenant_id);
 		}
-	}
 
+		/**
+		 * Get a list of attributes
+		 * 
+		 * @param string $location     the name of the location
+		 *
+		 * @return array holding custom fields at this location
+		 */
+
+		function find_attribute($location)
+		{
+			return $this->custom->find('property', $location, 0, '', 'ASC', 'attrib_sort', true, true);
+		}
+
+		/**
+		 * Prepare custom attributes for ui
+		 * 
+		 * @param array  $values    values and definitions of custom attributes
+		 * @param string $location  the name of the location
+		 * @param bool   $view_only if set - calendar listeners is not activated
+		 *
+		 * @return array values and definitions of custom attributes prepared for ui
+		 */
+
+		function prepare_attribute($values, $location, $view_only= false)
+		{
+			return $this->custom->prepare($values, 'property', $location, $view_only);
+		}
+	}

@@ -102,7 +102,7 @@
 				$args_count = count($entry['args']);
 				foreach ( $entry['args'] as $anum => $arg )
 				{
-					if ( is_array($arg) || is_object($arg) )
+					if ( is_array($arg) )
 					{
 						$line .= 'serialized_value = ' . serialize($arg);
 						continue;
@@ -115,9 +115,13 @@
 					{
 						$line .= '***REMOVED_FOR_SECURITY***';
 					}
+					else if(is_object($arg))
+					{
+						continue;
+					}
 					else
 					{
-						$line .= $arg;
+						$line .= $arg;					
 					}
 
 					if ( ($anum + 1) != $args_count )
@@ -195,10 +199,10 @@
 		{
 			case E_USER_ERROR:
 			case E_ERROR:
-				echo '<p class="msg">' . lang('ERROR: %1 in %2 at line %3', $error_msg, $error_file, $error_line) . "</p>\n";
-				echo '<pre>' . phpgw_parse_backtrace($bt) . "</pre>\n";
 				$log_args['severity'] = 'F'; //all "ERRORS" should be fatal
 				$log->fatal($log_args);
+				echo '<p class="msg">' . lang('ERROR: %1 in %2 at line %3', $error_msg, $error_file, $error_line) . "</p>\n";
+				die('<pre>' . phpgw_parse_backtrace($bt) . "</pre>\n");
 
 			case E_WARNING:
 			case E_USER_WARNING:
@@ -223,8 +227,11 @@
 			//case E_STRICT:
 				$log_args['severity'] = 'N';
 				$log->notice($log_args);
-				//echo '<p>' . lang('Notice: %1 in %2 at line %3', $error_msg, $error_file, $error_line) . "</p>\n";
-				//echo '<pre>' . phpgw_parse_backtrace($bt) . "</pre>\n";
+				if(isset($GLOBALS['phpgw_info']['server']['log_levels']['global_level']) && $GLOBALS['phpgw_info']['server']['log_levels']['global_level'] == 'N')
+				{
+					echo '<p>' . lang('Notice: %1 in %2 at line %3', $error_msg, $error_file, $error_line) . "</p>\n";
+					echo '<pre>' . phpgw_parse_backtrace($bt) . "</pre>\n";
+				}
 			//No default, we just ignore it, for now
 		}
 	}
@@ -354,17 +361,10 @@ HTML;
 	$GLOBALS['phpgw']->db                = createObject('phpgwapi.db');
 	$GLOBALS['phpgw']->db->Debug         = $GLOBALS['phpgw']->debug ? 1 : 0;
 	$GLOBALS['phpgw']->db->Halt_On_Error = 'no';
-	$GLOBALS['phpgw']->adodb             =& $GLOBALS['phpgw']->db->adodb; //Reference
 
-	@$GLOBALS['phpgw']->adodb->connect($GLOBALS['phpgw_info']['server']['db_host'],
-									   $GLOBALS['phpgw_info']['server']['db_user'],
-									   $GLOBALS['phpgw_info']['server']['db_pass'],
-									   $GLOBALS['phpgw_info']['server']['db_name']
-									  );
-	if(!$GLOBALS['phpgw']->adodb->ErrorNo())
+	if(is_object($GLOBALS['phpgw']->db))
 	{
-		$GLOBALS['phpgw']->adodb->query('select count(config_name) from phpgw_config');
-		if($GLOBALS['phpgw']->adodb->ErrorNo())
+		if(!$GLOBALS['phpgw']->db->query('select count(config_name) from phpgw_config',__LINE__,__FILE__))
 		{
 			$setup_dir = ereg_replace($_SERVER['PHP_SELF'],'index.php','setup/');
 			echo '<center><b>Fatal Error:</b> It appears that you have not created the database tables for '
@@ -503,6 +503,12 @@ HTML;
 				print_debug('User ID',$login_id,'app');
 				$GLOBALS['phpgw']->accounts->set_account($login_id);
 				$GLOBALS['phpgw']->preferences->set_account_id($login_id);
+				// cached menus contains old sessionid and has to be cleared when not using cookies
+				if ( !isset($GLOBALS['phpgw_info']['server']['usecookies']) && $login_id)
+				{
+					$GLOBALS['phpgw_info']['user']['account_id'] = $login_id;
+					execMethod('phpgwapi.menu.clear');
+				}
 			}
 		}
 	/**************************************************************************\
@@ -610,19 +616,22 @@ HTML;
 		\*************************************************************************/
 		if ($GLOBALS['phpgw_info']['flags']['currentapp'] != 'home' && $GLOBALS['phpgw_info']['flags']['currentapp'] != 'about')
 		{
-			if ( !$GLOBALS['phpgw']->acl->check('run', phpgwapi_acl::READ, $GLOBALS['phpgw_info']['flags']['currentapp']))
+			if (!$GLOBALS['phpgw']->acl->check('run', PHPGW_ACL_READ, $GLOBALS['phpgw_info']['flags']['currentapp']))
 			{
 				$GLOBALS['phpgw']->common->phpgw_header(true);
 				$GLOBALS['phpgw']->log->write(array('text'=>'W-Permissions, Attempted to access %1','p1'=>$GLOBALS['phpgw_info']['flags']['currentapp']));
 
 				$lang_denied = lang('Access not permitted');
 				echo <<<HTML
-					<div class="error">{$lang_denied}</div>
+					<div class="error">$lang_denied</div>
 
 HTML;
-				$GLOBALS['phpgw']->common->phpgw_exit(true);
+				$GLOBALS['phpgw']->common->phpgw_exit(True);
 			}
 		}
+
+	//  Already called from sessions::verify
+	//	$GLOBALS['phpgw']->applications->read_installed_apps();	// to get translated app-titles
 
 		/*************************************************************************\
 		* Load the header unless the developer turns it off                       *

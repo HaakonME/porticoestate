@@ -1,31 +1,41 @@
 <?php
-  /**************************************************************************\
-  * phpGroupWare                                                             *
-  * http://www.phpgroupware.org                                              *
-  * Written by Joseph Engo <jengo@phpgroupware.org>                          *
-  * --------------------------------------------                             *
-  *  This program is free software; you can redistribute it and/or modify it *
-  *  under the terms of the GNU General Public License as published by the   *
-  *  Free Software Foundation; either version 2 of the License, or (at your  *
-  *  option) any later version.                                              *
-  \**************************************************************************/
+/**************************************************************************\
+* FeLaMiMail                                                               *
+* http://www.egroupware.org                                                *
+* Written by Lars Kneschke <lars@kneschke.de>                              *
+* --------------------------------------------                             *
+*  This program is free software; you can redistribute it and/or modify it *
+*  under the terms of the GNU General Public License as published by the   *
+*  Free Software Foundation; version 2 of the License. 			   *
+\**************************************************************************/
 
-  /* $Id$ */
+/* $Id: hook_preferences.inc.php 25569 2008-06-05 14:09:24Z leithoff $ */
+
 {
-// Only Modify the $file and $title variables.....
+	// Only Modify the $file and $title variables.....
 	$title = $appname;
-	$sieveLinkData = array
-	(
-		'menuaction'	=> 'felamimail.uisieve.mainScreen',
-		'action'	=> 'updateFilter'
-	);
-                                        
-	$file = array(
-		'Preferences'       	  => $GLOBALS['phpgw']->link('/preferences/preferences.php',array('appname'=>'felamimail')),
-		'Manage Sieve'     	  => $GLOBALS['phpgw']->link('/index.php',$sieveLinkData),
-		'Manage Folders'	  => $GLOBALS['phpgw']->link('/index.php',array('menuaction'=>'felamimail.uipreferences.listFolder'))
-	);
-//Do not modify below this line
+	$mailPreferences = ExecMethod('felamimail.bopreferences.getPreferences');
+
+	$file['Preferences'] = $GLOBALS['phpgw']->link('/index.php','menuaction=preferences.uisettings.index&appname=' . $appname);
+
+	if($mailPreferences->userDefinedAccounts) {
+		$linkData = array
+		(
+			'menuaction' => 'felamimail.uipreferences.listAccountData',
+		);
+		$file['Manage eMail: Accounts / Identities'] = $GLOBALS['phpgw']->link('/index.php',$linkData);
+	}
+
+	$file['Manage Folders'] = $GLOBALS['phpgw']->link('/index.php','menuaction=felamimail.uipreferences.listFolder');
+
+	$icServer = $mailPreferences->getIncomingServer(0);
+
+	if($icServer->enableSieve) {
+		$file['filter rules'] = $GLOBALS['phpgw']->link('/index.php', 'menuaction=felamimail.uisieve.listRules');
+		$file['vacation notice'] = $GLOBALS['phpgw']->link('/index.php','menuaction=felamimail.uisieve.editVacation');
+	}
+	
+	//Do not modify below this line
 	display_section($appname,$title,$file);
 }
 ?>

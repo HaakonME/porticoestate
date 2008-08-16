@@ -40,7 +40,8 @@
 		*/
 		public function clear()
 		{
-			phpgwapi_cache::session_clear('phpgwapi', 'menu');
+			$account_id = $GLOBALS['phpgw_info']['user']['account_id'];
+			phpgwapi_cache::user_clear('phpgwapi', 'menu', $account_id);
 		}
 
 		/**
@@ -52,15 +53,16 @@
 		*/
 		public function get($mtype = null)
 		{
-			static $menu = null;
+		//	static $menu = null;
 
-			$menu = null; 
-			//$menu = phpgwapi_cache::session_get('phpgwapi', 'menu');
+			//$menu = null; 
+			$account_id = $GLOBALS['phpgw_info']['user']['account_id'];
+			$menu = phpgwapi_cache::user_get('phpgwapi', 'menu', $account_id);
 
 			if ( !$menu )
 			{
 				$menu = self::load();
-				phpgwapi_cache::session_set('phpgwapi', 'menu', $menu);
+				phpgwapi_cache::user_set('phpgwapi', 'menu', $menu, $account_id);
 			}
 
 			if ( !is_null($mtype) && isset($menu[$mtype]) )
@@ -136,5 +138,98 @@
 				}
 			}
 			return $menus;
+		}
+
+		/**
+		 * Render  a menu for an application
+		 *
+		 * @param array  $item the menu item
+		 * @param string $id   identificator for current location
+		 * @param string $children rendered sub menu
+		 * @param bool   $show_appname show appname as top level
+		 */
+		public function render_menu($app, $navigation, $navbar, $show_appname = false)
+		{
+			$treemenu = '';
+			$submenu = isset($navigation) ? self::_render_submenu($app, $navigation) : '';
+			$treemenu .= self::_render_item($navbar, "navbar::{$app}", $submenu, $show_appname);
+			$html = <<<HTML
+			<ul id="menu">
+				{$treemenu}
+			</ul>
+
+HTML;
+			return $html;
+		}
+
+		/**
+		 * Render items from a menu and append the children
+		 *
+		 * @param array  $item         the menu item
+		 * @param string $id           identificator for current location
+		 * @param string $children     rendered sub menu
+		 * @param bool   $show_appname show appname as top level
+		 */
+		protected static function _render_item($item, $id='', $children='', $show_appname = false)
+		{
+			$current_class = '';
+			if ( $id == "navbar::{$GLOBALS['phpgw_info']['flags']['menu_selection']}" )
+			{
+				$current_class = 'current';
+			}
+
+			$link_class =" class=\"{$current_class}\"";
+
+			if(isset($item['group']) && $show_appname) // at application
+			{
+				return <<<HTML
+				<li class="parent">
+					<span>{$item['text']}</span>
+				{$children}
+				</li>
+HTML;
+			}
+			if(isset($item['group']) && !$show_appname)
+			{
+				return <<<HTML
+				{$children}
+HTML;
+			}
+			else if (isset($item['url']))
+			{
+				return <<<HTML
+				<li>
+					<a href="{$item['url']}"{$link_class} id="{$id}">
+						<span>{$item['text']}</span>
+					</a>
+					{$children}
+				</li>
+HTML;
+			}
+		}
+
+		/**
+		 * Get sub items from a menu 
+		 *
+		 * @param string $parent  name of parent item
+		 * @param array  $menu the menu items to add to structure
+		 * @param bool   $show_appname show appname as top level
+		 */
+		protected static function _render_submenu($parent, $menu, $show_appname = false)
+		{
+			$out = '';
+			foreach ( $menu as $key => $item )
+			{
+				$children = isset($item['children']) ? self::_render_submenu("{$parent}::{$key}", $item['children'], $show_appname) : '';
+				$out .= self::_render_item($item, "navbar::{$parent}::{$key}", $children, $show_appname);
+			}
+
+			$out = <<<HTML
+			<ul>
+				{$out}
+			</ul>
+
+HTML;
+			return $out;
 		}
 	}

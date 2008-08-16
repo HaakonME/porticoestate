@@ -98,7 +98,7 @@
 
 			$this->appname = $appname;
 
-			$this->db      = CreateObject('phpgwapi.db');
+			$this->db      = & $GLOBALS['phpgw']->db;
 		}
 
 		function delete($record_id,$attrib_id='')
@@ -127,11 +127,11 @@
 
 			if($date)
 			{
-				$timestamp = $this->db->to_timestamp($date);
+				$timestamp = date($this->db->date_format(),$date);
 			}
 			else
 			{
-				$timestamp = $this->db->to_timestamp(time());
+				$timestamp = date($this->db->datetime_format());
 			}
 
 			$this->db->query("insert into $this->table (history_record_id,"
@@ -200,7 +200,7 @@
 //					'status'     => lang($this->types[$this->db->f('history_status')]),
 					'status'     => preg_replace('/ /','',$this->db->f('history_status')),
 					'new_value'  => $this->db->f('history_new_value'),
-					'datetime'   => $this->db->from_timestamp($this->db->f('history_timestamp'))
+					'datetime'   => strtotime($this->db->f('history_timestamp'))
 				);
 			}
 

@@ -1,49 +1,47 @@
 <?php
 	/**************************************************************************\
-	* phpGroupWare - FeLaMiMail                                                *
-	* http://www.phpgroupware.org                                              *
+	* EGroupWare - FeLaMiMail                                                  *
+	* http://www.egroupware.org                                                *
 	* --------------------------------------------                             *
 	*  This program is free software; you can redistribute it and/or modify it *
 	*  under the terms of the GNU General Public License as published by the   *
-	*  Free Software Foundation; either version 2 of the License, or (at your  *
-	*  option) any later version.                                              *
+	*  Free Software Foundation; version 2 of the License.                     *
 	\**************************************************************************/
 
-	/* $Id$ */
+	/* $Id: setup.inc.php 25641 2008-06-19 08:04:49Z leithoff $ */
 
-	$setup_info['felamimail']['name']      = 'felamimail';
+	$setup_info['felamimail']['name']      		= 'felamimail';
 	$setup_info['felamimail']['title']     		= 'FeLaMiMail';
-	$setup_info['felamimail']['version']		= '0.9.4';
-	$setup_info['felamimail']['app_order'] = 2;
-	$setup_info['felamimail']['enable']    = 1;
-	$setup_info['felamimail']['app_group']  = 'office';
+	$setup_info['felamimail']['version']     	= '1.5.003';
+	$setup_info['felamimail']['app_order'] 		= 2;
+	$setup_info['felamimail']['enable']    		= 1;
 
-	$setup_info['felamimail']['author']    = 'Lars Kneschke';
-	$setup_info['felamimail']['license']   = 'GPL';
-	$setup_info['felamimail']['description'] =
-		'Email reader originally based on Squirrelmail, ported to phpGroupWare by Lars Kneschke.';
-	$setup_info['felamimail']['based_on'] = 
-		'This port is based on Squirrelmail, which is a standalone IMAP client.';
-	$setup_info['felamimail']['based_on_url'] = 'http://www.squirrelmail.org';
-	$setup_info['felamimail']['maintainer'] 	= 'phpGroupWare Coordination Team';
-	$setup_info['felamimail']['maintainer_email'] 	= 'phpgroupware-developers@gnu.org';
+	$setup_info['felamimail']['author']		= 'Lars Kneschke';
+	$setup_info['felamimail']['license']		= 'GPL';
+	$setup_info['felamimail']['description']	=
+		'IMAP emailclient for eGroupWare';
+	$setup_info['felamimail']['maintainer'] 	= 'Klaus Leithoff';
+	$setup_info['felamimail']['maintainer_email'] 	= 'kl@leithoff.net';
 
-	$setup_info['felamimail']['tables']    = array(
-		'phpgw_felamimail_cache',
-		'phpgw_felamimail_folderstatus',
-		'phpgw_felamimail_displayfilter'
-	);
+	$setup_info['felamimail']['tables']    = array('egw_felamimail_displayfilter','egw_felamimail_accounts','egw_felamimail_signatures');
 
 	/* The hooks this app includes, needed for hooks registration */
-	$setup_info['felamimail']['hooks'][] = 'manual';
-	$setup_info['felamimail']['hooks'][] = 'help';
 	$setup_info['felamimail']['hooks'][] = 'settings';
 	$setup_info['felamimail']['hooks'][] = 'home';
-	$setup_info['felamimail']['hooks'][] = 'felamimail.menu.get_menu';
+	$setup_info['felamimail']['hooks'][] = 'notifywindow';
+	$setup_info['felamimail']['hooks']['addaccount']	= 'felamimail.bofelamimail.addAccount';
+	$setup_info['felamimail']['hooks']['deleteaccount']	= 'felamimail.bofelamimail.deleteAccount';
+	$setup_info['felamimail']['hooks']['editaccount']	= 'felamimail.bofelamimail.updateAccount';
+	$setup_info['felamimail']['hooks']['edit_user']		= 'felamimail.bofelamimail.adminMenu';
+	$setup_info['felamimail']['hooks']['menu']    		= 'felamimail.menu.get_menu';
 
-	/* Dependacies for this app to work */
+	/* Dependencies for this app to work */
 	$setup_info['felamimail']['depends'][] = array(
 		'appname'  => 'phpgwapi',
-		'versions' => Array('0.9.17', '0.9.18')
+		'versions' => Array('0.9.17','0.9.18')
 	);
-?>
+	$setup_info['felamimail']['depends'][] = array(
+		'appname'  => 'emailadmin',
+		'versions' => Array('1.5.003')
+	);
+

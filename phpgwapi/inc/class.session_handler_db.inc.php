@@ -90,7 +90,18 @@
 			$GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
 			while ($GLOBALS['phpgw']->db->next_record())
 			{
-				$data = $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('data', true));
+				$rawdata = $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('data', true));
+
+				//taken from http://no.php.net/manual/en/function.session-decode.php#79244
+				$vars = preg_split('/([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff^|]*)\|/',
+				$rawdata, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+				$data = array();
+
+				if(isset($vars[3]))
+				{
+					$data[$vars[0]]=unserialize($vars[1]);
+					$data[$vars[2]]=unserialize($vars[3]);
+				}
 
 				// skip invalid or anonymous sessions
 				if ( !isset($data['phpgw_session'])
@@ -100,11 +111,11 @@
 					continue;
 				}
 
-				$values[$GLOBALS['phpgw']->db->f('session_id', true)] = array
+				$values[$data['phpgw_session']['session_id']] = array
 				(
-					'id'		=> $GLOBALS['phpgw']->db->f('id', true),
+					'id'		=> $data['phpgw_session']['session_id'],
 					'lid'		=> $data['phpgw_session']['session_lid'],
-					'ip'		=> $GLOBALS['phpgw']->db->f('ip', true),
+					'ip'		=> $data['phpgw_session']['session_ip'],
 					'action'	=> $data['phpgw_session']['session_action'],
 					'dla'		=> $data['phpgw_session']['session_dla'],
 					'logints'	=> $data['phpgw_session']['session_logintime']
@@ -159,12 +170,15 @@
 		 */
 		public static function write($id, $data)
 		{
-			$id = $GLOBALS['phpgw']->db->db_addslashes($id);
-			$data = $GLOBALS['phpgw']->db->db_addslashes($GLOBALS['phpgw']->crypto->encrypt($data));
-			$ts = time();
+			$db 	= & $GLOBALS['phpgw']->db;
+			$crypto = & $GLOBALS['phpgw']->crypto;
 
-			$GLOBALS['phpgw']->db->query("SELECT session_id FROM phpgw_sessions WHERE session_id = '{$id}'", __LINE__, __FILE__);
-			if ( $GLOBALS['phpgw']->db->next_record() )
+			$id   = $db->db_addslashes($id);
+			$data = $db->db_addslashes($crypto->encrypt($data));
+			$ts   = time();
+
+			$db->query("SELECT session_id FROM phpgw_sessions WHERE session_id = '{$id}'", __LINE__, __FILE__);
+			if ( $db->next_record() )
 			{
 				$sql = 'UPDATE phpgw_sessions'
 					. " SET data = '{$data}', lastmodts = {$ts}"
@@ -176,7 +190,7 @@
 				$sql = "INSERT INTO phpgw_sessions VALUES('{$id}', '{$ip}', '{$data}', {$ts})";
 			}
 
-			$ret = $GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
+			$ret = $db->query($sql, __LINE__, __FILE__);
 			return $ret;
 		}
 	}

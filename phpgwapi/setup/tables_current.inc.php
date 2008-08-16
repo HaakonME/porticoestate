@@ -176,7 +176,8 @@
 				'descr' => array('type' => 'varchar','precision' => 100,'nullable' => False),
 				'allow_grant' => array('type' => 'int','precision' => 2,'nullable' => True),
 				'allow_c_attrib' => array('type' => 'int','precision' => 2,'nullable' => True),
-				'c_attrib_table' => array('type' => 'varchar','precision' => 25,'nullable' => True)
+				'c_attrib_table' => array('type' => 'varchar','precision' => 25,'nullable' => True),
+				'allow_c_function' => array('type' => 'int','precision' => 2,'nullable' => True)
 			),
 			'pk' => array('location_id'),
 			'fk' => array(),

@@ -127,11 +127,11 @@
 			if (isset($list) AND is_array($list))
 			{
 				$i=0;
-				foreach($list as $entry)
+				foreach($list as &$entry)
 				{
 					if($entry['subject'])
 					{
-						$list[$i]['category'] = $entry['subject'];
+						$entry['category'] = $entry['subject'];
 					}
 
 					if (isset($entry['child_date']) AND is_array($entry['child_date']))
@@ -141,12 +141,13 @@
 						{
 							if($date['date_info'][0]['descr'])
 							{
-							 	$list[$i]['date_' . $j]=$date['date_info'][0]['entry_date'];
+							 	$entry['date_' . $j]=$date['date_info'][0]['entry_date'];
 							 	$name_temp['date_' . $j]=true;
 							 	$descr_temp[$date['date_info'][0]['descr']]=true;
 							 }
 							 $j++;
 						}
+						unset($entry['child_date']);
 					}
 					$i++;
 				}
@@ -184,8 +185,6 @@
 			}
 
 			array_push($descr,lang('finnish date'),lang('delay'));
-
-//_debug_array($descr);
 
 			$this->bocommon->download($list,$name,$descr);
 		}
@@ -317,7 +316,7 @@
 						'district_id'		=> $this->district_id,
 						'allrows'			=> $this->allrows
 					);
-
+//_debug_array($ticket['child_date']);
 					$content[] = array
 					(
 						'id'					=> $ticket['id'],
@@ -995,47 +994,19 @@
 				$origin_id	= $values['origin_id'];
 			}
 
+			$interlink 	= CreateObject('property.interlink');
+
 			if(isset($origin) && $origin)
 			{
 				unset($values['origin']);
 				unset($values['origin_id']);
-				$values['origin'][0]['type']= $origin;
-				$values['origin'][0]['link']=$this->bocommon->get_origin_link($origin);
+				$values['origin'][0]['location']= $origin;
+				$values['origin'][0]['descr']= $interlink->get_location_name($origin);
 				$values['origin'][0]['data'][]= array(
-					'id'=> $origin_id,
-					'type'=> $origin
+					'id'	=> $origin_id,
+					'link'	=> $interlink->get_relation_link(array('location' => $origin), $origin_id),
 					);
 			}
-
-			if (isset($values['origin']) AND is_array($values['origin']))
-			{
-				for ($i=0;$i<count($values['origin']);$i++)
-				{
-					$values['origin'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',$values['origin'][$i]['link']);
-					if(substr($values['origin'][$i]['type'],0,6)=='entity')
-					{
-						$type		= explode("_",$values['origin'][$i]['type']);
-						$entity_id	= $type[1];
-						$cat_id		= $type[2];
-
-						if(!is_object($boadmin_entity))
-						{
-							$boadmin_entity	= CreateObject('property.boadmin_entity');
-						}
-						$entity_category = $boadmin_entity->read_single_category($entity_id,$cat_id);
-						$values['origin'][$i]['descr'] = $entity_category['name'];
-					}
-					else
-					{
-						$values['origin'][$i]['descr']= lang($values['origin'][$i]['type']);
-						if($values['origin'][$i]['type'] == 'request')
-						{
-							$selected_request = true;
-						}
-					}
-				}
-			}
-//------------------------
 //_debug_array($insert_record);
 			if (isset($values['save']))
 			{
@@ -1120,7 +1091,8 @@
 					if(isset($values['location']) && $values['location'])
 					{
 						$location_code=implode("-", $values['location']);
-						$values['location_data'] = $bolocation->read_single($location_code,(isset($values['extra'])?$values['extra']:false));
+						$values['extra']['view'] = true;
+						$values['location_data'] = $bolocation->read_single($location_code, $values['extra']);
 					}
 					if(isset($values['extra']['p_num']) && $values['extra']['p_num'])
 					{
@@ -1550,7 +1522,7 @@
 				'p_entity_id'		=> $ticket['p_entity_id'],
 				'p_cat_id'		=> $ticket['p_cat_id'],
 				'tenant_id'		=> $ticket['tenant_id'],
-				'origin'		=> 'tts',
+				'origin'		=> '.ticket',
 				'origin_id'		=> $id
 			);
 
@@ -1564,7 +1536,7 @@
 				'p_entity_id'		=> $ticket['p_entity_id'],
 				'p_cat_id'		=> $ticket['p_cat_id'],
 				'tenant_id'		=> $ticket['tenant_id'],
-				'origin'		=> 'tts',
+				'origin'		=> '.ticket',
 				'origin_id'		=> $id
 			);
 
@@ -1638,7 +1610,7 @@
 						'p_entity_id'		=> $ticket['p_entity_id'],
 						'p_cat_id'		=> $ticket['p_cat_id'],
 						'tenant_id'		=> $ticket['tenant_id'],
-						'origin'		=> 'tts',
+						'origin'		=> '.ticket',
 						'origin_id'		=> $id
 					));
 					$link_entity[$i]['name']	= $entry['name'];
@@ -1649,59 +1621,6 @@
 //_debug_array($link_entity);
 
 			$msgbox_data = $this->bocommon->msgbox_data($receipt);
-
-			if (isset($ticket['origin']) AND is_array($ticket['origin']))
-			{
-				for ($i=0;$i<count($ticket['origin']);$i++)
-				{
-					$ticket['origin'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',$ticket['origin'][$i]['link']);
-
-					if(substr($ticket['origin'][$i]['type'],0,6)=='entity')
-					{
-						$type		= explode("_",$ticket['origin'][$i]['type']);
-						$entity_id	= $type[1];
-						$cat_id		= $type[2];
-
-						if(!isset($boadmin_entity) || !is_object($boadmin_entity))
-						{
-							$boadmin_entity	= CreateObject('property.boadmin_entity');
-						}
-						$entity_category = $boadmin_entity->read_single_category($entity_id,$cat_id);
-						$ticket['origin'][$i]['descr'] = $entity_category['name'];
-					}
-					else
-					{
-						$ticket['origin'][$i]['descr']= lang($ticket['origin'][$i]['type']);
-					}
-				}
-			}
-
-
-			if (isset($ticket['destination']) AND is_array($ticket['destination']))
-			{
-				for ($i=0;$i<count($ticket['destination']);$i++)
-				{
-					$ticket['destination'][$i]['link']=$GLOBALS['phpgw']->link('/index.php',$ticket['destination'][$i]['link']);
-
-					if(substr($ticket['destination'][$i]['type'],0,6)=='entity')
-					{
-						$type		= explode("_",$ticket['destination'][$i]['type']);
-						$entity_id	= $type[1];
-						$cat_id		= $type[2];
-
-						if(!isset($boadmin_entity) || !is_object($boadmin_entity))
-						{
-							$boadmin_entity	= CreateObject('property.boadmin_entity');
-						}
-						$entity_category = $boadmin_entity->read_single_category($entity_id,$cat_id);
-						$ticket['destination'][$i]['descr'] = $entity_category['name'];
-					}
-					else
-					{
-						$ticket['destination'][$i]['descr']= lang($ticket['destination'][$i]['type']);
-					}
-				}
-			}
 
 			$link_file_data = array
 			(
@@ -1714,8 +1633,8 @@
 
 			$data = array
 			(
-				'value_origin'				=> (isset($ticket['origin'])?$ticket['origin']:''),
-				'value_destination'			=> (isset($ticket['destination'])?$ticket['destination']:''),
+				'value_origin'				=> $ticket['origin'],
+				'value_target'				=> $ticket['target'],
 				'lang_finnish_date'			=> lang('finnish date'),
 				'value_finnish_date'		=> $ticket['finnish_date'],
 				'img_cal'					=> $GLOBALS['phpgw']->common->image('phpgwapi','cal'),

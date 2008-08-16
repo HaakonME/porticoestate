@@ -168,7 +168,7 @@
 			return $this->bocommon->select_list($selected,$categories);
 		}
 
-		function set_permission2($values,$r_processed, $grantor = 0, $type = 0)
+		function set_permission2($values,$r_processed, $grantor = -1, $type = 0)
 		{
 			if ( !is_array($values) )
 			{
@@ -192,7 +192,6 @@
 			foreach ( $totalacl as $user_id => $rights )
 			{
 				$user_checked[] = $user_id;
-
 				$this->acl->set_account_id($user_id, true);
 				$this->acl->delete($this->acl_app, $this->location, $grantor, $type);
 				$this->acl->add($this->acl_app, $this->location, $rights, $grantor, $type);
@@ -226,6 +225,8 @@
 
 		function set_permission($values,$r_processed,$set_grant = false,$initials='')
 		{
+			$this->acl->enable_inheritance = phpgw::get_var('enable_inheritance', 'bool', 'POST');
+
 			if($initials)
 			{
 				$this->so->set_initials($initials);
@@ -243,7 +244,7 @@
 				$values['mask'] = array();
 			}
 
-			$grantor = 0;
+			$grantor = -1;
 			if($set_grant)
 			{
 				if($this->granting_group)
@@ -261,6 +262,7 @@
 			$cleared = $this->bocommon->reset_fm_cache_userlist();
 			$receipt['message'][] = array('msg' => lang('permissions are updated!'));
 			$receipt['message'][] = array('msg' => lang('%1 userlists cleared from cache',$cleared));
+			phpgwapi_cache::user_clear('phpgwapi', 'menu', -1);
 			return $receipt;
 		}
 
@@ -275,7 +277,7 @@
 				$check_account_type = array('groups','accounts');
 			}
 
-			$grantor = 0;
+			$grantor = -1;
 			if($get_grants)
 			{
 				if($this->granting_group)

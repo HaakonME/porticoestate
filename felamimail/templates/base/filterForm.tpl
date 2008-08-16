@@ -60,7 +60,7 @@
 		<a href="{link_newFilter} ">{lang_new_filter}</a>
 	</td>
 	<td  class="body" align="right" colspan="2">
-		<input type="submit" class="body" value='{lang_add}'>
+		<input type="submit" class="body" value="{lang_save}" name="save">
 	</td>
 </tr>
 
@@ -71,17 +71,17 @@
 <form method="post" name="filterList" action="{link_action}">
 
 <table width="95%" border="0" cellspacing="1" cellpading="1">
-<tr class="th">
-	<td >
+<tr>
+	<td class="body">
 		{lang_no_filter}
 	</td>
-	<td  align="right">
+	<td class="body" align="right">
 		<a href={link_noFilter}>{lang_activate}</a>
 	</td>
-	<td  align="right">
+	<td class="body" align="right">
 		&nbsp;
 	</td>
-	<td align="right">
+	<td class="body" align="right">
 		&nbsp;
 	</td>
 </tr>
@@ -99,8 +99,8 @@ document.filterForm.filterName.focus();
 <!-- END header -->
 
 <!-- BEGIN filterrow -->
-<tr class="{row_class}">
-	<td >
+<tr>
+	<td class="body">
 		{filtername}
 	</td>
 	<td class="body" align="right">

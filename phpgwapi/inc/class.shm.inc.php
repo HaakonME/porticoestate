@@ -274,7 +274,6 @@
 		{
 			$SHM_KEY = ftok(PHPGW_SHM_LOCK, 'R');
 			$shmid = @sem_get($SHM_KEY, 1024, 0644 | IPC_CREAT);
-			var_dump($shmid);
 			sem_acquire($shmid);
 			$hash_id = $this->hash($key);
 			$store_value = array();
@@ -459,7 +458,12 @@
 		*/
 		public static function is_enabled()
 		{
-			return function_exists('sem_get');
+			if ( isset($GLOBALS['phpgw_info']['server']['shm_enable'])  
+				&& $GLOBALS['phpgw_info']['server']['shm_enable'] )
+			{
+				return function_exists('sem_get');
+			}
+
+			return false;
 		}
 	}
-

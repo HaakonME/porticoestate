@@ -163,6 +163,7 @@
 				'search'		=> false,
 				'list'			=> false,
 				'history'		=> false,
+				'lookup_form'	=> false,
 				'disabled'		=> false,
 				'helpmsg'		=> $this->_db->db_addslashes($attrib['helpmsg']),
 				'attrib_sort'	=> 0,
@@ -186,6 +187,16 @@
 			if ( isset($attrib['history']) )
 			{
 				$values['history'] = !!$attrib['history'];
+			}
+
+			if ( isset($attrib['lookup_form']) )
+			{
+				$values['lookup_form'] = !!$attrib['lookup_form'];
+			}
+
+			if ( isset($attrib['disabled']) )
+			{
+				$values['disabled'] = !!$attrib['disabled'];
 			}
 
 			if ( isset($attrib['default']) )
@@ -223,19 +234,20 @@
 				return -1;
 			}
 
-			$sql = 'SELECT MAX(attrib_sort) AS max_sort, MAX(id) AS current_id'
-				. ' FROM phpgw_cust_attribute '
-				. " WHERE location_id ='{$values['location_id']}'";
-			$this->_db->query($sql, __LINE__, __FILE__);
-			$this->_db->next_record();
-			$values['attrib_sort']	= $this->_db->f('max_sort') + 1;
-			$values['id']	= $this->_db->f('current_id') + 1;		
-			
-			$cols = implode(', ', array_keys($values));
-			$vals = $this->_db->validate_insert($values);
 
 			if ( !$doubled )
 			{
+				$sql = 'SELECT MAX(attrib_sort) AS max_sort, MAX(id) AS current_id'
+					. ' FROM phpgw_cust_attribute '
+					. " WHERE location_id ='{$values['location_id']}'";
+				$this->_db->query($sql, __LINE__, __FILE__);
+				$this->_db->next_record();
+				$values['attrib_sort']	= $this->_db->f('max_sort') + 1;
+				$values['id']	= $this->_db->f('current_id') + 1;		
+			
+				$cols = implode(', ', array_keys($values));
+				$vals = $this->_db->validate_insert($values);
+
 				$sql = "INSERT INTO phpgw_cust_attribute({$cols}) VALUES({$vals})";
 				$this->_db->query($sql, __LINE__, __FILE__);
 			}
@@ -329,19 +341,24 @@
 		}
 
 		/**
-		 * Delete a custom attribute or custom function
+		 * Delete a custom field/attribute
 		 * 
-		 * @param string  $appname the application name
-		 * @param string  $location the location
-		 * @param integer $attrib_id the db pk for the attribute to delete
+		 * @param string $location within an application
+		 * @param string $appname where to delete the attrib
+		 * @param integer $attrib_id id of attrib to delete
+		 * @param bool $doubled sometimes the attribute fits into a history-table as a double
 		 *
 		 * @return boolean was the record deleted?
 		 */
-		public function delete($appname, $location, $attrib_id)
+		public function delete($appname, $location, $attrib_id, $table = '',$doubled = false )
 		{
 			$loc_id		= $GLOBALS['phpgw']->locations->get_id($appname, $location);
-			$table		= $GLOBALS['phpgw']->locations->get_attrib_table($appname, $location);
 			$attrib_id	= (int) $attrib_id;
+
+			if(!$table)
+			{
+				$table	= $GLOBALS['phpgw']->locations->get_attrib_table($appname, $location);
+			}
 
 			$this->_db->transaction_begin();
 			$sql = "SELECT column_name FROM phpgw_cust_attribute"
@@ -357,25 +374,30 @@
 
 			$this->_oProc->DropColumn($table, false, $column_name);
 
-			$sql = "SELECT attrib_sort FROM phpgw_cust_attribute"
-				. " WHERE location_id = {$loc_id} AND id = {$attrib_id}";
-			$this->_db->query($sql,__LINE__,__FILE__);
-			$this->_db->next_record();
-			$attrib_sort	= $this->_db->f('attrib_sort');
-
-			$sql = "SELECT MAX(attrib_sort) AS max_sort"
-				. " FROM phpgw_cust_attribute WHERE location_id = {$loc_id}";
-			$this->_db->query($sql, __LINE__, __FILE__);
-			$this->_db->next_record();
-			$max_sort	= $this->_db->f('max_sort');
-			
-			if ( $max_sort > $attrib_sort )
+			if(!$doubled) // else: wait for it - another one is coming
 			{
-				$sql = "UPDATE phpgw_cust_attribute SET attrib_sort = attrib_sort - 1"
-					. " WHERE location_id = {$loc_id} AND attrib_sort > {$attrib_sort}";
-				$this->_db->query($sql, __LINE__, __FILE__);
-			}
+				$sql = "SELECT attrib_sort FROM phpgw_cust_attribute"
+					. " WHERE location_id = {$loc_id} AND id = {$attrib_id}";
+				$this->_db->query($sql,__LINE__,__FILE__);
+				$this->_db->next_record();
+				$attrib_sort	= $this->_db->f('attrib_sort');
 
+				$sql = "SELECT MAX(attrib_sort) AS max_sort"
+					. " FROM phpgw_cust_attribute WHERE location_id = {$loc_id}";
+				$this->_db->query($sql, __LINE__, __FILE__);
+				$this->_db->next_record();
+				$max_sort	= $this->_db->f('max_sort');
+			
+				if ( $max_sort > $attrib_sort )
+				{
+					$sql = "UPDATE phpgw_cust_attribute SET attrib_sort = attrib_sort - 1"
+						. " WHERE location_id = {$loc_id} AND attrib_sort > {$attrib_sort}";
+					$this->_db->query($sql, __LINE__, __FILE__);
+				}
+				$sql = "DELETE FROM phpgw_cust_attribute"
+						. " WHERE location_id = {$loc_id} AND id = {$attrib_id}";
+				$this->_db->query($sql, __LINE__,__FILE__);
+			}	
 			return $this->_db->transaction_commit();
 		}
 
@@ -384,70 +406,33 @@
 		 * 
 		 * @param array  $attrib       the field data
 		 * @param string $attrib_table which table the attribute is part of
+		 * @param bool $doubled sometimes the attribute fits into a history-table as a double
 		 *
 		 * @return integer the database id of the attribute
 		 */
-		public function edit($attrib, $attrib_table = '')
+		function edit($attrib, $attrib_table = '', $doubled = false)
 		{
+			// Checkboxes are only present if ticked, so we declare them here to stop errors
+			$attrib['search'] = isset($attrib['search']) ? !!$attrib['search'] : false;
+			$attrib['list'] = isset($attrib['list']) ? !!$attrib['list'] : false;
+			$attrib['history'] = isset($attrib['history']) ? !!$attrib['history'] : false;
+			$attrib['lookup_form'] = isset($attrib['lookup_form']) ? !!$attrib['lookup_form'] : false;
+
 			if(!$attrib_table)
 			{
-				$attrib_table = $GLOBALS['phpgw']->locations->get_attrib_table($attrib['appname'], $attrib['location']);
+				$attrib_table = $GLOBALS['phpgw']->locations->get_attrib_table($attrib['appname'],$attrib['location']);
 			}
 
-			$values = array
-			(
-				'location_id'	=> $GLOBALS['phpgw']->locations->get_id($attrib['appname'], $attrib['location']),
-				'id'			=> (int) $attrib['id'],
-				'column_name'	=> $this->_db->db_addslashes(strtolower($attrib['column_name'])),
-				'input_text'	=> $this->_db->db_addslashes($attrib['input_text']),
-				'statustext'	=> $this->_db->db_addslashes($attrib['statustext']),
-				'search'		=> false,
-				'list'			=> false,
-				'history'		=> false,
-				'disabled'		=> false,
-				'helpmsg'		=> $this->_db->db_addslashes($attrib['helpmsg']),
-				'attrib_sort'	=> 0,
-				'datatype'		=> $this->_db->db_addslashes($attrib['column_info']['type']),
-				'precision_'	=> (int) $attrib['column_info']['precision'],
-				'scale'			=> (int) $attrib['column_info']['scale'],
-				'default_value'	=> '',
-				'nullable'		=> false
-			);
+			$location_id	= $GLOBALS['phpgw']->locations->get_id($attrib['appname'], $attrib['location']);
+			$attrib_id		= (int) $attrib['id'];
 
-			$new_choice = '';
-			if ( isset($attrib['new_choice']) )
-			{
-				$new_choice = $attrib['new_choice'];
-			}
+			$attrib['column_name'] = $this->_db->db_addslashes(strtolower($attrib['column_name']));
+			$attrib['input_text'] = $this->_db->db_addslashes($attrib['input_text']);
+			$attrib['statustext'] = $this->_db->db_addslashes($attrib['statustext']);
+			$attrib['helpmsg'] = $this->_db->db_addslashes($attrib['helpmsg']);
+			$attrib['column_info']['default'] = $this->_db->db_addslashes($attrib['column_info']['default']);
 
-			$delete_choice = array();
-			if ( isset($attrib['delete_choice']) 
-					&& is_array($attrib['delete_choice']) )
-			{
-				$delete_choice = $attrib['delete_choice'];
-			}
-
-			if ( isset($attrib['search']) )
-			{
-				$values['search'] = !!$attrib['search'];
-			}
-
-			if ( isset($attrib['list']) )
-			{
-				$values['list'] = !!$attrib['list'];
-			}
-
-			if ( isset($attrib['history']) )
-			{
-				$values['history'] = !!$attrib['history'];
-			}
-
-			if ( isset($attrib['default']) )
-			{
-				$values['default_value'] = $this->_db->db_addslashes($attrib['column_info']['default']);
-			}
-
-			switch ( $values['datatype'] )
+			switch ($attrib['column_info']['type'] )
 			{
 				case 'R':
 				case 'CH':
@@ -458,16 +443,14 @@
 					{
 						$receipt['error'][] = array('msg'	=> lang('History not allowed for this datatype'));
 					}
-					$values['history'] = false;
+					$attrib['history'] = false;
 					break;
 
 				default: // all is good
 			}
 
-			unset($attrib);
-
 			$sql = "SELECT column_name, datatype, precision_ FROM phpgw_cust_attribute " 
-				. " WHERE location_id  = {$values['location_id']} AND id = {$values['id']}";
+				. " WHERE location_id  = {$location_id} AND id = {$attrib_id}";
 			$this->_db->query($sql, __LINE__, __FILE__);
 			if ( !$this->_db->next_record() )
 			{
@@ -475,111 +458,144 @@
 				return false;
 			}
 
-			$old_column_name	= $this->_db->f('column_name');
-			$old_data_type		= $this->_db->f('datatype');
-			$old_precision		= $this->_db->f('precision_');			
+			$OldColumnName		= $this->_db->f('column_name');
+			$OldDataType		= $this->_db->f('datatype');
+			$OldPrecision		= $this->_db->f('precision_');			
 			
 			$table_def = $this->get_table_def($attrib_table);	
 
 			$this->_db->transaction_begin();
 
-			$this->_oProc->m_aTables = $table_def;
-
-			if ( $old_column_name != $values['column_name'] )
+			if( !$doubled )
 			{
-				$this->_oProc->RenameColumn($attrib_table, $old_column_name, $values['column_name']);
+				$value_set = array
+				(
+					'input_text'	=> $attrib['input_text'],
+					'statustext'	=> $attrib['statustext'],
+					'search'		=> isset($attrib['search']) ? $attrib['search'] : '',
+					'list'			=> isset($attrib['list']) ? $attrib['list'] : '',
+					'history'		=> isset($attrib['history']) ? $attrib['history'] : '',
+					'nullable'		=> $attrib['column_info']['nullable'] == 'False' ? 'False' : 'True',
+					'disabled'		=> isset($attrib['disabled']) ? $attrib['disabled'] : '',
+					'helpmsg'		=> $attrib['helpmsg'],
+					'lookup_form'	=> isset($attrib['lookup_form']) ? $attrib['lookup_form'] : ''
+				);
+
+				$value_set	= $this->_db->validate_update($value_set);
+
+				$this->_db->query("UPDATE phpgw_cust_attribute set $value_set WHERE location_id = {$location_id} AND id=" . $attrib_id,__LINE__,__FILE__);
 			}
 
-			if ( $old_data_type != $attrib['datatype']
-				|| $old_precision != $attrib['precision_'] )
+			$this->_oProc->m_aTables = $table_def;
+
+			if($OldColumnName !=$attrib['column_name'])
 			{
-				switch ( $values['datatype'] )
+				$value_set=array('column_name'	=> $attrib['column_name']);
+
+				if( !$doubled )
 				{
-					default:
-						$sql = "DELETE FROM phpgw_cust_choice"
-							. " WHERE location_id = {$values['location_id']}"
-								. " AND attrib_id = {$values['id']}";
-						$this->_db->query($sql, __LINE__, __FILE__);
-						break;
-					case 'R':
-					case 'CH':
-					case 'LB':
-						//do nothing
+					$value_set	= $this->_db->validate_update($value_set);
+					$this->_db->query("UPDATE phpgw_cust_attribute set $value_set WHERE location_id = {$location_id} AND id=" . $attrib_id,__LINE__,__FILE__);
 				}
 
-				if ( !$values['precision_'] )
+				$this->_oProc->RenameColumn($attrib_table, $OldColumnName, $attrib['column_name']);
+			}
+
+			if (($OldDataType != $attrib['column_info']['type'])
+				|| ($OldPrecision != $attrib['column_info']['precision']) )
+			{
+				if( !$doubled )
 				{
-					$precision = $this->_translate_datatype_precision($values['datatype']);
-					if ( $precision )
+					switch ( $attrib['column_info']['type'] )
 					{
-						$values['precision_'] = $precision;
+						default:
+							$sql = "DELETE FROM phpgw_cust_choice"
+							. " WHERE location_id = {$location_id}"
+							. " AND attrib_id = {$attrib_id}";
+							$this->_db->query($sql, __LINE__, __FILE__);
+							break;
+						case 'R':
+						case 'CH':
+						case 'LB':
+							//do nothing
 					}
 				}
 
-				if ( !$values['default'] )
+				if(!$attrib['column_info']['precision'])
 				{
-					unset($values['default']);
+					if($precision = $this->_translate_datatype_precision($attrib['column_info']['type']))
+					{
+						$attrib['column_info']['precision']=$precision;
+					}
 				}
 
-				$col_info = array
-				(
-					'type'		=> $this->_translate_datatype_insert($values['datatype']),
-					'precision'	=> (int) $values['precision_'],
-					'scale'		=> (int) $values['scale'],
-					'default'	=> $values['default_value'],
-					'nullable'	=> $values['nullable']
-				);
-				
-				$this->_oProc->AlterColumn($attrib_table, $values['column_name'], $col_info['column_info']);
-			}
-
-			$vals = $this->_db->validate_update($values);
-			$sql = 'UPDATE phpgw_cust_attribute'
-					. " SET {$vals}"
-					. " WHERE  location_id = {$values['location_id']}"
-						. " AND id = {$values['id']}";
-			$this->_db->query($sql ,__LINE__,__FILE__);
-
-			if ( $new_choice )
-			{
-				$choice_vals = array
-				(
-					'location_id'	=> $values['location_id'],
-					'attrib_id'		=> $values['id']
-				);
-				$choice_id = 
-
-				$choice_vals['id']		= $this->_next_id('phpgw_cust_choice', $choice_vals);
-				$choice_vals['value']	= $new_choice;
-
-				$cols = implode(',', array_keys($choice_vals));
-				$vals = $this->_db->validate_insert($choice_vals);
-
-				$sql = "INSERT INTO phpgw_cust_choice({$cols}) VALUES({$vals})";
-				$this->_db->query($sql, __LINE__, __FILE__);
-				unset($choice_vals);
-			}
-
-			if ( count($delete_choice) )
-			{
-				foreach ( $delete_choice as $choice )
+				if(!isset($attrib['column_info']['default']))
 				{
-					$choice = (int) $choice;
+					unset($attrib['column_info']['default']);
+				}
+
+				$value_set=array(
+					'column_name'	=> $attrib['column_name'],
+					'datatype'		=> $attrib['column_info']['type'],
+					'precision_'	=> $attrib['column_info']['precision'],
+					'scale'			=> $attrib['column_info']['scale'],
+					'default_value'	=> $attrib['column_info']['default'],
+					'nullable'		=> $attrib['column_info']['nullable']
+					);
+
+				if( !$doubled )
+				{
+					$value_set	= $this->_db->validate_update($value_set);
+
+					$sql = 'UPDATE phpgw_cust_attribute'
+							. " SET {$value_set}"
+							. " WHERE  location_id = {$location_id}"
+								. " AND id = {$attrib_id}";
+					$this->_db->query($sql ,__LINE__,__FILE__);
+				}
+
+				$attrib['column_info']['type']  = $this->_translate_datatype_insert($attrib['column_info']['type']);
+				$this->_oProc->AlterColumn($attrib_table,$attrib['column_name'],$attrib['column_info']);			
+			}
+			
+			if(isset($attrib['new_choice']) && $attrib['new_choice'] && !$doubled )
+			{
+				$choice_id = $this->_next_id('phpgw_cust_choice' ,array('location_id'=> $location_id, 'attrib_id'=>$attrib_id));
+
+				$values= array(
+					$location_id,
+					$attrib_id,
+					$choice_id,
+					$attrib['new_choice']
+					);
+
+				$values	= $this->_db->validate_insert($values);
+
+				$this->_db->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) "
+				. "VALUES ($values)",__LINE__,__FILE__);
+			}
+
+			if ( count($attrib['delete_choice'])  && !$doubled )
+			{
+				foreach ($attrib['delete_choice'] as $choice_id)
+				{
+					$choice_id = (int) $choice_id;
 					$sql = "DELETE FROM phpgw_cust_choice"
-						. " WHERE location_id = {$values['location_id']}"
-							. " AND attrib_id = {$choice}";
+						. " WHERE location_id = {$location_id}"
+							. " AND attrib_id = {$attrib_id}"
+							. " AND id = {$choice_id}";
 					$this->_db->query($sql, __LINE__, __FILE__);
 				}
 			}
 
 			if ( $this->_db->transaction_commit() )
 			{
-				return $values['id'];
-				$receipt['message'][] = array('msg'	=> lang('Attribute has been edited'));
+				return true;
 			}
 
-			return 0;
+			return false;
 		}
+
 
 		/**
 		 * Get a list of attributes
@@ -671,7 +687,7 @@
 					'type_name'			=> $this->_db->f('type'),
 					'datatype'			=> $this->_db->f('datatype'),
 					'search'			=> $this->_db->f('search'),
-					'trans_datatype'	=> $this->_translate_datatype($this->_db->f('datatype')),
+					'trans_datatype'	=> $this->translate_datatype($this->_db->f('datatype')),
 					'nullable'			=> ($this->_db->f('nullable') == 'True'),
 					//'allow_null'		=> ($this->_db->f('nullable') == 'True'), // FIXME
 					'history'			=> $this->_db->f('history'),
@@ -729,7 +745,7 @@
 			$attrib = array
 			(
 				'id'			=> $this->_db->f('id'),
-				// FIXME this isn't needed -its duplicated data - someone needs to fix their broken code!
+				// FIXME this isn't needed
 				//'attrib_id'		=> $this->_db->f('id'),
 				'column_name'	=> $this->_db->f('column_name', true),
 				'input_text'	=> $this->_db->f('input_text', true),
@@ -743,7 +759,7 @@
 				'location_id'	=> $this->_db->f('location_id'),
 				// FIXME this is broken it should be a small int and used as a bool
 				'nullable'		=> $this->_db->f('nullable') == 'True',
-				// FIXME this isn't needed -its duplicated data - someone needs to fix their broken code!
+				// FIXME this isn't needed
 				//'allow_null'	=> $this->_db->f('nullable') == 'True',
 				'disabled'		=> !!$this->_db->f('disabled'),
 				'helpmsg'		=> $this->_db->f('helpmsg', true),
@@ -752,7 +768,7 @@
 										'precision'	=> $this->_db->f('precision_'),
 										'scale'		=> $this->_db->f('scale'),
 										'default'	=> $this->_db->f('default_value', true),
-										// more duplicated values - great design
+										// more duplicated values
 										'nullable'	=> $this->_db->f('nullable'),
 										'type'		=> $this->_db->f('datatype')
 									)
@@ -816,10 +832,13 @@
 		{
 			$id		= (int) $id;
 
-			$resort	= 'up';
 			if ( $resort == 'down' )
 			{
 				$resort = 'down';
+			}
+			else
+			{
+				$resort	= 'up';
 			}
 
 			$location_id = $GLOBALS['phpgw']->locations->get_id($appname, $location);
@@ -838,7 +857,7 @@
 			$this->_db->next_record();
 			$max_sort	= $this->_db->f('max_sort');
 
-			$update = true;
+			$update = false;
 			switch($resort)
 			{
 				case 'down':
@@ -877,6 +896,22 @@
 		}
 
 		/**
+		 * Convert a datatype to a human readable label
+		 *
+		 * @param string $datatype the dataype to convert
+		 *
+		 * @return string the user readable string
+		 */
+		public function translate_datatype($datatype)
+		{
+			if ( isset($this->datatype_text[$datatype]) )
+			{
+				return $this->datatype_text[$datatype];
+			}
+			return '';
+		}
+
+		/**
 		 * Get the list of available choices for a lookup field
 		 *
 		 * @param integer $location_id the location for the attribute
@@ -888,7 +923,7 @@
 			$ttrib_id		= (int) $attrib_id;
 			
 			$sql = "SELECT * FROM phpgw_cust_choice " 
-				. " WHERE phpgw_location.id = {$location_id}"
+				. " WHERE location_id = {$location_id}"
 					. " AND attrib_id = {$attrib_id}"
 				. " ORDER BY value";
 			$this->_db->query($sql,__LINE__,__FILE__);
@@ -896,10 +931,11 @@
 			$choices = array();
 			while ( $this->_db->next_record() )
 			{
-				$id = $this->_db->f('id');
-				$choices[$id] = array
+			//	$id = $this->_db->f('id');
+			//	$choices[$id] = array
+				$choices[] = array
 				(
-					'id'	=> $id,
+					'id'	=> $this->_db->f('id'),
 					'value'	=> $this->_db->f('value', true)
 				);
 			}
@@ -947,22 +983,6 @@
 
 			++$next_id;
 			return $next_id;
-		}
-
-		/**
-		 * Convert a datatype to a human readable label
-		 *
-		 * @param string $datatype the dataype to convert
-		 *
-		 * @return string the user readable string
-		 */
-		protected function _translate_datatype($datatype)
-		{
-			if ( isset($this->datatype_text[$datatype]) )
-			{
-				return $this->datatype_text[$datatype];
-			}
-			return '';
 		}
 
 		/**

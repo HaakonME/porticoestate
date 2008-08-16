@@ -62,82 +62,26 @@
 		}
 
 		/**
-		 * Get the admin menu
-		 *
-		 * @return array a flat menu list for use in admin
-		 */
-		protected static function _get_menu()
-		{
-			$flat_menu = array();
-
-			$menu = execMethod('phpgwapi.menu.get', 'admin');
-			foreach ( $menu as $app => $items )
-			{
-				if ( !is_array($items) )
-				{
-					continue;
-				}
-
-				self::_get_sub_menu($flat_menu, $app, $items);
-			}
-
-			return $flat_menu;
-		}
-
-		/**
-		 * Get sub items from a menu in a flat structure
-		 *
-		 * @param array  &$menu the menu structure to append the items to
-		 * @param string $app   the application the is for
-		 * @param array  $items the menu items to add to the flat structure
-		 */
-		protected static function _get_sub_menu(&$menu, $app, $items)
-		{
-			foreach ( $items as $item )
-			{
-				if ( !isset($item['children']) )
-				{
-					$menu[$app][] =  $item;
-				}
-				else
-				{
-					self::_get_sub_menu($menu, $app, $item['children']);
-				}
-			}
-		}
-
-		/**
 		 * Render the admin menu
 		 *
 		 * @return void
 		 */
-		public function mainscreen()
+		function mainscreen()
 		{
-			$html = '';
+			$menu		= createObject('phpgwapi.menu');
+			$navbar		= $menu->get('navbar');
+			$navigation = $menu->get('admin');
 
-			$menu = self::_get_menu();
-			foreach ( $menu as $module => $entries )
+			$treemenu = '';
+			foreach ( $GLOBALS['phpgw_info']['user']['apps'] as $app => $app_info )
 			{
-				$html .= <<<HTML
-				<h2>$module</h2>
-				<ul>
-
-HTML;
-				$i = 0;
-				foreach ( $entries as $entry )
+				if(!in_array($app, array('logout', 'about', 'preferences')) && isset($navbar[$app]))
 				{
-					$row = $i % 2 ? 'on' : 'off';
-					$html .= <<<HTML
-					<li class="row_{$row}"><a href="{$entry['url']}">{$entry['text']}</a></li>
-HTML;
-					++$i;
+					$treemenu .= $menu->render_menu($app, $navigation[$app], $navbar[$app], true);
 				}
-				$html .= <<<HTML
-				</ul>
-HTML;
 			}
 			$GLOBALS['phpgw']->common->phpgw_header(true);
-			echo $html;
+			echo $treemenu;
 		}
 
 		/**

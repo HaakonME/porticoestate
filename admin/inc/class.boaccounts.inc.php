@@ -193,6 +193,13 @@
 				$GLOBALS['phpgw']->accounts->update_group($new_group, $values['account_user'],
 														$values['account_apps']);
 			}
+
+			//Delete cached menu for members of group
+			$members = $GLOBALS['phpgw']->accounts->member($id);
+			foreach($members as $entry)
+			{
+				phpgwapi_cache::user_clear('phpgwapi', 'menu', $entry['account_id']);
+			}
 		}
 
 		/**
@@ -317,6 +324,11 @@
 			catch ( Exception $e )
 			{
 				throw $e;
+			}
+
+			if ( $user->id )
+			{
+				phpgwapi_cache::user_clear('phpgwapi', 'menu', $user->id);
 			}
 
 			if ( !$user->is_dirty() )

@@ -1144,19 +1144,12 @@
 			}
 
 			$this->total_records = $this->db->num_rows();
-			$persons = false;
+			$persons = array();
 
-		/*	while ($this->db->next_record())
+			while ($this->db->next_record())
 			{
-				$persons[] = $this->db->resultSet->fetchRow();
+				$persons[] = $this->db->Record;
 			}
-		*/
-
-			while (!$this->db->resultSet->EOF)
-			{
-				$persons[] = $this->db->resultSet->fetchRow();
-			}
-
 			return $persons;
 		}
 
@@ -1643,9 +1636,9 @@
 			$accounts = $GLOBALS['phpgw']->accounts->get_list();
 			foreach($accounts as $account_data)
 			{
-				if($account_data['person_id'])
+				if($account_data->person_id)
 				{
-					$people[] = $account_data['person_id'];
+					$people[] = $account_data->person_id;
 				}
 			}
 
@@ -3354,9 +3347,9 @@
 			$accounts = $GLOBALS['phpgw']->accounts->get_list();
 			foreach($accounts as $account_data)
 			{
-				if($account_data['person_id'] == $contact_id)
+				if($account_data->id == $contact_id)
 				{
-					$account_id = $account_data['account_id'];
+					$account_id = $account_data->id;
 					break;
 				}
 			}
