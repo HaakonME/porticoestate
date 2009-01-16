@@ -105,10 +105,9 @@
 			{
 				$this->sort = $sort;
 			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
+
+			$this->order	= isset($order) && $order ? $order : '';
+
 			if(isset($cat_id))
 			{
 				$this->cat_id = $cat_id;
@@ -232,7 +231,7 @@
 		function read_event($data)
 		{
 			$boalarm		= CreateObject('property.boalarm');
-			$event	= $this->so->read_single($data);
+			$event	= $this->so->read_single($data['agreement_id']);
 			$event['alarm_date']=$event['termination_date'];
 			$event['alarm']	= $boalarm->read_alarms($type='agreement',$data['agreement_id']);
 			return $event;
@@ -288,6 +287,20 @@
 			}
 			$values = $this->custom->prepare($values, 'property', '.agreement.detail');
 			return $values;
+		}
+
+		/**
+		* Arrange attributes within groups
+		*
+		* @param string  $location    the name of the location of the attribute
+		* @param array   $attributes  the array of the attributes to be grouped
+		*
+		* @return array the grouped attributes
+		*/
+
+		public function get_attribute_groups($location, $attributes = array())
+		{
+			return $this->custom->get_attribute_groups('property', $location, $attributes);
 		}
 
 		function save($values,$values_attribute='',$action='')

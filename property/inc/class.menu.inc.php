@@ -13,7 +13,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -38,7 +38,7 @@
 		 *
 		 * @return array available menus for the current user
 		 */
-		public function get_menu()
+		public function get_menu($type='')
 		{
 			$incoming_app = $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$GLOBALS['phpgw_info']['flags']['currentapp'] = 'property';
@@ -274,6 +274,11 @@
 					(
 						'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.uiadmin_location.config') ),
 						'text'	=> lang('Config')
+					),
+					'update_location' => array
+					(
+						'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.uilocation.update_location') ),
+						'text'	=> lang('update location')
 					)
 				);
 
@@ -755,7 +760,7 @@
 
 			if ( $acl->check('.document', PHPGW_ACL_READ, 'property') )
 			{
-				$laws_url = "{$GLOBALS['phpgw_info']['server']['webserver_url']}/redirect.php?go=". urlencode('http://www.regelhjelp.no/');
+				$laws_url = $GLOBALS['phpgw']->link('/redirect.php',array('go' => urlencode('http://www.regelhjelp.no/')));
 				$menus['navigation']['documentation'] = array
 				(
 					'url'		=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.uidocument.index')),
@@ -816,17 +821,19 @@
 						);
 					}
 
-					$cat_list = $entity->read_category(array('allrows'=>true,'entity_id'=>$entry['id']));
-
-					foreach($cat_list as $category)
+					if ($type != 'horisontal')
 					{
-						if ( $acl->check(".entity.{$entry['id']}.{$category['id']}", PHPGW_ACL_READ, 'property') )
+						$cat_list = $entity->read_category(array('allrows'=>true,'entity_id'=>$entry['id']));
+						foreach($cat_list as $category)
 						{
-							$menus['navigation']["entity_{$entry['id']}"]['children']["entity_{$entry['id']}_{$category['id']}"]	= array
-							(
-								'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.uientity.index', 'entity_id'=> $entry['id'] , 'cat_id'=> $category['id'])),
-								'text'	=> $category['name']
-							);
+							if ( $acl->check(".entity.{$entry['id']}.{$category['id']}", PHPGW_ACL_READ, 'property') )
+							{
+								$menus['navigation']["entity_{$entry['id']}"]['children']["entity_{$entry['id']}_{$category['id']}"]	= array
+								(
+									'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'property.uientity.index', 'entity_id'=> $entry['id'] , 'cat_id'=> $category['id'])),
+									'text'	=> $category['name']
+								);
+							}
 						}
 					}
 				}

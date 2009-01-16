@@ -36,34 +36,25 @@
 	{
 		function property_socategory()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->account	= $GLOBALS['phpgw_info']['user']['account_id'];
-			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           	= $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
 
-			$this->join			= $this->bocommon->join;
-			$this->like			= $this->bocommon->like;
+			$this->_db =& $GLOBALS['phpgw']->db;
+
+			$this->_like =& $this->_db->like;
+			$this->_join =& $this->_db->join;
 		}
 
 		function read($data)
 		{
 			if(is_array($data))
 			{
-				if ($data['start'])
-				{
-					$start=$data['start'];
-				}
-				else
-				{
-					$start=0;
-				}
-				$query		= (isset($data['query'])?$data['query']:'');
-				$sort		= (isset($data['sort'])?$data['sort']:'DESC');
-				$order		= (isset($data['order'])?$data['order']:'');
-				$type		= (isset($data['type'])?$data['type']:'');
-				$type_id		= (isset($data['type_id'])?$data['type_id']:'');
-				$allrows	= (isset($data['allrows'])?$data['allrows']:'');
+				$start		= isset($data['start']) && $data['start'] ? $data['start']:0;
+				$query		= isset($data['query'])?$data['query']:'';
+				$sort		= isset($data['sort']) && $data['sort'] ? $data['sort']:'DESC';
+				$order		= isset($data['order'])?$data['order']:'';
+				$type		= isset($data['type'])?$data['type']:'';
+				$type_id	= isset($data['type_id'])?$data['type_id']:'';
+				$allrows	= isset($data['allrows'])?$data['allrows']:'';
 			}
 
 			if(!$type)
@@ -73,7 +64,6 @@
 			if ($order)
 			{
 				$ordermethod = " order by $order $sort";
-
 			}
 			else
 			{
@@ -84,32 +74,30 @@
 
 			if($query)
 			{
-				$query = preg_replace("/'/",'',$query);
-				$query = preg_replace('/"/','',$query);
-
-				$querymethod = " where id $this->like '%$query%' or descr $this->like '%$query%'";
+				$query = $this->_db->db_addslashes($query);
+				$querymethod = " WHERE descr $this->_like '%$query%'";
 			}
 
 			$sql = "SELECT * FROM $table $querymethod";
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			$this->_db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->_db->num_rows();
 
 			if(!$allrows)
 			{
-				$this->db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
+				$this->_db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
 			}
 			else
 			{
-				$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
+				$this->_db->query($sql . $ordermethod,__LINE__,__FILE__);
 			}
 
-			while ($this->db->next_record())
+			while ($this->_db->next_record())
 			{
 				$category[] = array
 				(
-					'id'	=> $this->db->f('id'),
-					'descr'	=> stripslashes($this->db->f('descr'))
+					'id'	=> $this->_db->f('id'),
+					'descr'	=> stripslashes($this->_db->f('descr'))
 				);
 			}
 			return $category;
@@ -141,9 +129,6 @@
 					break;
 				case 'location':
 					$table='fm_location' . $type_id . '_category';
-					break;
-				case 'meter':
-					$table='fm_meter_category';
 					break;
 				case 'document':
 					$table='fm_document_category';
@@ -198,12 +183,12 @@
 
 			$sql = "SELECT * FROM $table  where id='$id'";
 
-			$this->db->query($sql,__LINE__,__FILE__);
+			$this->_db->query($sql,__LINE__,__FILE__);
 
-			if ($this->db->next_record())
+			if ($this->_db->next_record())
 			{
-				$category['id']		= $this->db->f('id');
-				$category['descr']	= stripslashes($this->db->f('descr'));
+				$category['id']		= $this->_db->f('id');
+				$category['descr']	= stripslashes($this->_db->f('descr'));
 
 				return $category;
 			}
@@ -215,13 +200,13 @@
 			$table = $this->select_table($data['type'],$data['type_id']);
 			$order		= isset($data['order']) && $data['order'] == 'id' ? 'id' :'descr';
 
-			$this->db->query("SELECT id, descr FROM $table ORDER BY $order");
+			$this->_db->query("SELECT id, descr FROM $table ORDER BY $order");
 
-			while ($this->db->next_record())
+			while ($this->_db->next_record())
 			{
 				$categories[] = array(
-					'id'	=> $this->db->f('id'),
-					'name'	=> stripslashes($this->db->f('descr'))
+					'id'	=> $this->_db->f('id'),
+					'name'	=> stripslashes($this->_db->f('descr'))
 					);
 			}
 			return (isset($categories)?$categories:false);
@@ -232,9 +217,9 @@
 		{
 			$table = $this->select_table($type,$type_id);
 
-			$category['descr'] = $this->db->db_addslashes($category['descr']);
+			$category['descr'] = $this->_db->db_addslashes($category['descr']);
 
-			$this->db->query("INSERT INTO $table (id, descr) "
+			$this->_db->query("INSERT INTO $table (id, descr) "
 				. "VALUES ('" . $category['id'] . "','" . $category['descr']. "')",__LINE__,__FILE__);
 
 			$receipt['message'][]=array('msg'=>lang('category has been saved'));
@@ -246,9 +231,9 @@
 
 			$table = $this->select_table($type,$type_id);
 
-			$category['descr'] = $this->db->db_addslashes($category['descr']);
+			$category['descr'] = $this->_db->db_addslashes($category['descr']);
 
-			$this->db->query("UPDATE $table set descr='" . $category['descr']
+			$this->_db->query("UPDATE $table set descr='" . $category['descr']
 							. "' WHERE id='" . $category['id']. "'",__LINE__,__FILE__);
 
 
@@ -260,7 +245,7 @@
 		{
 			$table = $this->select_table($type,$type_id);
 
-			$this->db->query("DELETE FROM $table WHERE id='" . $id . "'",__LINE__,__FILE__);
+			$this->_db->query("DELETE FROM $table WHERE id='" . $id . "'",__LINE__,__FILE__);
 		}
 	}
 

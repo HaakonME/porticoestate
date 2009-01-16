@@ -401,6 +401,28 @@
 	*/
 	function _debug_array($array,$print=True)
 	{
+		if( phpgw::get_var('phpgw_return_as') == 'json' )
+		{
+			$bt = debug_backtrace();
+			if($array && !is_array($array))
+			{
+				$array = array($array);
+			}
+			
+			$data = array
+			(
+				'info' => array
+							(
+								'file' => "Called from file: {$bt[0]['file']}",
+								'line' => "line: {$bt[0]['line']}"
+							), 
+				'data' => $array
+			);
+			unset($bt);
+			phpgwapi_cache::session_set($GLOBALS['phpgw_info']['flags']['currentapp'], "id_debug", $data);
+			return;
+		}
+
 		$dump = '<pre>' . print_r($array, true) . '</pre>';
 		if(!$print)
 		{
@@ -408,6 +430,51 @@
 		}
 		echo $dump;
 		return '';
+	}
+
+	/**
+	* Prepare a dump of the contents of an array for json
+	*
+	* @param array $array the array to dump
+	* @return void
+	*/
+	function _debug_json($incoming_data)
+	{
+	/*  // FIXME - need some kind of unique comparison of a signature of incoming data to avoid repost of the same data set
+		$preloaded_data = phpgwapi_cache::session_get($GLOBALS['phpgw_info']['flags']['currentapp'], "id_debug");
+		if($preloaded_data)
+		{
+			if(is_array($preloaded_data))
+			{
+				if(is_array($incoming_data))
+				{
+					$data = array_merge($preloaded_data, $incoming_data);
+				}
+				else
+				{
+					$data = array_merge($preloaded_data, array($incoming_data));
+				}
+			}
+			else
+			{
+				if(is_array($incoming_data))
+				{
+					$data = array_merge(array($preloaded_data), $incoming_data);
+				}
+				else
+				{
+					$data = array_merge(array($preloaded_data), array($incoming_data));
+				}
+			
+			}
+		}
+		else
+		{
+			$data = $incoming_data;
+		}
+	*/	
+		$data = $incoming_data;
+		phpgwapi_cache::session_set($GLOBALS['phpgw_info']['flags']['currentapp'], "id_debug", $data);
 	}
 
 	/**

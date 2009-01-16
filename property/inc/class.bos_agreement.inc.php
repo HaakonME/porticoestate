@@ -46,7 +46,7 @@
 		/**
 		* @var object $custom reference to custom fields object
 		*/
-		protected $custom;
+		public $custom;
 
 		var $public_functions = array
 		(
@@ -84,51 +84,15 @@
 			$this->role	= $role;
 			$this->so->role	= $role;
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(isset($query))
-			{
-				$this->query = $query;
-			}
-			if(!empty($filter))
-			{
-				$this->filter = $filter;
-			}
-			if(isset($sort))
-			{
-				$this->sort = $sort;
-			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
-			if(isset($cat_id) && !empty($cat_id))
-			{
-				$this->cat_id = $cat_id;
-			}
-			else
-			{
-				$this->cat_id = '';
-			}
-			if(isset($allrows))
-			{
-				$this->allrows = $allrows;
-			}
-			if(isset($member_id))
-			{
-				$this->member_id = $member_id;
-			}
-			if(isset($vendor_id))
-			{
-				$this->vendor_id = $vendor_id;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->query			= isset($query) ? $query : $this->query;
+			$this->sort				= isset($sort) && $sort ? $sort : '';
+			$this->order			= isset($order) && $order ? $order : '';
+			$this->filter			= isset($filter) && $filter ? $filter : '';
+			$this->cat_id			= isset($cat_id) && $cat_id ? $cat_id : '';
+			$this->member_id		= isset($member_id) && $member_id ? $member_id : '';
+			$this->vendor_id		= isset($vendor_id) && $vendor_id ? $vendor_id : '';
+			$this->allrows			= isset($allrows) && $allrows ? $allrows : '';
 		}
 
 		function save_sessiondata($data)
@@ -236,10 +200,10 @@
 
 		function read_event($data)
 		{
-			$boalarm		= CreateObject('property.boalarm');
-			$event	= $this->so->read_single($data);
-			$event['alarm_date']=$event['termination_date'];
-			$event['alarm']	= $boalarm->read_alarms($type='s_agreement',$data['s_agreement_id']);
+			$boalarm			= CreateObject('property.boalarm');
+			$event				= $this->so->read_single($data['s_agreement_id']);
+			$event['alarm_date']= $event['termination_date'];
+			$event['alarm']		= $boalarm->read_alarms($type='s_agreement',$data['s_agreement_id']);
 			return $event;
 		}
 
@@ -309,6 +273,20 @@
 			}
 
 			return $values;
+		}
+
+		/**
+		* Arrange attributes within groups
+		*
+		* @param string  $location    the name of the location of the attribute
+		* @param array   $attributes  the array of the attributes to be grouped
+		*
+		* @return array the grouped attributes
+		*/
+
+		public function get_attribute_groups($location, $attributes = array())
+		{
+			return $this->custom->get_attribute_groups('property', $location, $attributes);
 		}
 
 		function save($values,$values_attribute='',$action='')

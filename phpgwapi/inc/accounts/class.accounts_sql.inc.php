@@ -7,7 +7,7 @@
 	* @author Dan Kuykendall <seek3r@phpgroupware.org>
 	* @author Bettina Gille <ceb@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage phpgwapi
 	* @version $Id$
@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -114,6 +114,7 @@
 				'account_lastname'	=> "'" . $this->db->db_addslashes($account->lastname) . "'",
 				'account_expires'	=> -1,
 				'account_type'		=> "'" . phpgwapi_account::TYPE_GROUP . "'",
+				'account_status'	=> "'A'",
 				'person_id'			=> (int) $account->person_id
 			);
 
@@ -159,7 +160,7 @@
 				'firstname'	=> "'" . $this->db->db_addslashes($account->firstname) ."'",
 				'lastname'	=> "'" . $this->db->db_addslashes($account->lastname) . "'",
 				'password'	=> "'" . $this->db->db_addslashes($account->passwd_hash) . "'",
-				'status'	=> "'" . $account->enabled ? "'A'" : "'I'", // FIXME this really has to become a bool
+				'status'	=> $account->enabled ? "'A'" : "'I'", // FIXME this really has to become a bool
 				'expires'	=> (int) $account->expires,
 				'person_id'	=> (int) $account->person_id,
 				'quota'		=> (int) $account->quota,
@@ -456,18 +457,26 @@
 
 			if ($query)
 			{
-				$query = $this->db->db_addslashes($query);
 				if ($whereclause)
 				{
-					$whereclause .= ' AND ( ';
+					$whereclause .= ' AND (';
 				}
 				else
 				{
-					$whereclause = ' WHERE ( ';
+					$whereclause = ' WHERE (';
 				}
 
-				$whereclause .= " account_firstname $this->like '%$query%' OR account_lastname $this->like "
-					. "'%$query%' OR account_lid $this->like '%$query%' OR person_id =" . (int)$query . ')';
+				if(ctype_digit($query))
+				{
+					$whereclause .= 'person_id =' . (int)$query . ')';
+				}
+				else
+				{
+					$query = $this->db->db_addslashes($query);
+
+					$whereclause .= "account_firstname $this->like '%$query%' OR account_lastname $this->like "
+						. "'%$query%' OR account_lid $this->like '%$query%')";
+				}
 			}
 
 			$sql = "SELECT * FROM phpgw_accounts $whereclause $orderclause";
@@ -704,7 +713,7 @@
 		*
 		* @return object phpgwapi_account derived object containing account data
 		*/
-		public function read_repository()
+		protected function read_repository()
 		{
 			$this->account = $this->get($this->account_id, false);
 			return $this->account;

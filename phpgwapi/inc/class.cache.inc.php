@@ -4,7 +4,7 @@
 	*
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License Version 3 or later
+	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License Version 2 or later
 	* @package phpgroupware
 	* @subpackage phpgwapi
 	* @version $Id: class.acl.inc.php 775 2008-02-24 23:18:32Z dave $
@@ -13,7 +13,7 @@
 	/*
 		This program is free software: you can redistribute it and/or modify
 		it under the terms of the GNU Lesser General Public License as published by
-		the Free Software Foundation, either version 3 of the License, or
+		the Free Software Foundation, either version 2 of the License, or
 		(at your option) any later version.
 
 		This program is distributed in the hope that it will be useful,
@@ -212,7 +212,12 @@
 		public static function session_set($module, $id, $data)
 		{
 			$key = self::_gen_key($module, $id);
-			$_SESSION['phpgw_cache'][$key] = self::_value_prepare($data);
+
+			if($data)
+			{
+				$data = self::_value_prepare($data);
+			}
+			$_SESSION['phpgw_cache'][$key] = $data;
 			return true;
 		}
 
@@ -227,7 +232,7 @@
 		{
 			$key = self::_gen_key($module, $id);
 
-			if ( false ) //$GLOBALS['phpgw']->shm->is_enabled() )
+			if ( $GLOBALS['phpgw']->shm->is_enabled() )
 			{
 				return self::_shm_clear($key);
 			}
@@ -245,7 +250,7 @@
 		{
 			$key = self::_gen_key($module, $id);
 
-			if ( false ) // $GLOBALS['phpgw']->shm->is_enabled() )
+			if ( $GLOBALS['phpgw']->shm->is_enabled() )
 			{
 				$value = self::_shm_get($key);
 			}
@@ -269,7 +274,7 @@
 			$key = self::_gen_key($module, $id);
 			$value = self::_value_prepare($value);
 
-			if ( false ) //$GLOBALS['phpgw']->shm->is_enabled() )
+			if ( $GLOBALS['phpgw']->shm->is_enabled() )
 			{
 				return self::_shm_set($key, $value);
 			}
@@ -289,7 +294,7 @@
 			$key = $GLOBALS['phpgw']->db->db_addslashes(self::_gen_key($module, $id));
 			$uid = (int) $uid;
 
-			$sql = "DELETE FROM phpgw_cache WHERE item_key = '{$key}'";
+			$sql = "DELETE FROM phpgw_cache_user WHERE item_key = '{$key}'";
 
 			// this is a bit of a hack, but we need some way of clearing cache values of all users - i am open to suggestions
 			if ( $uid <> -1 )
@@ -318,7 +323,16 @@
 			$GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
 			if ( $GLOBALS['phpgw']->db->next_record() )
 			{
-				$ret = self::_value_return($GLOBALS['phpgw']->db-f('cache_data', true));
+				$ret = $GLOBALS['phpgw']->db->f('cache_data');
+				if(function_exists('gzcompress'))
+				{
+					$ret =  gzuncompress(base64_decode($ret));
+				}
+				else
+				{
+					$ret = stripslashes($ret);
+				}
+				$ret = self::_value_return($ret);
 			}
 			return $ret;
 		}
@@ -334,12 +348,38 @@
 		 */
 		public static function user_set($module, $id, $value, $uid)
 		{
-			$key = $GLOBALS['phpgw']->db->db_addslashes(self::_gen_key($module, $id));
 			$uid = (int) $uid;
-			$value = $GLOBALS['phpgw']->db->db_addslashes(self::_value_prepare($value));
+
+			if ($uid == 0)
+			{
+				return false;
+			}
+
+			$key = $GLOBALS['phpgw']->db->db_addslashes(self::_gen_key($module, $id));
+			$value = self::_value_prepare($value);
+			if(function_exists('gzcompress'))
+			{
+				$value =  base64_encode(gzcompress($value, 9));
+			}
+			else
+			{
+				$value = $GLOBALS['phpgw']->db->db_addslashes($value);
+			}
+
 			$now = time();
 
-			$sql = "INSERT INTO phpgw_cache_user VALUES('{$key}', {$uid}, '{$value}', $now)";
+			$GLOBALS['phpgw']->db->query("SELECT user_id FROM phpgw_cache_user WHERE item_key = '{$key}' AND user_id = {$uid}", __LINE__, __FILE__);
+			if ( $GLOBALS['phpgw']->db->next_record() )
+			{
+				$sql = 'UPDATE phpgw_cache_user'
+					. " SET cache_data = '{$value}', lastmodts = {$now}"
+					. " WHERE item_key = '{$key}' AND user_id = {$uid}";
+			}
+			else
+			{
+				$sql = "INSERT INTO phpgw_cache_user (item_key, user_id, cache_data, lastmodts) VALUES('{$key}', {$uid}, '{$value}', $now)";
+			}
+
 			return !!$GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
 		}
 	}

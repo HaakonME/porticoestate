@@ -14,7 +14,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -194,7 +194,7 @@
 			);
 
 			$acl    = createobject('phpgwapi.acl', $account_id);
-			$acl->read_repository();
+			$acl->read();
 
 			$this->_template->set_var('form_action', $GLOBALS['phpgw']->link('/index.php', $link_values));
 			$this->_template->set_var('lang_title', lang('ACL Manager'));
@@ -326,7 +326,7 @@ HTML;
 		 */
 		public function accounts_popup()
 		{
-			return $GLOBALS['phpgw']->accounts_popup->accounts_popup('admin_acl');
+			return $GLOBALS['phpgw']->accounts_popup->render('admin_acl');
 		}
 
 		/**
@@ -346,7 +346,7 @@ HTML;
 
 			if ( phpgw::get_var('save', 'bool', 'POST') )
 			{
-				$account_addressmaster = phpgw::get_var('account_addressmaster', 'int', 'POST', array());
+				$account_addressmaster = phpgw::get_var('account_addressmaster', 'string', 'POST', array());
 				$group_addressmaster = phpgw::get_var('group_addressmaster', 'int', 'POST', array());
 
 				$error = $this->_boacl->check_values($account_addressmaster, $group_addressmaster);

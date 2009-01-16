@@ -91,6 +91,7 @@
 	Entrypoint for this tempalte
 -->
 <xsl:template match="phpgw">
+	<xsl:apply-templates select="datatable/menu" />
 	<div class="toolbar-container">
 		<div class="toolbar">
 			<xsl:apply-templates select="datatable/actions" />
@@ -263,7 +264,13 @@
 -->
 <xsl:template match="field">
 	<xsl:variable name="id" select="phpgw:conditional(id, id, generate-id())"/>
-	<div class="field">
+	<xsl:variable name="align">
+		<xsl:choose>
+			<xsl:when test="style='filter'">float:left</xsl:when>
+			<xsl:otherwise>float:right</xsl:otherwise>
+		</xsl:choose>
+	</xsl:variable>
+	<div style="{$align}" class="field">
 		<xsl:if test="text">
 			<label for="{$id}">
 				<xsl:value-of select="text"/>
@@ -271,15 +278,42 @@
 			</label>
 		</xsl:if>
 
-		<input id="{$id}" type="{type}" name="{name}" value="{value}" class="{type}">
-			<xsl:if test="size">
-				<xsl:attribute name="size"><xsl:value-of select="size"/></xsl:attribute>
-			</xsl:if>
+		<xsl:choose>
+			<xsl:when test="type='link'">
+				<a id="{id}" href="#" onclick="{url}" tabindex="{tab_index}"><xsl:value-of select="value"/></a>
+			</xsl:when>
+			<xsl:when test="type='label_date'">
+				<table><tbody><tr><td><span id="txt_start_date"></span></td></tr><tr><td><span id="txt_end_date"></span></td></tr></tbody></table>
+			</xsl:when>
+			<xsl:when test="type='label'">
+				<xsl:value-of select="value"/>
+			</xsl:when>
+			<xsl:when test="type='img'">
+				<img id="{id}" src="{src}" alt="{alt}" title="{alt}" style="cursor:pointer; cursor:hand;" tabindex="{tab_index}" />
+			</xsl:when>
+			<xsl:otherwise>
+				<input id="{$id}" type="{type}" name="{name}" value="{value}" class="{type}"  tabindex="{tab_index}">
+					<xsl:if test="size">
+						<xsl:attribute name="size"><xsl:value-of select="size"/></xsl:attribute>
+					</xsl:if>
 
-			<xsl:if test="type = 'checkbox' and checked = '1'">
-				<xsl:attribute name="checked">checked</xsl:attribute>
-			</xsl:if>
-		</input>
+					<xsl:if test="type = 'checkbox' and checked = '1'">
+						<xsl:attribute name="checked">checked</xsl:attribute>
+					</xsl:if>
+
+					<xsl:if test="readonly">
+						<xsl:attribute name="readonly">'readonly'</xsl:attribute>
+						<xsl:attribute name="onMouseout">window.status='';return true;</xsl:attribute>
+					</xsl:if>
+
+					<xsl:if test="onkeypress">
+						<xsl:attribute name="onkeypress"><xsl:value-of select="onkeypress"/></xsl:attribute>
+					</xsl:if>
+
+				</input>
+			</xsl:otherwise>
+		</xsl:choose>
+
 	</div>
 </xsl:template>
 
@@ -290,16 +324,50 @@
 	Entrypoint for this datatable. Renders pagination and datatable.
 -->
 <xsl:template match="datatable">
-	<div class="pagination-container">
-		<xsl:apply-templates select="pagination" />
-	</div>
+	  <!--    <div class="pagination-container">
+				<xsl:apply-templates select="pagination" />
+		  </div> -->
+
+		<xsl:choose>
+			<xsl:when test="//exchange_values!=''">
+				<script type="text/javascript">
+					//function Exchange_values(thisform)
+					function valida(data,param)
+					{
+						<xsl:value-of select="//valida"/>
+					}
+
+					function Exchange_values(data)
+					{
+						<xsl:value-of select="//exchange_values"/>
+					}
+
+				</script>
+			</xsl:when>
+		</xsl:choose>
+
+	 <br/>
+	<div id="message"> </div>
+	<div id="paging"> </div>
   	<div class="datatable-container">
     	<table class="datatable">
-      		<xsl:apply-templates select="headers" />
+      		<!--  <xsl:apply-templates select="headers" />
       		<xsl:apply-templates select="rows" />
+      		 -->
     	</table>
   	</div>
+  	<div id="datatable-detail" style="background-color:#000000;color:#FFFFFF;display:none">
+			<div class="hd" style="background-color:#000000;color:#000000; border:0; text-align:center"> Record Detail </div>
+			<div class="bd" style="text-align:center;"> </div>
+		</div>
+
+  	<div id="footer"> </div>
+  	<xsl:call-template name="datatable-yui-definition" />
+
+
 </xsl:template>
+
+
 
 <!--
 	Template
@@ -600,7 +668,14 @@
 	              			<xsl:value-of select="format"/>
 	            		</xsl:attribute>
 
-	            		<xsl:value-of select="../../rows/row[$row_pos]/column[name=$header_name]/value"/>
+						<xsl:choose>
+							<xsl:when test="format= 'link'">
+								<a href="{../../rows/row[$row_pos]/column[name=$header_name]/link}" target ="{../../rows/row[$row_pos]/column[name=$header_name]/target}"><xsl:value-of select="../../rows/row[$row_pos]/column[name=$header_name]/value"/></a>
+							</xsl:when>
+							<xsl:otherwise>
+	            				<xsl:value-of select="../../rows/row[$row_pos]/column[name=$header_name]/value"/>
+							</xsl:otherwise>
+						</xsl:choose>
 	          		</td>
 	        	</xsl:for-each>
 
@@ -625,4 +700,45 @@
 	      	</tr>
     	</xsl:for-each>
   	</tbody>
+</xsl:template>
+
+<!--
+	Experimental support for YUI datatable
+ -->
+
+<xsl:template name="datatable-yui-definition">
+	<script>
+		var allow_allrows = "<xsl:value-of select="//datatable/config/allow_allrows"/>";
+
+  		var property_js = "<xsl:value-of select="//datatable/property_js"/>";
+
+		var base_java_url = "{<xsl:value-of select="//datatable/config/base_java_url"/>}";
+
+		var myColumnDefs = [
+			<xsl:for-each select="//datatable/headers/header">
+				{
+					key: "<xsl:value-of select="name"/>",
+					label: "<xsl:value-of select="text"/>",
+					resizeable:true,
+					sortable: <xsl:value-of select="phpgw:conditional(not(sortable = 0), 'true', 'false')"/>,
+					visible: <xsl:value-of select="phpgw:conditional(not(visible = 0), 'true', 'false')"/>,
+					format: "<xsl:value-of select="format"/>",
+					formatter: <xsl:value-of select="formatter"/>,
+					source: "<xsl:value-of select="sort_field"/>",
+					className: "<xsl:value-of select="className"/>"
+				}<xsl:value-of select="phpgw:conditional(not(position() = last()), ',', '')"/>
+			</xsl:for-each>
+		];
+
+		var values_combo_box = [
+			<xsl:for-each select="//datatable/actions/form/fields/hidden_value">
+				{
+					id: "<xsl:value-of select="id"/>",
+					value: "<xsl:value-of select="value"/>"
+				}<xsl:value-of select="phpgw:conditional(not(position() = last()), ',', '')"/>
+			</xsl:for-each>
+		];
+
+
+	</script>
 </xsl:template>

@@ -189,7 +189,8 @@
 			else
 			{
 				$id = $this->so->add($attrib);
-				if ( $id <= 0  )
+
+				if ( $id == 0  )
 				{
 					return array('error' => lang('Unable to add field'));
 				}
@@ -197,7 +198,19 @@
 				{
 					return array
 					(
-						'id'	=> 0,
+						'id'	=> '',
+						'error'	=> array
+						(
+							array('msg' => lang('Table is not defined')),
+							array('msg' => lang('Attribute has NOT been saved'))
+						)
+					);
+				}
+				else if ( $id == -2 )
+				{
+					return array
+					(
+						'id'	=> '',
 						'error'	=> array
 						(
 							array('msg' => lang('field already exists, please choose another name')),
@@ -249,14 +262,7 @@
 		 */
 		public function resort_custom_function($id, $resort)
 		{
-			$args = array
-			(
-				'resort'	=> $resort,
-				'appname'	=> $this->appname,
-				'location'	=> $this->location,
-				'id'		=> $id
-			);
-			$GLOBALS['phpgw']->custom_functions->resort($args);
+			$GLOBALS['phpgw']->custom_functions->resort($id, $resort, $this->appname, $this->location);
 		}
 
 		/**
@@ -273,7 +279,7 @@
 			{
 				if ( $custom_function['id'] != '' )
 				{
-					if ( $cfuncs->edit_custom_function($custom_function) )
+					if ( $cfuncs->edit($custom_function) )
 					{
 						return array('msg' => lang('Custom function has been updated'));
 					}
@@ -282,7 +288,7 @@
 			}
 			else
 			{
-				$id = $cfuncs->add_custom_function($custom_function);
+				$id = $cfuncs->add($custom_function);
 				if ( $id )
 				{
 					return array('id' => $id);
@@ -301,7 +307,7 @@
 		 */
 		public static function select_custom_function($selected, $appname)
 		{
-			$dirname = PHPGW_SERVER_ROOT . "/{$appname}/inc/custom";
+			$dirname = PHPGW_SERVER_ROOT . "/{$appname}/inc/custom/{$GLOBALS['phpgw_info']['user']['domain']}";
 			// prevent path traversal
 			if ( preg_match('/\./', $appname) 
 			 || !is_dir($dirname) )
@@ -313,7 +319,7 @@
 			$replace = array(' ', '');
 
 			$file_list = array();
-			$dir = new DirectoryIterator(PHPGW_SERVER_ROOT . "/{$appname}/inc/custom"); 
+			$dir = new DirectoryIterator(PHPGW_SERVER_ROOT . "/{$appname}/inc/custom/{$GLOBALS['phpgw_info']['user']['domain']}"); 
 			if ( is_object($dir) )
 			{
 				foreach ( $dir as $file )

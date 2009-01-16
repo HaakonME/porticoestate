@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -924,7 +924,7 @@
 		* @param int $dow ISO 8601 day of week number
 		* @return string local say of week name
 		*/
-		public static function nr2weekday($selected = 0)
+		public static function nr2weekday($dow = 0)
 		{
 			$dow_list = self::get_dow_fullnames();
 			if ( isset($dow_list[$dow]) )

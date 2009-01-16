@@ -120,7 +120,7 @@
 					<xsl:value-of disable-output-escaping="yes" select="tabs" />
 					<div class="yui-content">
 <div id="general">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="value_project_id!=''">
 					<tr>
@@ -147,28 +147,17 @@
 					</tr>
 
 
-					<xsl:choose>
-						<xsl:when test="selected_request =''">
-							<tr>
-								<td valign="top">
-									<a href="{link_select_request}" title="{lang_select_request_statustext}" onMouseover="window.status='{lang_select_request_statustext}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="lang_select_request"/></a>
-								</td>
-							</tr>
-						</xsl:when>
-					</xsl:choose>
+					<tr>
+						<td valign="top">
+							<a href="{link_select_request}"  title="{lang_select_request_statustext}" style ="cursor:help"><xsl:value-of select="lang_select_request"/></a>
+						</td>
+					</tr>
 
 					<xsl:for-each select="value_origin" >
-						<xsl:variable name="link_origin_type"><xsl:value-of select="link"/></xsl:variable>
+						<xsl:variable name="origin_location"><xsl:value-of select="location"/></xsl:variable>
 						<tr>
 							<td valign ="top">
-								<xsl:choose>
-									<xsl:when test="type ='request'">
-										<a href="{//link_select_request}" onMouseover="window.status='{//lang_select_request_statustext}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="//lang_select_request"/></a>
-									</xsl:when>
-									<xsl:otherwise>
-											<xsl:value-of select="descr"/>
-									</xsl:otherwise>
-								</xsl:choose>
+								<xsl:value-of select="descr"/>
 							</td>
 							<td>
 							<table>
@@ -177,17 +166,17 @@
 							<tr>
 
 							<td class="th_text"  align="left" >
-								<xsl:variable name="link_request"><xsl:value-of select="//link_request"/>&amp;id=<xsl:value-of select="id"/></xsl:variable>
-								<a href="{$link_origin_type}&amp;id={id}"  onMouseover="window.status='{//lang_origin_statustext}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="id"/></a>
+								<a href="{link}"  title="{//lang_origin_statustext}" style ="cursor:help"><xsl:value-of select="id"/></a>
 								<xsl:text> </xsl:text>
 
 								<xsl:choose>
-									<xsl:when test="type ='request'">
+									<xsl:when test="$origin_location ='.project.request'">
 									<input type="checkbox" name="values[delete_request][]" value="{id}"  onMouseout="window.status='';return true;">
-										<xsl:attribute name="onMouseover">
-											<xsl:text>window.status='</xsl:text>
-												<xsl:value-of select="//lang_delete_request_statustext"/>
-											<xsl:text>'; return true;</xsl:text>
+										<xsl:attribute name="title">
+											<xsl:value-of select="//lang_delete_request_statustext"/>
+										</xsl:attribute>
+										<xsl:attribute name="style">
+											<xsl:text>cursor:help</xsl:text>
 										</xsl:attribute>
 									</input>
 									</xsl:when>
@@ -202,7 +191,6 @@
 				</xsl:when>
 				<xsl:otherwise>
 					<xsl:for-each select="value_origin" >
-						<xsl:variable name="link_origin_type"><xsl:value-of select="link"/></xsl:variable>
 						<tr>
 							<td valign ="top">
 								<xsl:value-of select="descr"/>
@@ -212,8 +200,7 @@
 									<xsl:for-each select="data">
 										<tr>
 											<td class="th_text"  align="left" >
-												<xsl:variable name="link_request"><xsl:value-of select="//link_request"/>&amp;id=<xsl:value-of select="id"/></xsl:variable>
-												<a href="{$link_origin_type}&amp;id={id}"  onMouseover="window.status='{//lang_origin_statustext}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="id"/></a>
+												<a href="{link}"  title="{//lang_origin_statustext}" style ="cursor:help"><xsl:value-of select="id"/></a>
 												<xsl:text> </xsl:text>
 											</td>
 										</tr>
@@ -296,7 +283,7 @@
 
 <div id="location">
 
-<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="location_type='form'">
 					<xsl:call-template name="location_form"/>
@@ -325,7 +312,7 @@
 </div>
 
 <div id="budget">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td valign="top">
 					<xsl:value-of select="lang_start_date"/>
@@ -455,7 +442,7 @@
 </div>
 
 <div id="coordination">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td>
 					<xsl:value-of select="lang_coordinator"/>
@@ -529,7 +516,7 @@
 </div>
 
 <div id="extra">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 			<xsl:choose>
 				<xsl:when test="need_approval='yes'">
@@ -584,7 +571,7 @@
 
 <div id="history">
 		<hr noshade="noshade" width="100%" align="center" size="1"/>
-		<table width="80%" cellpadding="2" cellspacing="2" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="record_history=''">
 					<tr>
@@ -802,7 +789,7 @@
 			<xsl:value-of disable-output-escaping="yes" select="tabs" />
 			<div class="yui-content">
 <div id="general">
-		<table cellpadding="2" cellspacing="2" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td>
 					<xsl:value-of select="lang_project_id"/>
@@ -813,14 +800,13 @@
 			</tr>
 
 			<xsl:for-each select="value_origin" >
-				<xsl:variable name="link_origin_type"><xsl:value-of select="link"/></xsl:variable>
 				<tr>
 					<td valign ="top">
 						<xsl:value-of select="descr"/>
 					</td>
 						<td class="th_text"  align="left" >
 						<xsl:for-each select="data">
-							<a href="{$link_origin_type}&amp;id={id}"  onMouseover="window.status='{//lang_origin_statustext}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="id"/></a>
+							<a href="{link}"  title="{//lang_origin_statustext}" style ="cursor:help"><xsl:value-of select="id"/></a>
 							<xsl:text> </xsl:text>
 						</xsl:for-each>
 					</td>
@@ -861,7 +847,7 @@
 </div>
 
 <div id="location">
-<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:call-template name="location_view"/>
 
 			<xsl:choose>
@@ -889,7 +875,7 @@
 </div>
 
 <div id="budget">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td valign="top">
 					<xsl:value-of select="lang_budget"/>
@@ -978,7 +964,7 @@
 </div>
 
 <div id="coordination">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td>
 					<xsl:value-of select="lang_coordinator"/>
@@ -1089,13 +1075,13 @@
 </div>
 
 <div id="extra">
-	<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 </table>
 </div>
 
 <div id="history">
 		<hr noshade="noshade" width="100%" align="center" size="1"/>
-		<table width="80%" cellpadding="2" cellspacing="2" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="record_history=''">
 					<tr>

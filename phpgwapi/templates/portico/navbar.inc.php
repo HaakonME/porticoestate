@@ -2,21 +2,30 @@
 
 	function parse_navbar($force = False)
 	{
-		$navbar = execMethod('phpgwapi.menu.get', 'navbar');
+		$navbar = array();
+		if(!isset($GLOBALS['phpgw_info']['flags']['nonavbar']) || !$GLOBALS['phpgw_info']['flags']['nonavbar'])
+		{
+			$navbar = execMethod('phpgwapi.menu.get', 'navbar');
+		}
+
+		$user = $GLOBALS['phpgw']->accounts->get( $GLOBALS['phpgw_info']['user']['id'] );
 
 		$var = array
 		(
+			'home_url'		=> $GLOBALS['phpgw']->link('/home.php'),
+			'home_text'		=> lang('home'),
+			'home_icon'		=> 'icon icon-home',
 			'about_url'		=> $GLOBALS['phpgw']->link('/about.php', array('app' => $GLOBALS['phpgw_info']['flags']['currentapp']) ),
 			'about_text'	=> lang('about'),
 			'logout_url'	=> $GLOBALS['phpgw']->link('/logout.php'),
 			'logout_text'	=> lang('logout'),
-			'user_fullname' => $GLOBALS['phpgw']->common->display_fullname()
+			'user_fullname' => $user->__toString()
 		);
 
-		if ( isset($navbar['preferences']) )
+		if ( $GLOBALS['phpgw']->acl->check('run', PHPGW_ACL_READ, 'preferences') )
 		{
-			$var['preferences_url'] = $navbar['preferences']['url'];
-			$var['preferences_text'] = $navbar['preferences']['text'];
+			$var['preferences_url'] = $GLOBALS['phpgw']->link('/preferences/index.php');
+			$var['preferences_text'] = lang('preferences');
 		}
 
 		if ( isset($GLOBALS['phpgw_info']['user']['apps']['manual']) )
@@ -34,6 +43,18 @@
 			$var['help_icon'] = 'icon icon-help';
 		}
 
+		if ( isset($GLOBALS['phpgw_info']['user']['apps']['admin']) )
+		{
+			$var['debug_url'] = "javascript:openwindow('"
+			 . $GLOBALS['phpgw']->link('/index.php', array
+			 (
+			 	'menuaction'=> 'property.uidebug_json.index'
+			 )) . "','','')";
+
+			$var['debug_text'] = lang('debug');
+			$var['debug_icon'] = 'icon icon-debug';
+		}
+
 		$GLOBALS['phpgw']->template->set_root(PHPGW_TEMPLATE_DIR);
 		$GLOBALS['phpgw']->template->set_file('navbar', 'navbar.tpl');
 
@@ -41,8 +62,19 @@
 		$var['current_app_title'] = isset($flags['app_header']) ? $flags['app_header'] : lang($GLOBALS['phpgw_info']['flags']['currentapp']);
 		$flags['menu_selection'] = isset($flags['menu_selection']) ? $flags['menu_selection'] : '';
 
-		prepare_navbar($navbar);
-		$navigation = execMethod('phpgwapi.menu.get', 'navigation');
+		$navigation = array();
+		if( !isset($GLOBALS['phpgw_info']['user']['preferences']['property']['nonavbar']) || $GLOBALS['phpgw_info']['user']['preferences']['property']['nonavbar'] != 'yes' )
+		{
+			prepare_navbar($navbar);
+			$navigation = execMethod('phpgwapi.menu.get', 'navigation');
+		}
+		else
+		{
+			foreach($navbar as & $app_tmp)
+			{
+				$app_tmp['text'] = ' ...';
+			}
+		}
 
 		$treemenu = '';
 		foreach($navbar as $app => $app_data)

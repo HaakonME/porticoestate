@@ -65,27 +65,31 @@
 				$this->use_session = true;
 			}
 
-			$start	= phpgw::get_var('start', 'int', 'REQUEST', 0);
-			$query	= phpgw::get_var('query');
-			$sort	= phpgw::get_var('sort');
-			$order	= phpgw::get_var('order');
-			$filter	= phpgw::get_var('filter', 'int');
-			$cat_id	= phpgw::get_var('cat_id', 'int');
-			$status_id	= phpgw::get_var('status_id');
+			$start			= phpgw::get_var('start', 'int', 'REQUEST', 0);
+			$query			= phpgw::get_var('query');
+			$sort			= phpgw::get_var('sort');
+			$order			= phpgw::get_var('order');
+			$filter			= phpgw::get_var('filter', 'int');
+			$cat_id			= phpgw::get_var('cat_id', 'int');
+			$status_id		= phpgw::get_var('status_id');
 			$search_vendor	= phpgw::get_var('search_vendor');
 			$wo_hour_cat_id	= phpgw::get_var('wo_hour_cat_id', 'int');
-			$start_date	= phpgw::get_var('start_date');
-			$end_date	= phpgw::get_var('end_date');
-			$b_group	= phpgw::get_var('b_group');
-			$paid	= phpgw::get_var('paid', 'bool');
+			$start_date		= phpgw::get_var('start_date');
+			$end_date		= phpgw::get_var('end_date');
+			$b_group		= phpgw::get_var('b_group');
+			$paid			= phpgw::get_var('paid', 'bool');
+			$b_account		= phpgw::get_var('b_account');
+			$district_id	= phpgw::get_var('district_id', 'int');
 
-			if ($start)
+			$this->start			= $start ? $start : 0;
+
+			if(array_key_exists('b_account',$_POST) || array_key_exists('b_account',$_GET) )
 			{
-				$this->start=$start;
+				$this->b_account = $b_account;
 			}
-			else
+			if(array_key_exists('district_id',$_POST) || array_key_exists('district_id',$_GET) )
 			{
-				$this->start=0;
+				$this->district_id = $district_id;
 			}
 
 			if(isset($paid))
@@ -112,27 +116,27 @@
 			{
 				$this->order = $order;
 			}
-			if(array_key_exists('cat_id',$_POST))
+			if(array_key_exists('cat_id',$_POST) || array_key_exists('cat_id',$_GET))
 			{
 				$this->cat_id = $cat_id;
 			}
-			if(array_key_exists('status_id',$_POST))
+			if(array_key_exists('status_id',$_POST)  || array_key_exists('status_id',$_GET))
 			{
 				$this->status_id = $status_id;
 			}
-			if(array_key_exists('search_vendor',$_POST))
+			if(array_key_exists('search_vendor',$_POST)  || array_key_exists('search_vendor',$_GET))
 			{
 				$this->search_vendor = $search_vendor;
 			}
-			if(array_key_exists('wo_hour_cat_id',$_POST))
+			if(array_key_exists('wo_hour_cat_id',$_POST)  || array_key_exists('wo_hour_cat_id',$_GET))
 			{
 				$this->wo_hour_cat_id = $wo_hour_cat_id;
 			}
-			if(array_key_exists('start_date',$_POST))
+			if(array_key_exists('start_date',$_POST) || array_key_exists('start_date',$_GET))
 			{
 				$this->start_date = $start_date;
 			}
-			if(array_key_exists('end_date',$_POST))
+			if(array_key_exists('end_date',$_POST) || array_key_exists('end_date',$_GET))
 			{
 				$this->end_date = $end_date;
 			}
@@ -155,6 +159,8 @@
 			$this->end_date			= isset($data['end_date']) ? $data['end_date']: '';
 			$this->b_group			= isset($data['b_group']) ? $data['b_group']: '';
 			$this->paid				= isset($data['paid']) ? $data['paid']: '';
+			$this->b_account		= isset($data['b_account']) ? $data['b_account']: '';
+			$this->district_id		= isset($data['district_id']) ? $data['district_id']: '';
 		}
 
 		function save_sessiondata($data)
@@ -223,16 +229,19 @@
 			return $this->bocommon->select_list($selected,$key_location_entries);
 		}
 
-		function read($start_date='',$end_date='',$allrows='')
+		function read($data = array())
 		{
-			$start_date	= $this->bocommon->date_to_timestamp($start_date);
-			$end_date	= $this->bocommon->date_to_timestamp($end_date);
+			$start_date	= $this->bocommon->date_to_timestamp($data['start_date']);
+			$end_date	= $this->bocommon->date_to_timestamp($data['end_date']);
 
+	
 			$workorder = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'filter' => $this->filter,'cat_id' => $this->cat_id,'status_id' => $this->status_id,
 											'search_vendor' => $this->search_vendor,'wo_hour_cat_id' => $this->wo_hour_cat_id,
-											'start_date'=>$start_date,'end_date'=>$end_date,'allrows'=>$allrows,
-											'b_group'=>$this->b_group,'paid'=>$this->paid));
+											'start_date'=>$start_date,'end_date'=>$end_date,'allrows'=>$data['allrows'],
+											'b_group'=>$this->b_group,'paid'=>$this->paid,'b_account' => $this->b_account,
+											'district_id' => $this->district_id,'dry_run'=>$data['dry_run']));
+			
 			$this->total_records = $this->so->total_records;
 
 			$dateformat = $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
@@ -277,7 +286,7 @@
 			$workorder['b_account_name']	= $this->so->get_b_account_name($workorder['b_account_id']);
 
 			$config				= CreateObject('phpgwapi.config');
-			$config->read_repository();
+			$config->read();
 			$tax = 1+($config->config_data['fm_tax'])/100;
 			$workorder['calculation']	=number_format($workorder['calculation']*$tax, 2, ',', '');
 			$workorder['actual_cost']	=number_format(($workorder['act_mtrl_cost']+$workorder['act_vendor_cost']), 2, ',', '');

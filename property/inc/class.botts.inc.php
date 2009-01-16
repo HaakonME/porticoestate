@@ -72,15 +72,16 @@
 
 		function property_botts($session=false)
 		{
-			$this->so 			= CreateObject('property.sotts');
-			$this->bocommon 	= & $this->so->bocommon;
-			$this->historylog	= & $this->so->historylog;
-			$this->config		= CreateObject('phpgwapi.config');
-			$this->config->read_repository();
-			$this->dateformat = $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
+			$this->so 					= CreateObject('property.sotts');
+			$this->bocommon 			= & $this->so->bocommon;
+			$this->historylog			= & $this->so->historylog;
+			$this->config				= CreateObject('phpgwapi.config');
+			$this->dateformat			= $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
 			$this->cats					= CreateObject('phpgwapi.categories');
 			$this->cats->app_name		= 'property.ticket';
 			$this->cats->supress_info	= true;
+
+			$this->config->read();
 
 			if ($session)
 			{
@@ -88,67 +89,32 @@
 				$this->use_session = true;
 			}
 
-			$start	= phpgw::get_var('start', 'int', 'REQUEST', 0);
-			$query	= phpgw::get_var('query');
-			$sort	= phpgw::get_var('sort');
-			$order	= phpgw::get_var('order');
-			$filter	= phpgw::get_var('filter');
-			$user_filter	= phpgw::get_var('user_filter');
-			$cat_id	= phpgw::get_var('cat_id', 'int');
-			$district_id	= phpgw::get_var('district_id', 'int');
-			$allrows	= phpgw::get_var('allrows', 'bool');
-			$start_date	= phpgw::get_var('start_date');
-			$end_date	= phpgw::get_var('end_date');
+			$start					= phpgw::get_var('start', 'int', 'REQUEST', 0);
+			$query					= phpgw::get_var('query');
+			$sort					= phpgw::get_var('sort');
+			$order					= phpgw::get_var('order');
+			$status_id				= phpgw::get_var('status_id');
+			$user_id				= phpgw::get_var('user_id');
+			$cat_id					= phpgw::get_var('cat_id', 'int');
+			$district_id			= phpgw::get_var('district_id', 'int');
+			$allrows				= phpgw::get_var('allrows', 'bool');
+			$start_date				= phpgw::get_var('start_date');
+			$end_date				= phpgw::get_var('end_date');
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(array_key_exists('query',$_POST) || array_key_exists('query',$_GET))
-			{
-				$this->query = $query;
-			}
-			if(array_key_exists('filter',$_POST))
-			{
-				$this->filter = $filter;
-			}
-			if(array_key_exists('user_filter',$_POST))
-			{
-				$this->user_filter = $user_filter;
-			}
-			if(array_key_exists('sort',$_POST) || array_key_exists('sort',$_GET))
-			{
-				$this->sort = $sort;
-			}
-			if(array_key_exists('order',$_POST) || array_key_exists('order',$_GET))
-			{
-				$this->order = $order;
-			}
-			if(array_key_exists('cat_id',$_POST))
-			{
-				$this->cat_id = $cat_id;
-			}
-			if(array_key_exists('district_id',$_POST))
-			{
-				$this->district_id = $district_id;
-			}
-			if(array_key_exists('allrows',$_POST) || array_key_exists('allrows',$_GET))
-			{
-				$this->allrows = $allrows;
-			}
-			if(array_key_exists('start_date',$_POST))
-			{
-				$this->start_date = $start_date;
-			}
-			if(array_key_exists('end_date',$_POST))
-			{
-				$this->end_date = $end_date;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->query			= isset($query) ? $query : $this->query;
+			$this->status_id		= isset($status_id) && $status_id ? $status_id : '';
+			$this->user_id			= isset($user_id) && $user_id ? $user_id : '';
+			$this->sort				= isset($sort) && $sort ? $sort : '';
+			$this->order			= isset($order) && $order ? $order : '';
+			$this->cat_id			= isset($cat_id) && $cat_id ? $cat_id : '';
+			$this->part_of_town_id	= isset($part_of_town_id) && $part_of_town_id ? $part_of_town_id : '';
+			$this->district_id		= isset($district_id) && $district_id ? $district_id : '';
+			$this->status			= isset($status) && $status ? $status : '';
+			$this->type_id			= isset($type_id) && $type_id ? $type_id : 1;
+			$this->allrows			= isset($allrows) && $allrows ? $allrows : '';
+			$this->start_date		= isset($start_date) && $start_date ? $start_date : '';
+			$this->end_date			= isset($end_date) && $end_date ? $end_date : '';
 		}
 
 
@@ -294,15 +260,16 @@
 		}
 
 
-		function read($start_date='',$end_date='', $external='')
+		function read($start_date='',$end_date='', $external='',$dry_run = '')
 		{
+			$interlink 	= CreateObject('property.interlink');
 			$start_date	= $this->bocommon->date_to_timestamp($start_date);
 			$end_date	= $this->bocommon->date_to_timestamp($end_date);
 
 			$tickets = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id,'district_id' => $this->district_id,
+											'status_id' => $this->status_id,'cat_id' => $this->cat_id,'district_id' => $this->district_id,
 											'start_date'=>$start_date,'end_date'=>$end_date,
-											'allrows'=>$this->allrows,'user_filter' => $this->user_filter,'external'=>$external));
+											'allrows'=>$this->allrows,'user_id' => $this->user_id,'external'=>$external, 'dry_run' => $dry_run));
 			$this->total_records = $this->so->total_records;
 			if(!$external)
 			{
@@ -311,7 +278,7 @@
 			}
 			else
 			{
-				$entity[0]['type']='project';
+				$entity[0]['type']='.project';
 				$this->uicols[]	= lang('project');
 			}
 
@@ -356,18 +323,16 @@
 				{
 					for ($j=0;$j<count($entity);$j++)
 					{
-						$ticket['child_date'][$j] = $this->so->get_child_date($ticket['id'],$entity[$j]['type'],(isset($entity[$j]['entity_id'])?$entity[$j]['entity_id']:''),(isset($entity[$j]['cat_id'])?$entity[$j]['cat_id']:''));
+						$ticket['child_date'][$j] = $interlink->get_child_date('property', '.ticket', $entity[$j]['type'], $ticket['id'], isset($entity[$j]['entity_id'])?$entity[$j]['entity_id']:'',isset($entity[$j]['cat_id'])?$entity[$j]['cat_id']:'');
 					}
 				}
 			}
-
 //_debug_array($tickets);
 			return $tickets;
 		}
 
 		function read_single($id)
 		{
-
 			$this->so->update_view($id);
 
 			$ticket = $this->so->read_single($id);
@@ -375,7 +340,10 @@
 			$ticket['user_lid'] = $GLOBALS['phpgw']->accounts->id2name($ticket['user_id']);
 			$ticket['group_lid'] = $GLOBALS['phpgw']->accounts->id2name($ticket['group_id']);
 
-
+			$interlink 	= CreateObject('property.interlink');
+			$ticket['origin'] = $interlink->get_relation('property', '.ticket', $id, 'origin');
+			$ticket['target'] = $interlink->get_relation('property', '.ticket', $id, 'target');
+//_debug_array($ticket);
 			if(isset($ticket['finnish_date2']) && $ticket['finnish_date2'])
 			{
 				$ticket['finnish_date']=$ticket['finnish_date2'];
@@ -586,24 +554,34 @@
 
 			$receipt = $this->so->add($ticket);
 
-			$this->config->read_repository();
+			$this->config->read();
 
 			if (isset($this->config->config_data['mailnotification']) && $this->config->config_data['mailnotification'] && isset($ticket['send_mail']) && $ticket['send_mail'])
 			{
 				$receipt = $this->mail_ticket($receipt['id'],$fields_updated,$receipt,$ticket['location_code']);
 			}
 
-			$custom = createObject('property.custom_functions');
-			$custom_functions = $custom->find(array('appname'=>'property','location' => $this->acl_location,'allrows'=>true));
+			$criteria = array
+			(
+				'appname'	=> 'property',
+				'location'	=> $this->acl_location,
+				'allrows'	=> true
+			);
 
-			if (isSet($custom_functions) AND is_array($custom_functions))
+			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
+
+			foreach ( $custom_functions as $entry )
 			{
-				foreach($custom_functions as $entry)
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					if (is_file(PHPGW_APP_INC . "/custom/{$entry['file_name']}") && $entry['active'])
-					{
-						include_once(PHPGW_APP_INC . "/custom/{$entry['file_name']}");
-					}
+					continue;
+				}
+
+				$file = PHPGW_APP_INC . "/custom/{$GLOBALS['phpgw_info']['user']['domain']}/{$entry['file_name']}";
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once $file;
 				}
 			}
 
@@ -692,7 +670,7 @@
 		// build body
 			$body  = '';
 	//		$body .= lang('Ticket').' #'.$id."\n";
-			$body .= '<a href ="http://' . $GLOBALS['phpgw_info']['server']['hostname'] . $GLOBALS['phpgw']->link('/index.php','menuaction='.'property.uitts.view&id=' . $id).'">' . lang('Ticket').' #' .$id .'</a>'."\n";
+			$body .= '<a href ="http://' . $GLOBALS['phpgw_info']['server']['hostname'] . $GLOBALS['phpgw']->link('/index.php', array('menuaction' => 'property.uitts.view', 'id' => $id)).'">' . lang('Ticket').' #' .$id .'</a>'."\n";
 			$body .= lang('Date Opened').': '.$timestampopened."\n";
 			$body .= lang('Category').': '. $this->get_category_name($ticket['cat_id']) ."\n";
 //			$body .= lang('Subject').': '. $ticket['subject'] ."\n";

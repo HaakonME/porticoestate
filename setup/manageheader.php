@@ -330,6 +330,23 @@ HTML;
 			{
 				$detected .= '<li class="warn">' . lang('No IMAP support found. Email functions will be disabled') . "</li>\n";
 			}
+			if(extension_loaded('shmop') || function_exists('shmop_open'))
+			{
+				$detected .= '<li>' . lang('You appear to have support for shared memory') . "</li>\n";
+			}
+			else
+			{
+				$detected .= '<li class="warn">' . lang('No support for shared memory found.') . "</li>\n";
+			}
+			if(extension_loaded('mcrypt') || function_exists('mcrypt_list_modes'))
+			{
+				$detected .= '<li>' . lang('You appear to have enabled support for mcrypt') . "</li>\n";
+				$GLOBALS['phpgw_info']['server']['mcrypt_enabled'] = true;
+			}
+			else
+			{
+				$detected .= '<li class="warn">' . lang('No mcrypt support found.') . "</li>\n";
+			}		
 			if( extension_loaded('xsl') && class_exists('XSLTProcessor') )
 			{
 				$detected .= '<li>' . lang('You appear to have XML/XSLT support enabled') . "</li>\n";
@@ -369,13 +386,12 @@ HTML;
 				}
 				else
 				{
-					if ( !isset($GLOBALS['phpgw_info']['server']['header_version'])
-						|| !isset($GLOBALS['phpgw_info']['server']['current_header_version'])
-						|| $GLOBALS['phpgw_info']['server']['header_version'] != $GLOBALS['phpgw_info']['server']['current_header_version'] )
+					if( $GLOBALS['phpgw_info']['setup']['stage']['header'] == 3 )
 					{
 						$detected .= '<li class="warn">' . lang("You're using an old header.inc.php version...") . "</li>\n";
 						$detected .= '<li>' . lang('Importing old settings into the new format....') . "</li>\n";
 					}
+
 					reset($GLOBALS['phpgw_domain']);
 					$default_domain = each($GLOBALS['phpgw_domain']);
 					$GLOBALS['phpgw_info']['server']['default_domain'] = $default_domain[0];

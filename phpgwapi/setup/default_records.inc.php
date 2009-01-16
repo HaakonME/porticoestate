@@ -172,7 +172,7 @@
 	$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_note_type (description) VALUES ('system')");
 
 	$GLOBALS['phpgw_setup']->oProc->query("SELECT comm_type_id FROM phpgw_contact_comm_type WHERE type='email'");
-	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet->getArray();
+	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet;
 	for($i = 0; $i < count($comm_type_ids); $i++)
 	{
 		$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_comm_descr (comm_type_id,descr) VALUES (" 
@@ -187,7 +187,7 @@
 	}
 
 	$GLOBALS['phpgw_setup']->oProc->query("SELECT comm_type_id FROM phpgw_contact_comm_type WHERE type='phone'"); 
-	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet->getArray();
+	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet;
 	for($i = 0; $i < count($comm_type_ids); $i++)
 	{
 		$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_comm_descr (comm_type_id,descr) VALUES (" 
@@ -228,7 +228,7 @@
 			.  ")");
 	}
 	$GLOBALS['phpgw_setup']->oProc->query("SELECT comm_type_id FROM phpgw_contact_comm_type WHERE type='fax'"); 
-	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet->getArray();
+	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet;
 	for($i = 0; $i < count($comm_type_ids); $i++)
 	{
 		$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_comm_descr (comm_type_id,descr) VALUES (" 
@@ -241,7 +241,7 @@
 			.  ")");
 	}
 	$GLOBALS['phpgw_setup']->oProc->query("SELECT comm_type_id FROM phpgw_contact_comm_type WHERE type='mobile phone'"); 
-	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet->getArray();
+	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet;
 	for($i = 0; $i < count($comm_type_ids); $i++)
 	{
 		$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_comm_descr (comm_type_id,descr) VALUES (" 
@@ -254,7 +254,7 @@
 			.  ")");
 	}
 	$GLOBALS['phpgw_setup']->oProc->query("SELECT comm_type_id FROM phpgw_contact_comm_type WHERE type='instant messaging'"); 
-	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet->getArray();
+	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet;
 	for($i = 0; $i < count($comm_type_ids); $i++)
 	{
 		$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_comm_descr (comm_type_id,descr) VALUES (" 
@@ -279,7 +279,7 @@
 			.  ")");				
 	}
 	$GLOBALS['phpgw_setup']->oProc->query("SELECT comm_type_id FROM phpgw_contact_comm_type WHERE type='url'"); 
-	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet->getArray();
+	$comm_type_ids = $GLOBALS['phpgw_setup']->oProc->m_odb->resultSet;
 	for($i = 0; $i < count($comm_type_ids); $i++)
 	{
 		$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_contact_comm_descr (comm_type_id,descr) VALUES (" 
@@ -300,7 +300,7 @@
 		'sessions_checkip'		=> 'True',
 		'sessions_timeout'		=> 1440,
 		'addressmaster'			=> -3,
-		'log_levels'			=> serialize(array('global_level' => 'N', 'module' => array(), 'user' => array())),
+		'log_levels'			=> serialize(array('global_level' => 'E', 'module' => array(), 'user' => array())),
 		'freshinstall'			=> 1
 	);
 
@@ -309,3 +309,5 @@
 		$sql = "INSERT INTO phpgw_config VALUES('phpgwapi', '{$name}', '{$val}')";
 		$GLOBALS['phpgw_setup']->oProc->query($sql, __LINE__, __FILE__);
 	}
+
+	$GLOBALS['phpgw']->locations->add('changepassword', 'allow user to change password', 'preferences', false);

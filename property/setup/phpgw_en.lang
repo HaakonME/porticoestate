@@ -987,6 +987,8 @@ Open	property	en	Open
 Open Date	property	en	Open Date
 Opened	property	en	Opened
 Opened By	property	en	Opened By
+open edit in new window	property	en	Open Edit in new Window
+open view in new window	property	en	Open View in new Window
 Order	property	en	Order
 Order # that initiated the invoice	property	en	Order # that initiated the invoice
 Order ID	property	en	Order ID
@@ -1657,3 +1659,8 @@ You have to select the Conversion for this import	property	en	You have to select
 You have to select type of invoice	property	en	You have to select type of invoice
 Your message could not be sent by mail!	property	en	Your message could not be sent by mail!
 Your message could not be sent!	property	en	Your message could not be sent!
+.project	property	en	Project
+.project.workorder	property	en	Workorder
+.project.request	property	en	Request
+.tenant_claim	property	en	Tenant claim
+.ticket	property	en	Ticket

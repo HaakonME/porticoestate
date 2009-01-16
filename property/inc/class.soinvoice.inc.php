@@ -38,52 +38,57 @@
 
 		function property_soinvoice()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->bocommon		= CreateObject('property.bocommon');
 			$this->account_id 	= $GLOBALS['phpgw_info']['user']['account_id'];
 
-			$this->acl 		= & $GLOBALS['phpgw']->acl;
+			$this->acl 			= & $GLOBALS['phpgw']->acl;
 
-			$this->join		= $this->bocommon->join;
+			$this->join			= $this->bocommon->join;
 			$this->left_join	= $this->bocommon->left_join;
-			$this->like		= $this->bocommon->like;
-			$this->db           	= $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
-
+			$this->like			= $this->bocommon->like;
+			$this->db          	= $this->bocommon->new_db();
 		}
 
 		function read_invoice($data)
 		{
+
+			$valid_order = array
+			(
+				'bilagsnr'		=> true,
+				'spvend_code'	=> true,
+				'fakturadato'	=> true
+			);
+
 			if(is_array($data))
 			{
-				if ($data['start'])
-				{
-					$start=$data['start'];
-				}
-				else
-				{
-					$start=0;
-				}
-				$query 			= (isset($data['query'])?$data['query']:'');
-				$sort 			= (isset($data['sort'])?$data['sort']:'DESC');
-				$order 			= (isset($data['order'])?$data['order']:'');
-				$cat_id 		= (isset($data['cat_id'])?$data['cat_id']:0);
-				$user_lid 		= (isset($data['user_lid'])?$data['user_lid']:'none');
-				$paid 			= (isset($data['paid'])?$data['paid']:'');
-				$start_date 		= (isset($data['start_date'])?$data['start_date']:'');
-				$end_date 		= (isset($data['end_date'])?$data['end_date']:'');
-				$vendor_id 		= (isset($data['vendor_id'])?$data['vendor_id']:'');
-				$loc1 			= (isset($data['loc1'])?$data['loc1']:'');
-				$workorder_id 		= (isset($data['workorder_id'])?$data['workorder_id']:'');
-				$allrows 		= (isset($data['allrows'])?$data['allrows']:'');
-				$voucher_id 		= (isset($data['voucher_id'])?$data['voucher_id']:'');
-				$b_account_class	= (isset($data['b_account_class'])?$data['b_account_class']:'');
-				$district_id 		= (isset($data['district_id'])?$data['district_id']:'');
+				$start			= isset($data['start']) && $data['start'] ? $data['start'] : 0;
+				$query 			= isset($data['query'])?$data['query']:'';
+				$sort 			= isset($data['sort']) && $data['sort'] ? $data['sort']:'DESC';
+				$order 			= isset($data['order']) && $valid_order[$data['order']] ? $data['order']:'';
+				$cat_id 		= isset($data['cat_id']) && $data['cat_id'] ? $data['cat_id']:0;
+				$user_lid 		= isset($data['user_lid']) && $data['user_lid']?$data['user_lid']:'none';
+				$paid 			= isset($data['paid'])?$data['paid']:'';
+				$start_date 	= isset($data['start_date']) && $data['start_date'] ? date($this->db->datetime_format(), $data['start_date']) : '';
+				$end_date 		= isset($data['end_date']) && $data['end_date'] ? date($this->db->datetime_format(), $data['end_date']) : '';
+				$vendor_id 		= isset($data['vendor_id'])?$data['vendor_id']:'';
+				$loc1 			= isset($data['loc1'])?$data['loc1']:'';
+				$workorder_id 	= isset($data['workorder_id'])?$data['workorder_id']:'';
+				$allrows 		= isset($data['allrows'])?$data['allrows']:'';
+				$voucher_id 	= isset($data['voucher_id'])?$data['voucher_id']:'';
+				$b_account_class= isset($data['b_account_class'])?$data['b_account_class']:'';
+				$district_id 	= isset($data['district_id'])?$data['district_id']:'';
 			}
 			$join_tables	= '';
 			$filtermethod	= '';
 			$querymethod	= '';
 //_debug_array($data);
+			
+			$this->db->query("SELECT * FROM fm_ecoart");
+			$art_list = array();
+			while ($this->db->next_record())
+			{
+				$art_list[$this->db->f('id')] = $this->db->f('descr',true);
+			}
 
 			if ($order)
 			{
@@ -113,7 +118,7 @@
 				$where= 'AND';
 			}
 
-			if ($district_id > 0)
+			if ($district_id > 0 && $paid)
 			{
 				$filtermethod .= " $where  district_id='$district_id' ";
 				$join_tables = " $this->join fm_location1 ON fm_ecobilagoverf.loc1 = fm_location1.loc1"
@@ -140,7 +145,7 @@
 
 			if ($voucher_id)
 			{
-				$filtermethod .= " $where  bilagsnr $this->like '%$voucher_id%' ";
+				$filtermethod .= " $where  bilagsnr = " . (int)$voucher_id;
 				$where= 'AND';
 			}
 
@@ -156,48 +161,9 @@
 					$join_tables .= " $this->join fm_b_account ON fm_ecobilagoverf.spbudact_code = fm_b_account.id";
 				}
 
-				if (!$workorder_id && !$voucher_id)
+				if (!$workorder_id && !$voucher_id  && $start_date)
 				{
-					$dateformat = strtolower($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
-					$dateformat = str_replace(".","",$dateformat);
-					$dateformat = str_replace("-","",$dateformat);
-					$dateformat = str_replace("/","",$dateformat);
-					$y=strpos($dateformat,'y');
-					$d=strpos($dateformat,'d');
-					$m=strpos($dateformat,'m');
-
-	 				$dateparts = explode('/', $start_date);
-	 				$sday = $dateparts[$d];
-	 				$smonth = $dateparts[$m];
-	 				$syear = $dateparts[$y];
-
-		 			$dateparts = explode('/', $end_date);
-	 				$eday = $dateparts[$d];
-	 				$emonth = $dateparts[$m];
-	 				$eyear = $dateparts[$y];
-
-					$start_date = date($this->bocommon->dateformat,mktime(2,0,0,$smonth,$sday,$syear));
-					if ($syear == $eyear)
-					{
-						$end_date = date($this->bocommon->dateformat,mktime(2,0,0,12,31,$eyear));
-						$filtermethod .= " $where (fakturadato >'$start_date' AND fakturadato < '$end_date'"
-								. " AND periode >" . ($smonth -1) . " AND periode <" . ($emonth+1) . ')';
-					}
-
-					$end_date = date($this->bocommon->dateformat,mktime(2,0,0,$emonth,$eday,$eyear));
-
-
-		/*			$filtermethod .= " $where (fakturadato >'$start_date' AND fakturadato < '$end_date'";
-
-					if($smonth < 3)
-					{
-						$filtermethod .= " AND periode = 1)";
-					}
-					else
-					{
-						$filtermethod .= ")";
-					}
-		*/
+					$filtermethod .= " $where (fakturadato >'$start_date' AND fakturadato < '$end_date')";
 				}
 			}
 			else
@@ -207,19 +173,16 @@
 
 			if($query)
 			{
-				$query = preg_replace("/'/",'',$query);
-				$query = preg_replace('/"/','',$query);
-
-				$querymethod = " $where ( spvend_code $this->like '%$query%' OR bilagsnr $this->like '%$query%' )";
+				$query = (int) $query;
+				$querymethod = " $where ( spvend_code = {$query} OR bilagsnr = {$query})";
 			}
 
-
-			$sql = "SELECT bilagsnr, count(bilagsnr) as invoice_count, sum(belop) as belop,spvend_code,fakturadato FROM  $table $join_tables $filtermethod $querymethod group by bilagsnr,spvend_code,fakturadato ";
+			$sql = "SELECT bilagsnr, count(bilagsnr) as invoice_count, sum(belop) as belop,spvend_code,fakturadato FROM  $table $join_tables $filtermethod $querymethod GROUP BY bilagsnr,spvend_code,fakturadato ";
 			$sql2 = "SELECT DISTINCT bilagsnr FROM  $table $join_tables $filtermethod $querymethod";
 
 //echo $sql;
-			$this->db2->query($sql2,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			$this->db->query($sql2,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
 			if(!$allrows)
 			{
@@ -266,8 +229,6 @@
 
 					if($this->db->f('oppsynsmannid') && $this->db->f('oppsynsigndato'))
 					{
-//						$timestamp_jan_date			= mktime(0,0,0,date(m,strtotime($this->db->f('oppsynsigndato'))),date(d,strtotime($this->db->f('oppsynsigndato'))),date(y,strtotime($this->db->f('oppsynsigndato'))));
-//						$invoice[$i]['jan_date']	= $GLOBALS['phpgw']->common->show_date($timestamp_jan_date,$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
 						$invoice[$i]['jan_date']=date($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'],strtotime($this->db->f('oppsynsigndato')));
 					}
 					else
@@ -276,8 +237,6 @@
 					}
 					if($this->db->f('saksbehandlerid') && $this->db->f('saksigndato'))
 					{
-//						$timestamp_super_date		= mktime(0,0,0,date(m,strtotime($this->db->f('saksigndato'))),date(d,strtotime($this->db->f('saksigndato'))),date(y,strtotime($this->db->f('saksigndato'))));
-//						$invoice[$i]['super_date']	= $GLOBALS['phpgw']->common->show_date($timestamp_super_date,$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
 						$invoice[$i]['super_date']=date($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'],strtotime($this->db->f('saksigndato')));
 					}
 					else
@@ -287,8 +246,6 @@
 
 					if($this->db->f('budsjettansvarligid') && $this->db->f('budsjettsigndato'))
 					{
-//							$timestamp_budget_date		= mktime(0,0,0,date(m,strtotime($this->db->f('budsjettsigndato'))),date(d,strtotime($this->db->f('budsjettsigndato'))),date(y,strtotime($this->db->f('budsjettsigndato'))));
-//							$invoice[$i]['budget_date']	= $GLOBALS['phpgw']->common->show_date($timestamp_budget_date,$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
 							$invoice[$i]['budget_date']=date($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'],strtotime($this->db->f('budsjettsigndato')));
 					}
 					else
@@ -298,8 +255,6 @@
 
 					if($this->db->f('utbetalingid') && $this->db->f('utbetalingsigndato'))
 					{
-//						$timestamp_transfer_date= mktime(0,0,0,date(m,strtotime($this->db->f('utbetalingsigndato'))),date(d,strtotime($this->db->f('utbetalingsigndato'))),date(y,strtotime($this->db->f('utbetalingsigndato'))));
-//						$invoice[$i]['transfer_date']			= $GLOBALS['phpgw']->common->show_date($timestamp_transfer_date,$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
 						$invoice[$i]['transfer_date']=date($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'],strtotime($this->db->f('utbetalingsigndato')));
 					}
 					else
@@ -325,7 +280,7 @@
 					$invoice[$i]['voucher_date'] 			= $GLOBALS['phpgw']->common->show_date($timestamp_voucher_date,$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
 					$invoice[$i]['payment_date'] 			= $GLOBALS['phpgw']->common->show_date($timestamp_payment_date,$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
 					$invoice[$i]['period']					= $this->db->f('periode');
-					$invoice[$i]['type']					= $this->db->f('artid');
+					$invoice[$i]['type']					= $art_list[$this->db->f('artid')];
 					$invoice[$i]['kidnr']					= $this->db->f('kidnr');
 					$invoice[$i]['kreditnota']				= $this->db->f('kreditnota');
 					$invoice[$i]['amount']					= $invoice_temp['amount'];
@@ -362,19 +317,12 @@
 		{
 			if(is_array($data))
 			{
-				if ($data['start'])
-				{
-					$start=$data['start'];
-				}
-				else
-				{
-					$start=0;
-				}
-				$filter	= (isset($data['filter'])?$data['filter']:'none');
-				$sort = (isset($data['sort'])?$data['sort']:'DESC');
-				$order = (isset($data['order'])?$data['order']:'');
-				$voucher_id = (isset($data['voucher_id'])?$data['voucher_id']:0);
-				$paid = (isset($data['paid'])?$data['paid']:'');
+				$start		= isset($data['start']) && $data['start'] ? $data['start'] : 0;
+				$filter		= isset($data['filter']) ? $data['filter'] : 'none';
+				$sort		= isset($data['sort']) ? $data['sort'] : 'DESC';
+				$order		= isset($data['order']) ? $data['order'] : '';
+				$voucher_id	= isset($data['voucher_id']) && $data['voucher_id'] ? $data['voucher_id'] : 0;
+				$paid		= isset($data['paid']) ? $data['paid'] : '';
 			}
 
 			if ($paid)
@@ -403,46 +351,42 @@
 
 			$sql = "SELECT $table.*,fm_workorder.status,fm_workorder.charge_tenant,org_name,fm_workorder.claim_issued FROM $table "
 			. " $this->left_join fm_workorder on fm_workorder.id = $table.pmwrkord_code  "
-			. " $this->join fm_vendor  on $table.spvend_code = fm_vendor.id  $filtermethod ";
+			. " $this->join fm_vendor ON $table.spvend_code = fm_vendor.id $filtermethod";
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
-			$this->db->query($sql . $ordermethod,$start,__LINE__,__FILE__);
+			$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
 			$i = 0;
 
+			$invoice = array();
 			while ($this->db->next_record())
 			{
-				$invoice[$i]['counter']					= $i;
-				$invoice[$i]['claim_issued']			= $this->db->f('claim_issued');
-				$invoice[$i]['project_id']				= $this->db->f('project_id');
-				$invoice[$i]['workorder_id']			= $this->db->f('pmwrkord_code');
-				$invoice[$i]['status']					= $this->db->f('status');
-				if ($this->db->f('status')=='closed')
-				{
-					$invoice[$i]['closed']				= true;
-				}
-				$invoice[$i]['voucher_id']				= $voucher_id;
-				$invoice[$i]['id']						= $this->db->f('id');
-				$invoice[$i]['invoice_id']				= $this->db->f('fakturanr');
-				$invoice[$i]['budget_account']			= $this->db->f('spbudact_code');
-				$invoice[$i]['dima']					= $this->db->f('dima');
-				$invoice[$i]['dimb']					= $this->db->f('dimb');
-				$invoice[$i]['dimd']					= $this->db->f('dimd');
-				if ($this->db->f('merknad'))
-				{
-					$invoice[$i]['remark']				= true;
-				}
-				$invoice[$i]['tax_code']				= $this->db->f('mvakode');
-				$invoice[$i]['amount']					= $this->db->f('belop');
-				$invoice[$i]['charge_tenant']			= $this->db->f('charge_tenant');
-				$invoice[$i]['vendor']					= $this->db->f('org_name');
-				$i++;
+				$invoice[] = array
+				(
+					'counter'				=> $i,
+					'claim_issued'			=> $this->db->f('claim_issued'),
+					'project_id'			=> $this->db->f('project_id'),
+					'workorder_id'			=> $this->db->f('pmwrkord_code'),
+					'status'				=> $this->db->f('status'),
+					'closed'				=> $this->db->f('status') == 'closed',
+					'voucher_id'			=> $voucher_id,
+					'id'					=> $this->db->f('id'),
+					'invoice_id'			=> $this->db->f('fakturanr'),
+					'budget_account'		=> $this->db->f('spbudact_code'),
+					'dima'					=> $this->db->f('dima'),
+					'dimb'					=> $this->db->f('dimb'),
+					'dimd'					=> $this->db->f('dimd'),
+					'remark' 				=> !!$this->db->f('merknad'),
+					'tax_code'				=> $this->db->f('mvakode'),
+					'amount'				=> $this->db->f('belop'),
+					'charge_tenant'			=> $this->db->f('charge_tenant'),
+					'vendor'				=> $this->db->f('org_name')
+				);
 
+				$i++;
 			}
 
 			return $invoice;
-
 		}
 
 
@@ -450,49 +394,22 @@
 		{
 			if(is_array($data))
 			{
-				if ($data['start'])
-				{
-					$start=$data['start'];
-				}
-				else
-				{
-					$start=0;
-				}
-				$filter			= (isset($data['filter'])?$data['filter']:'none');
-				$query 			= (isset($data['query'])?$data['query']:'');
-				$sort 			= (isset($data['sort'])?$data['sort']:'DESC');
-				$order 			= (isset($data['order'])?$data['order']:'');
-				$cat_id 		= (isset($data['cat_id'])?$data['cat_id']:0);
-				$start_date 	= (isset($data['start_date'])?$data['start_date']:'');
-				$end_date 		= (isset($data['end_date'])?$data['end_date']:'');
-				$vendor_id 		= (isset($data['vendor_id'])?$data['vendor_id']:'');
-				$loc1 	= (isset($data['loc1'])?$data['loc1']:'');
-				$district_id 	= (isset($data['district_id'])?$data['district_id']:'');
-				$workorder_id 	= (isset($data['workorder_id'])?$data['workorder_id']:0);
-				$b_account_class = (isset($data['b_account_class'])?$data['b_account_class']:'');
+				$start			= isset($data['start']) && $data['start'] ? $data['start'] : 0;
+				$filter			= isset($data['filter'])?$data['filter']:'none';
+				$query 			= isset($data['query'])?$data['query']:'';
+				$sort 			= isset($data['sort'])?$data['sort']:'DESC';
+				$order 			= isset($data['order'])?$data['order']:'';
+				$cat_id 		= isset($data['cat_id']) && $data['cat_id'] ? $data['cat_id']:0;
+				$start_date 	= isset($data['start_date']) && $data['start_date'] ? date($this->db->datetime_format(), $data['start_date']) : '';
+				$end_date 		= isset($data['end_date']) && $data['end_date'] ? date($this->db->datetime_format(), $data['end_date']) : '';
+				$vendor_id 		= isset($data['vendor_id'])?$data['vendor_id']:'';
+				$loc1 			= isset($data['loc1'])?$data['loc1']:'';
+				$district_id 	= isset($data['district_id'])?$data['district_id']:'';
+				$workorder_id 	= isset($data['workorder_id']) && $data['workorder_id'] ? $data['workorder_id']:0;
+				$b_account_class = isset($data['b_account_class'])?$data['b_account_class']:'';
+				$b_account		= isset($data['b_account']) ? $data['b_account'] : '';
 			}
 //_debug_array($data);
-
-			$dateformat = strtolower($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
-			$dateformat = str_replace(".","",$dateformat);
-			$dateformat = str_replace("-","",$dateformat);
-			$dateformat = str_replace("/","",$dateformat);
-			$y=strpos($dateformat,'y');
-			$d=strpos($dateformat,'d');
-			$m=strpos($dateformat,'m');
- 			$dateparts = explode('/', $start_date);
- 			$sday = $dateparts[$d];
- 			$smonth = $dateparts[$m];
- 			$syear = $dateparts[$y];
-
- 			$dateparts = explode('/', $end_date);
- 			$eday = $dateparts[$d];
- 			$emonth = $dateparts[$m];
- 			$eyear = $dateparts[$y];
-
-			$start_date = date($this->bocommon->dateformat,mktime(2,0,0,$smonth,$sday,$syear));
-			$end_date = date($this->bocommon->dateformat,mktime(2,0,0,$emonth,$eday,$eyear));
-
 
 			$where = 'AND';
 
@@ -506,6 +423,16 @@
 				$select_account_class=',fm_b_account.category as b_account_class';
 				$group_account_class=', spbudact_code,fm_b_account.category';
 			}
+
+			if ($b_account)
+			{
+				$filtermethod .= " {$where} fm_b_account.id = '{$b_account}'";
+				$where= 'AND';
+				$select_account_class=',fm_b_account.id as b_account_class';
+				$group_account_class=', spbudact_code,fm_b_account.id';
+
+			}
+
 
 			if ($vendor_id)
 			{
@@ -539,49 +466,31 @@
 				$where= 'AND';
 			}
 
-
-			$year = date("Y",strtotime($start_date));
-			$month = date("m",strtotime($start_date));
-			if($month < 3)
-			{
-				$start_date = date($this->bocommon->dateformat,mktime(2,0,0,3,1,$year));
-			}
-
-			$start_date2 = date($this->bocommon->dateformat,mktime(2,0,0,1,1,$year));
-
 			$sql = "SELECT district_id,periode,sum(godkjentbelop) as consume $select_account_class "
 				. " FROM  fm_ecobilagoverf $this->join fm_location1 ON (fm_ecobilagoverf.loc1 = fm_location1.loc1) "
 				. " $this->join fm_part_of_town ON (fm_location1.part_of_town_id = fm_part_of_town.part_of_town_id) "
 				. " $this->join fm_b_account ON (fm_ecobilagoverf.spbudact_code = fm_b_account.id) "
 		        	. " WHERE (fakturadato >'$start_date' AND fakturadato < '$end_date' $filtermethod )"
-		        	. " OR (fakturadato >'$start_date2' AND fakturadato < '$end_date'  AND periode < 3  $filtermethod) "
 		        	. " GROUP BY district_id,periode $group_account_class"
 		        	. " ORDER BY periode";
 //echo $sql;
 
 			$this->db->query($sql,__LINE__,__FILE__);
 			$this->total_records = $this->db->num_rows();
-			$this->db->query($sql . $ordermethod,$start,__LINE__,__FILE__);
 
-			$i = 0;
+			$consume = array();
 
 			while ($this->db->next_record())
 			{
-				$consume[$i]['consume']				= round($this->db->f('consume'));
-				$consume[$i]['period']					= $this->db->f('periode');
-				$consume[$i]['district_id']				= $this->db->f('district_id');
-				if(!$b_account_class)
-				{
-					$consume[$i]['account_class']			= $this->db->f('b_account_class');
-				}
-				else
-				{
-					$consume[$i]['account_class']			= $b_account_class;
-				}
-
-				$i++;
+				$consume[] = array
+				(
+					'consume'		=> round($this->db->f('consume')),
+					'period'		=> $this->db->f('periode'),
+					'district_id'	=> $this->db->f('district_id'),
+					'account_class'	=> $b_account_class ? $b_account_class : $this->db->f('b_account_class')
+				);	
 			}
-//_debug_array($consume);
+
 			return $consume;
 		}
 
@@ -641,7 +550,7 @@
 				{
 					$budget_account=$values['budget_account'][$n];
 
-					$GLOBALS['phpgw']->db->query("select count(*) from fm_b_account  where id =$budget_account");
+					$GLOBALS['phpgw']->db->query("select count(*) from fm_b_account  where id ='{$budget_account}'");
 					$GLOBALS['phpgw']->db->next_record();
 					if ($GLOBALS['phpgw']->db->f(0) == 0)
 					{

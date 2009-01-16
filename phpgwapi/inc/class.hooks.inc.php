@@ -12,7 +12,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -243,6 +243,11 @@
 		 */
 		public function register_all_hooks()
 		{
+			if ( !isset($GLOBALS['phpgw_info']['apps']) || !is_array($GLOBALS['phpgw_info']['apps']) )
+			{
+				$GLOBALS['phpgw']->applications->read_installed_apps();
+			}
+
 			$app_list = array_keys($GLOBALS['phpgw_info']['apps']);
 			$app_list[] = 'phpgwapi';
 

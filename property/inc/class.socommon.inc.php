@@ -104,6 +104,16 @@
 			if($name && $value)
 			{
 				$value = serialize($value);
+
+				if(function_exists('gzcompress'))
+				{
+					$value =  base64_encode(gzcompress($value, 9));
+				}
+				else
+				{
+					$value = $GLOBALS['phpgw']->db->db_addslashes($value);
+				}
+
 				$this->db->query("INSERT INTO fm_cache (name,value)VALUES ('$name','$value')",__LINE__,__FILE__);
 			}
 			else
@@ -111,8 +121,18 @@
 				$this->db->query("SELECT value FROM fm_cache where name='$name'");
 				if($this->db->next_record())
 				{
-					$value= unserialize($this->db->f('value'));
-					return $value;
+					$ret= $this->db->f('value');
+
+					if(function_exists('gzcompress'))
+					{
+						$ret =  gzuncompress(base64_decode($ret));
+					}
+					else
+					{
+						$ret = stripslashes($ret);
+					}
+
+					return unserialize($ret);
 				}
 			}
 		}
@@ -135,7 +155,7 @@
 
 		function reset_fm_cache_userlist()
 		{
-			$this->db->query("DELETE FROM fm_cache WHERE name $this->like 'acl_userlist_%'",__LINE__,__FILE__);
+			$this->db->query("DELETE FROM fm_cache WHERE name $this->like 'acl_userlist_%'",__LINE__,__FILE__, true);
 			return $this->db->affected_rows();
 		}
 

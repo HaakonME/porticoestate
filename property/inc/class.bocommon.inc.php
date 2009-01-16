@@ -69,6 +69,7 @@
 
 		function property_bocommon()
 		{
+//_debug_array($bt = debug_backtrace());
 			$this->socommon			= CreateObject('property.socommon');
 			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
 
@@ -336,7 +337,7 @@
 							'user_id'	=> $user['user_id'],
 							'name'		=> $user['name'],
 						);
-					
+
 					}
 				}
 			}
@@ -393,11 +394,16 @@
 		}
 
 
-		function get_user_list_right($right='',$selected='',$acl_location='',$extra='',$default='')
+		function get_user_list_right($rights,$selected='',$acl_location='',$extra='',$default='')
 		{
 			if(!$selected && $default)
 			{
 				$selected = $default;
+			}
+
+			if (!is_array($rights))
+			{
+				$rights = array($rights);
 			}
 
 			if (is_array($extra))
@@ -413,19 +419,50 @@
 				}
 			}
 
-			if(!$users = $this->socommon->fm_cache('acl_userlist_'. $right . '_' . $acl_location))
+			if(!$users = $this->socommon->fm_cache('acl_userlist_'. $rights[0] . '_' . $acl_location))
 			{
-				$users = $GLOBALS['phpgw']->acl->get_user_list_right($right, $acl_location);
-				$this->socommon->fm_cache('acl_userlist_'. $right . '_' . $acl_location,$users);
+				$users_gross = array();
+				foreach ($rights as $right)
+				{
+					$users_gross = array_merge($users_gross, $GLOBALS['phpgw']->acl->get_user_list_right($right, $acl_location));
+				}
+				
+				$accounts	= array();
+				$users			= array();
+
+				foreach ($users_gross as $entry => $user)
+				{
+
+					if( !array_search($user['account_id'], $accounts ) )
+					{
+						$users[] = $user;
+					}
+					$accounts[] = $user['account_id'];
+				}
+				unset($users_gross);
+				unset($accounts);
+
+				foreach ($users as $key => $row) 
+				{
+					$account_lastname[$key]  = $row['account_lastname'];
+					$account_firstname[$key] = $row['account_firstname'];
+				}
+
+				// Sort the data with account_lastname ascending, account_firstname ascending
+				// Add $data as the last parameter, to sort by the common key
+				array_multisort($account_lastname, SORT_ASC, $account_firstname, SORT_ASC, $users);
+
+				$this->socommon->fm_cache('acl_userlist_'. $rights[0] . '_' . $acl_location,$users);
 			}
 
 			if (isset($users_extra) && is_array($users_extra) && is_array($users))
 			{
-				$users = $users_extra + $users;
+				$users = array_merge($users_extra, $users);
 			}
 
+			$user_list = array();
 
-			while (is_array($users) && list(,$user) = each($users))
+			foreach ($users as $user)
 			{
 				if ($user['account_lid']==$selected)
 				{
@@ -501,7 +538,8 @@
 				{
 					$user_list[] = array
 					(
-						'user_id'	=> $user['account_id'],
+						//'user_id'	=> $user['account_id'],
+						'id'	=> $user['account_id'],
 						'name'		=> $name,
 						'selected'	=> 'selected'
 					);
@@ -510,7 +548,8 @@
 				{
 					$user_list[] = array
 					(
-						'user_id'	=> $user['account_id'],
+						//'user_id'	=> $user['account_id'],
+						'id'	=> $user['account_id'],
 						'name'		=> $name
 					);
 				}
@@ -815,6 +854,42 @@
 			return (isset($datatype_precision[$datatype])?$datatype_precision[$datatype]:'');
 		}
 
+		/**
+		 * Convert a datatype to a format to output
+		 *
+		 * @param string $datatype the dataype to convert
+		 *
+		 * @return string the format - incoming of translation is not found
+		 */
+		function translate_datatype_format($datatype)
+		{
+			$datatype_text = array(
+				'V' => 'varchar',
+				'I' => 'number',
+				'C' => 'char',
+				'N' => 'float',
+				'D' => 'date',
+				'T' => 'memo',
+				'R' => 'radio',
+				'CH' => 'checkbox',
+				'LB' => 'listbox',
+				'AB' => 'contact',
+				'VENDOR' => 'vendor',
+				'email' => 'email',
+				'link' => 'link',
+				'pwd' => 'password',
+				'user' => 'phpgw_user'
+			);
+
+
+			if ( isset($datatype_text[$datatype]) )
+			{
+				return $datatype_text[$datatype];
+			}
+			return $datatype;
+		}
+
+
 		function save_attributes($values_attribute,$type)
 		{
 
@@ -1009,6 +1084,9 @@
 				$uicols['name'][]		= 'loc' . $location_types[$i]['id'];
 				$uicols['descr'][]		= $location_types[$i]['name'];
 				$uicols['statustext'][]		= $location_types[$i]['descr'];
+				$uicols['exchange'][]		= false;
+				$uicols['align'][] 			= '';
+				$uicols['datatype'][]		= '';
 			}
 /*
 			$fm_location_cols = $soadmin_location->read_attrib(array('type_id'=>$type_id,'lookup_type'=>$type_id));
@@ -1043,6 +1121,9 @@
 				$uicols['name'][]			= 'loc1_name';
 				$uicols['descr'][]			= lang('Property Name');
 				$uicols['statustext'][]			= lang('Property Name');
+				$uicols['exchange'][]		= true;
+				$uicols['align'][] 			= '';
+				$uicols['datatype'][]		= '';
 
 				for ($i=2;$i<($type_id+1);$i++)
 				{
@@ -1051,6 +1132,9 @@
 					$uicols['name'][]		= 'loc' . $i . '_name';
 					$uicols['descr'][]		= '';
 					$uicols['statustext'][]		= '';
+					$uicols['exchange'][]		= true;
+					$uicols['align'][] 			= '';
+					$uicols['datatype'][]		= '';
 				}
 			}
 
@@ -1062,6 +1146,9 @@
 				$uicols['name'][]			= 'address';
 				$uicols['descr'][]			= lang('address');
 				$uicols['statustext'][]		= lang('address');
+				$uicols['exchange'][]		= false;
+				$uicols['align'][] 			= '';
+				$uicols['datatype'][]		= '';
 			}
 
 			$config_count	= count($config);
@@ -1079,18 +1166,27 @@
 						$uicols['name'][]			= 'street_name';
 						$uicols['descr'][]			= lang('street name');
 						$uicols['statustext'][]		= lang('street name');
+						$uicols['exchange'][]		= false;
+						$uicols['align'][] 			= '';
+						$uicols['datatype'][]		= '';
 
 						$cols_return[] 				= 'street_number';
 						$uicols['input_type'][]		= 'hidden';
 						$uicols['name'][]			= 'street_number';
 						$uicols['descr'][]			= lang('street number');
 						$uicols['statustext'][]		= lang('street number');
+						$uicols['exchange'][]		= false;
+						$uicols['align'][] 			= '';
+						$uicols['datatype'][]		= '';
 
 						$cols_return[] 				= $config[$i]['column_name'];
 						$uicols['input_type'][]		= 'hidden';
 						$uicols['name'][]			= $config[$i]['column_name'];
 						$uicols['descr'][]			= lang($config[$i]['input_text']);
 						$uicols['statustext'][]		= lang($config[$i]['input_text']);
+						$uicols['exchange'][]		= false;
+						$uicols['align'][] 			= '';
+						$uicols['datatype'][]		= '';
 						if($lookup)
 						{
 							$cols_extra[] 			= 'street_name';
@@ -1106,6 +1202,9 @@
 						$uicols['name'][]			= $config[$i]['column_name'];
 						$uicols['descr'][]			= $config[$i]['input_text'];
 						$uicols['statustext'][]		= $config[$i]['input_text'];
+						$uicols['exchange'][]		= false;
+						$uicols['align'][] 			= '';
+						$uicols['datatype'][]		= '';
 
 						if($lookup)
 						{
@@ -1141,7 +1240,9 @@
 			}
 
 			$parts= $this->socommon->select_part_of_town($district_id);
-
+			$part_of_town_list = array();
+			//cr@ccfirst.com 09/09/08 validate for YUI.
+			if(is_array($parts)&& (count($parts))){
 			foreach($parts as $entry)
 			{
 				if ($entry['id']==$selected)
@@ -1164,6 +1265,8 @@
 					);
 				}
 			}
+			}
+
 			return $part_of_town_list;
 		}
 
@@ -1349,6 +1452,9 @@
 				case 'excel':
 					$this->excel_out($list,$name,$descr,$input_type);
 					break;
+				case 'ods':
+					$this->ods_out($list,$name,$descr,$input_type);
+					break;
 			}
 		}
 
@@ -1463,6 +1569,69 @@
 			}
 			fclose($fp);
 		}
+		/**
+		* downloads data as ODS to the browser
+		*
+		* @param array $list array with data to export
+		* @param array $name array containing keys in $list
+		* @param array $descr array containing Names for the heading of the output for the coresponding keys in $list
+		* @param array $input_type array containing information whether fields are to be suppressed from the output
+		*/
+		function ods_out($list, $name, $descr, $input_type = array() )
+		{
+			$filename= str_replace(' ','_',$GLOBALS['phpgw_info']['user']['account_lid']).'.ods';
+			$browser = CreateObject('phpgwapi.browser');
+			$browser->content_header($filename, 'application/ods');
+
+			$count_uicols_name=count($name);
+
+			$ods = createObject('property.ods');
+			$object = $ods->newOds(); //create a new ods file
+
+			$m=0;
+			for ($k=0;$k<$count_uicols_name;$k++)
+			{
+				if($input_type[$k]!='hidden')
+				{
+					$object->addCell(1, 0, $m, $descr[$k], 'string');
+					$m++;
+				}
+			}
+
+			$j=0;
+			if (isset($list) AND is_array($list))
+			{
+				foreach($list as $entry)
+				{
+					$m=0;
+					for ($k=0;$k<$count_uicols_name;$k++)
+					{
+						if($input_type[$k]!='hidden')
+						{
+							$content[$j][$m]	= str_replace(array('&'), array('og'), $entry[$name[$k]]);//str_replace("\r\n"," ",$entry[$name[$k]]);
+							$m++;
+						}
+					}
+					$j++;
+				}
+
+				$line = 0;
+				foreach($content as $row)
+				{
+					$line++;
+					for ($i=0; $i<count($row); $i++)
+					{
+						$object->addCell(1, $line, $i, $row[$i], 'string');
+					}
+				}
+			}
+
+			$temp_dir = $GLOBALS['phpgw_info']['server']['temp_dir'];
+			$ods->saveOds($object,"{$temp_dir}/{$filename}");
+
+			echo file_get_contents("{$temp_dir}/{$filename}");
+			unlink("{$temp_dir}/{$filename}");
+		}
 
 		function increment_id($name)
 		{
@@ -1518,7 +1687,7 @@
 		/**
 		* Preserve attribute values from post in case of an error
 		*
-		* @param array $values value set with 
+		* @param array $values value set with
 		* @param array $values_attributes attribute definitions and values from posting
 		*
 		* @return array attribute definitions and values
@@ -1531,7 +1700,7 @@
 			}
 
 			foreach ( $values_attributes as $attribute )
-			{	
+			{
 				foreach ( $values['attributes'] as &$val_attrib )
 				{
 					if ( $val_attrib['id'] != $attribute['attrib_id'] )
@@ -1564,7 +1733,7 @@
 						{
 							if ( $choice['id'] == $attribute['value'] )
 							{
-								$choice['checked'] = 'checked';	
+								$choice['checked'] = 'checked';
 							}
 						}
 					}
@@ -1660,21 +1829,22 @@
 			return $values;
 		}
 
-		function get_menu()
+		function get_menu($app = 'property')
 		{
+			$GLOBALS['phpgw_info']['flags']['nonavbar'] = false;
 			if(!isset($GLOBALS['phpgw_info']['user']['preferences']['property']['horisontal_menus']) || $GLOBALS['phpgw_info']['user']['preferences']['property']['horisontal_menus'] == 'no')
 			{
 				return;
 			}
 			$GLOBALS['phpgw']->xslttpl->add_file(array('menu'));
 
-			if(!$menu = $GLOBALS['phpgw']->session->appsession($GLOBALS['phpgw_info']['flags']['menu_selection'], 'menu'))
+			if(!$menu = $GLOBALS['phpgw']->session->appsession($GLOBALS['phpgw_info']['flags']['menu_selection'], "menu_{$app}"))
 			{
-				$menu_gross = execMethod('property.menu.get_menu');
+				$menu_gross = execMethod("{$app}.menu.get_menu", 'horisontal');
 				$selection = explode('::',$GLOBALS['phpgw_info']['flags']['menu_selection']);
 				$level=0;
 				$menu['navigation'] = $this->get_sub_menu($menu_gross['navigation'],$selection,$level);
-				$GLOBALS['phpgw']->session->appsession(isset($GLOBALS['phpgw_info']['flags']['menu_selection']) && $GLOBALS['phpgw_info']['flags']['menu_selection'] ? $GLOBALS['phpgw_info']['flags']['menu_selection'] : 'property_missing_selection', 'menu', $menu);
+				$GLOBALS['phpgw']->session->appsession(isset($GLOBALS['phpgw_info']['flags']['menu_selection']) && $GLOBALS['phpgw_info']['flags']['menu_selection'] ? $GLOBALS['phpgw_info']['flags']['menu_selection'] : 'property_missing_selection', "menu_{$app}", $menu);
 				unset($menu_gross);
 			}
 			return $menu;
@@ -1739,4 +1909,37 @@
 		{
 			return $this->socommon->get_location_list($required);
 		}
+
+
+
+		public function select2String($array_values, $id = 'id', $name = 'name',$name2 = '' )
+        {
+             $str_array_values = "";
+             for($i = 0; $i < count($array_values); $i++)
+             {
+                foreach( $array_values[$i] as $key => $value )
+                {
+                    if ($key == $id)
+                    {
+                     $str_array_values .= $value;
+                     $str_array_values .= "#";
+                    }
+                    if ($key == $name)
+                    {
+                      $str_array_values .= $value;
+                      $str_array_values .= "@";
+                    }
+                 if ($key == $name2)
+                 {
+                 // eliminate hte last @ in $str_array_values
+                 $str_array_values = substr($str_array_values, 0, strrpos($str_array_values,'@'));
+                 $str_array_values .= " ".$value;
+                 $str_array_values .= "@";
+                 }
+                }
+             }
+             return $str_array_values;
+        }
+
+
 	}

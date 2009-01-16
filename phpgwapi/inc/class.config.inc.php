@@ -5,7 +5,7 @@
 	* @author Joseph Engo <jengo@phpgroupware.org>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	* @package phpgwapi
 	* @subpackage application
 	* @version $Id$
@@ -14,7 +14,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -64,8 +64,25 @@
 			$this->module = $this->db->db_addslashes($module);
 		}
 
+
 		/**
 		 * Load the config values for the current module
+		 *
+		 * @return array the config values
+		 */
+
+		public function read()
+ 		{
+			if(!count($this->config_data))
+			{
+				$this->read_repository();
+			}
+			return $this->config_data;
+		}
+
+		/**
+		 * Load the config values for the current module
+		 * @todo change to protected
 		 *
 		 * @return array the config values
 		 */

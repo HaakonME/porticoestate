@@ -5,7 +5,7 @@
 	* @author coreteam <phpgroupware-developers@gnu.org>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/ GNU General Public License v3 or later
+	* @license http://www.gnu.org/licenses/ GNU General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage admin
 	* @version $Id$
@@ -14,7 +14,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -34,7 +34,7 @@
 	* @author coreteam <phpgroupware-developers@gnu.org>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/ GNU General Public License v3 or later
+	* @license http://www.gnu.org/licenses/ GNU General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage admin
 	* @category accounts
@@ -249,15 +249,21 @@
 						array('menuaction' => 'admin.uiaccounts.edit_user'));
 			}
 
-			$query	= phpgw::get_var('query', 'string', 'POST');
-			$start	= phpgw::get_var('start', 'int');
-			$order	= phpgw::get_var('order', 'string', 'GET', 'account_lid');
-			$sort	= phpgw::get_var('sort', 'string', 'GET', 'ASC');
+			$query		= phpgw::get_var('query', 'string', 'POST');
+			$start		= phpgw::get_var('start', 'int');
+			$order		= phpgw::get_var('order', 'string', 'GET', 'account_lid');
+			$sort		= phpgw::get_var('sort', 'string', 'GET', 'ASC');
+			$allrows	= phpgw::get_var('allrows', 'bool');
 
 			//this is a work around hack for the ugly nextmatch code
 			$GLOBALS['query'] = $query;
 
 			$total = 0;
+			if( $allrows )
+			{
+				$start = -1;
+				$total = -1;
+			}
 
 			$GLOBALS['phpgw_info']['flags']['app_header'] = lang('administration') . ': ' . lang('list users');
 
@@ -427,10 +433,12 @@
 
 			$nm = array
 			(
-				'start'			=> $start,
- 				'num_records'	=> count($account_info),
- 				'all_records'	=> $total,
-				'link_data'		=> $link_data
+				'start'				=> $start,
+ 				'num_records'		=> count($account_info),
+ 				'all_records'		=> $total,
+				'link_data'			=> $link_data,
+				'allow_all_rows'	=> true,
+				'allrows'			=> $allrows
 			);
 
 			$data = array
@@ -494,7 +502,7 @@
 				{
 					$GLOBALS['phpgw']->redirect_link('/index.php', array
 					(
-						'menuaction' => 'admin.uiaccounts.view_group',
+						'menuaction' => 'admin.uiaccounts.edit_group',
 						'account_id' => $account_id
 					));
 				}
@@ -750,7 +758,7 @@
 				return;
 			}
 			$GLOBALS['phpgw']->redirect_link('/index.php',
-					array('menuaction' => 'admin.uiaccounts.view_user', 'account_id' => $account_id));
+					array('menuaction' => 'admin.uiaccounts.edit_user', 'account_id' => $account_id));
 		}
 
 		/**
@@ -786,7 +794,7 @@
 			if ( $account_id )
 			{
 				$user_data['anonymous'] = $acl->check('anonymous', 1, 'phpgwapi');
-				$user_data['changepassword'] = $acl->check('changepassword', 0xFFFF, 'preferences');
+				$user_data['changepassword'] = $acl->check('changepassword', 1, 'preferences');
 				$user_data['account_permissions'] = $this->_bo->load_apps($account_id);
 				$user_groups = $account->membership($account_id);
 
@@ -942,6 +950,7 @@
 			$tabs = array
 			(
 				'data'	=> array('label' => lang('user data'), 'link' => '#user'),
+				'groups'	=> array('label' => lang('groups'), 'link' => '#groups'),
 				'apps'	=> array('label' => lang('applications'), 'link' => '#apps')
 			);
 			phpgwapi_yui::tabview_setup('account_edit_tabview');
@@ -1183,6 +1192,11 @@
 					//TODO Make this nicer
 					echo 'Failed to delete user';
 				}
+				else
+				{
+					$GLOBALS['phpgw']->redirect_link('/index.php',
+						array('menuaction' => 'admin.uiaccounts.list_users'));
+				}
 			}
 			if( phpgw::get_var('cancel', 'bool') )
 			{
@@ -1207,12 +1221,12 @@
 				$account_id = phpgw::get_var('account_id', 'int');
 				foreach ( $accounts_list as $account )
 				{
-					if ( (int) $account['account_id'] != $account_id )
+					if ( (int) $account->id != $account_id )
 					{
 						$alist[] = array
 						(
-						  'account_id'   => $account['account_id'],
-						  'account_name' => $accounts->id2name($account['account_id'])
+						  'account_id'   => $account->id,
+						  'account_name' => $accounts->id2name($account->id)
 						);
 					}
 				}

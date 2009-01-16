@@ -13,7 +13,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -56,7 +56,7 @@
 			switch ( $widget )
 			{
 				case 'animation':
-					$load = array('animation-min');
+					$load = array('animation-min', 'container-min');
 					break;
 
 				case 'autocomplete':
@@ -80,16 +80,27 @@
 					$load = array('container-min', 'dragdrop-min');
 					break;
 
+				case 'utilities':
+					$load = array('container-min');
+					break;
+
 				case 'connection':
 					$load = array('connection-min');
 					break;
 
 				case 'datasource':
-					$load = array('datasource-beta-min', 'connection-min');
+					//$load = array('datasource-beta-min', 'connection-min');
+					$load = array('datasource-min', 'connection-min');
 					break;
 
 				case 'datatable':
-					$load = array('datatable-beta-min', 'datasource-beta-min');
+					$load = array('element-beta-min', 'datasource-min', 'datatable-min' );
+					//$load = array('element-beta', 'datasource-beta', 'datatable-beta' );
+					break;
+				// cramirez: necesary for include a partucular js
+				case 'loader':
+					//$load = array('yuiloader-beta');
+					$load = array('yuiloader-min');
 					break;
 
 				case 'dom':
@@ -101,11 +112,15 @@
 					break;
 
 				case 'editor':
-					$load = array('editor-beta-min', 'menu-min', 'element-beta-min', 'button-min', 'animation-min', 'dragdrop-min');
+					$load = array('editor-min', 'menu-min', 'element-beta-min', 'button-min', 'animation-min', 'dragdrop-min');
 					break;
 
 				case 'element':
 					$load = array('element-beta-min');
+					break;
+
+				case 'paginator':
+					$load = array('paginator-min');
 					break;
 
 				case 'event':
@@ -126,13 +141,15 @@
 					$load = array('container_core-min', 'menu-min');
 					break;
 
-                case 'resize': 
-					$load = array('dragdrop-min', 'element-beta-min', 'resize-beta-min'); 
-					break; 
+                case 'resize':
+					$load = array('dragdrop-min', 'element-beta-min', 'resize-min');
+					//$load = array('dragdrop-min', 'element-beta-min', 'resize-beta-min');
+					break;
 
-				case 'layout': 
-					$load = array('dragdrop-min', 'element-beta-min', 'resize-beta-min', 'layout-beta-min'); 
-					break; 
+				case 'layout':
+					$load = array('dragdrop-min', 'element-beta-min', 'resize-min', 'layout-min');
+					//$load = array('dragdrop-min', 'element-beta-min', 'resize-beta-min', 'layout-beta-min');
+					break;
 
 				case 'slider':
 					$load = array('dragdrop-min', 'animation-min', 'slider-min');

@@ -266,10 +266,19 @@
 				{
 					$receipt['error'][] = array('msg'=>lang('location not selected!'));
 				}
+				else
+				{
+					$location = $values['location'];
+				}
 
 				if (!$values['column_name'])
 				{
 					$receipt['error'][] = array('msg'=>lang('Column name not entered!'));
+				}
+
+				if(!preg_match('/^[a-z0-9_]+$/i',$values['column_name']))
+				{
+					$receipt['error'][] = array('msg'=>lang('Column name %1 contains illegal character', $values['column_name']));
 				}
 
 				if (!$values['input_text'])
@@ -316,7 +325,7 @@
 					{
 						$id=$receipt['id'];
 					}
-					$GLOBALS['phpgw']->redirect_link('/index.php', array('menuaction' => 'admin.ui_custom.edit_attrib', 'appname' => $values['appname'], 'location' => $values['location'], 'id' => $id, 'menu_selection' => $GLOBALS['phpgw_info']['flags']['menu_selection']));
+				//	$GLOBALS['phpgw']->redirect_link('/index.php', array('menuaction' => 'admin.ui_custom.edit_attrib', 'appname' => $values['appname'], 'location' => $values['location'], 'id' => $id, 'menu_selection' => $GLOBALS['phpgw_info']['flags']['menu_selection']));
 
 				}
 				else
@@ -438,7 +447,7 @@
 				'lang_location_statustext'			=> lang('Select submodule'),
 				'select_name_location'				=> 'values[location]',
 
-				'location_list'						=> $this->bolocation->select_location('select',(isset($values['location'])?$values['location']:''),False,True),
+				'location_list'						=> $this->bolocation->select_location('select', $location, false, true),
 
 				'value_disabled'					=> isset($values['disabled']) ? $values['disabled'] : '',
 				'lang_disabled'						=> lang('disabled'),
@@ -447,7 +456,7 @@
 				'value_helpmsg'						=> isset($values['helpmsg']) ? $values['helpmsg'] : '',
 				'lang_helpmsg'						=> lang('help message'),
 				'lang_helpmsg_statustext'			=> lang('Enables help message for this attribute'),
-				'value_location'					=> isset($values['location']) ? $values['location'] : ''
+				'value_location'					=> $location
 			);
 //_debug_array($values);
 
@@ -491,10 +500,42 @@
 						'descr'						=> $entry['descr'],
 						'sorting'					=> $entry['sorting'],
 						'active'					=> $entry['active']?'X':'',
-						'link_up'					=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'admin.ui_custom.list_custom_function', 'resort'=> 'up', 'appname'=> $appname, 'location'=> $location, 'id'=> $entry['id'], 'allrows'=> $this->allrows, 'menu_selection' => $GLOBALS['phpgw_info']['flags']['menu_selection'])),
-						'link_down'					=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'admin.ui_custom.list_custom_function', 'resort'=> 'up', 'appname'=> $appname, 'location'=> $location, 'id'=> $entry['id'], 'allrows'=> $this->allrows, 'menu_selection' => $GLOBALS['phpgw_info']['flags']['menu_selection'])),
-						'link_edit'					=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'admin.ui_custom.edit_custom_function', 'appname'=> $appname, 'location'=> $location, 'id'=> $entry['id'], 'menu_selection' => $GLOBALS['phpgw_info']['flags']['menu_selection'])),
-						'link_delete'				=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=> 'admin.ui_custom.delete', 'appname'=> $appname, 'location'=> $location, 'custom_function_id'=> $entry['id'], 'menu_selection' => $GLOBALS['phpgw_info']['flags']['menu_selection'])),
+						'link_up'					=> $GLOBALS['phpgw']->link('/index.php',array
+														(
+															'menuaction'		=> 'admin.ui_custom.list_custom_function',
+															'resort'			=> 'up',
+															'appname'			=> $appname,
+															'location'			=> $location,
+															'id'				=> $entry['id'],
+															'allrows'			=> $this->allrows,
+															'menu_selection'	=> $GLOBALS['phpgw_info']['flags']['menu_selection']
+														)),
+						'link_down'					=> $GLOBALS['phpgw']->link('/index.php',array
+														(
+															'menuaction'		=> 'admin.ui_custom.list_custom_function',
+															'resort'			=> 'down',
+															'appname'			=> $appname,
+															'location'			=> $location,
+															'id'				=> $entry['id'],
+															'allrows'			=> $this->allrows,
+															'menu_selection'	=> $GLOBALS['phpgw_info']['flags']['menu_selection']
+														)),
+						'link_edit'					=> $GLOBALS['phpgw']->link('/index.php',array
+														(
+															'menuaction'		=> 'admin.ui_custom.edit_custom_function',
+															'appname'			=> $appname,
+															'location'			=> $location,
+															'id'				=> $entry['id'],
+															'menu_selection'	=> $GLOBALS['phpgw_info']['flags']['menu_selection']
+															)),
+						'link_delete'				=> $GLOBALS['phpgw']->link('/index.php',array
+														(
+															'menuaction'		=> 'admin.ui_custom.delete',
+															'appname'			=> $appname,
+															'location'			=> $location,
+															'custom_function_id'=> $entry['id'],
+															'menu_selection'	=> $GLOBALS['phpgw_info']['flags']['menu_selection']
+														)),
 						'lang_up_text'				=> lang('shift up'),
 						'lang_down_text'			=> lang('shift down'),
 						'lang_edit_text'			=> lang('edit the custom_function'),

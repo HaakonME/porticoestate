@@ -233,7 +233,8 @@
 			);
 
 			// Begin transaction for acl, etc
-			$GLOBALS['phpgw_setup']->db->transaction_begin();
+			// FIXME: Conflicting transactions - there are transactions in phpgwapi_accounts_::create() and acl::save_repository()
+			//$GLOBALS['phpgw_setup']->db->transaction_begin();
 
 			// Now, clear out existing tables
 			$contacts_to_delete = $GLOBALS['phpgw']->accounts->get_account_with_contact();
@@ -265,6 +266,13 @@
 				'todo'
 			);
 
+			$acls[] = array
+			(
+				'appname'	=> 'preferences',
+				'location'	=> 'changepassword',
+				'rights'	=> 1
+			);
+			
 			$group = array('username' => 'default');
 			$defaultgroupid = add_account($group, 'g', array(), $modules);
 
@@ -275,9 +283,9 @@
 
 			$groups = array($defaultgroupid, $admingroupid);
 
-			$accountid = add_account($admin_acct, 'u', $groups, array('admin'));
+			$accountid = add_account($admin_acct, 'u', $groups, array('admin'), $acls);
 
-			$GLOBALS['phpgw_setup']->db->transaction_commit();
+			//$GLOBALS['phpgw_setup']->db->transaction_commit();
 
 			Header('Location: index.php');
 			exit;
@@ -314,7 +322,7 @@
 		$db->query('SELECT COUNT(*) AS cnt FROM phpgw_accounts', __LINE__, __FILE__);
 		$db->next_record();
 		$number_of_accounts = $db->f('cnt');
-		if ( !$number_of_accounts )
+		if ( $number_of_accounts )
 		{
 			$account_creation_notice .= "\n" 
 				. lang('<b>!!!THIS WILL DELETE ALL EXISTING ACCOUNTS!!!</b><br>');

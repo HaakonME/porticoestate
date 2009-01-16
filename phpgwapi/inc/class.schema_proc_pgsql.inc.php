@@ -178,6 +178,7 @@
 				case 'date':
 					$sTranslated = "'type' => '$sType'";
 					break;
+				case 'bool':
 				case 'boolean':
 					$sTranslated = "'type' => 'bool'";
 					break;
@@ -279,11 +280,11 @@
 
 				if ($sdb->f(5) == 'f')
 				{
-					$null = "'nullable' => True";
+					$null = "'nullable' => False";
 				}
 				else
 				{
-					$null = "'nullable' => False";
+					$null = "'nullable' => True";
 				}
 
 				if ($sdb->f(2) == 'numeric')
@@ -329,7 +330,15 @@
 					}
 					else
 					{
-						$default = "'default' => '" . str_replace(array('::bpchar','::character varying','now()',"('now'::text)::timestamp(6) without time zone"),array('','','current_timestamp','current_timestamp'),$sdc->f(0));
+						if(preg_match('/(now()|::timestamp(6) without time zone$|::timestamp without time zone$)/i', $sdc->f(0)))
+						{
+							$default =  "'default' =>'current_timestamp'";
+						}
+						else
+						{
+							$default = "'default' => '" . str_replace(array('::bpchar','::character varying'),array('',''),$sdc->f(0));						
+						}
+						
 						// For db-functions - add an apos
 						if(substr($default,-1)!= "'")
 						{
@@ -384,6 +393,7 @@
 				}
 			}
 
+/*
 			$ForeignKeys = $sdc->MetaForeignKeys($sTableName);
 
 			foreach($ForeignKeys as $table => $keys)
@@ -396,11 +406,64 @@
 				}
 				$this->fk[] = $table . "' => array(" . implode(', ',$keystr)  . ')';
 			}
+*/
 
-			$MetaIndexes = $sdc->adodb->MetaIndexes($sTableName);
+			$sql_f_keys = "SELECT
+				pc.conname,
+				pg_catalog.pg_get_constraintdef(pc.oid, true) AS consrc,
+				pc.contype,
+				CASE WHEN pc.contype='u' OR pc.contype='p' THEN (
+					SELECT
+						indisclustered
+					FROM
+						pg_catalog.pg_depend pd,
+						pg_catalog.pg_class pl,
+						pg_catalog.pg_index pi
+					WHERE
+						pd.refclassid=pc.tableoid
+						AND pd.refobjid=pc.oid
+						AND pd.objid=pl.oid
+						AND pl.oid=pi.indexrelid
+				) ELSE
+					NULL
+				END AS indisclustered
+			FROM
+				pg_catalog.pg_constraint pc
+			WHERE
+				pc.conrelid = (SELECT oid FROM pg_catalog.pg_class WHERE relname='$sTableName'
+					AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace
+					WHERE nspname='public'))
+			ORDER BY
+				1";
+
+			$oProc->m_odb->query($sql_f_keys, __LINE__, __FILE__);
+			while ($oProc->m_odb->next_record())
+			{
+				if($oProc->m_odb->f('contype') == 'f')
+				{
+					$f_temp = preg_split("/FOREIGN KEY|REFERENCES|[()]/",$oProc->m_odb->f('consrc'));
+					$f_temp_primary = explode(', ',$f_temp[2]);
+					$f_temp_foreign = explode(', ',$f_temp[5]);
+
+					$keystr = '';
+					for ($i=0;$i<count($f_temp_primary);$i++)
+					{
+						$keystr[] = "'" . $f_temp_primary[$i] . "' => '" . $f_temp_foreign[$i] . "'";
+					}				
+					
+					$this->fk[] = "'" . trim($f_temp[4]) . "' => array(" . implode(', ',$keystr)  . ')';
+				}
+			}
+			unset($keystr);
+			unset($f_temp);
+			unset($f_temp_primary);
+			unset($f_temp_foreign);
+
+
+			$metaindexes = $sdc->metaindexes($sTableName);
 
 			//FIXME: looks like unique is reported as index
-			foreach($MetaIndexes as $key => $index)
+			foreach($metaindexes as $key => $index)
 			{
 				if(count($index['columns']) > 1)
 				{
@@ -612,7 +675,9 @@
 		function AddColumn($oProc, &$aTables, $sTableName, $sColumnName, &$aColumnDef)
 		{
 			$default = '';
-			$Ok = '';
+			$notnull = '';
+			$Ok 	 = '';
+
 			if (isset($aColumnDef['default']) && $aColumnDef['default'])	// pgsql cant add a colum with a default
 			{
 				$default = $aColumnDef['default'];
@@ -644,11 +709,15 @@
 
 				$query = "ALTER TABLE $sTableName ALTER COLUMN $sColumnName SET $defaultSQL;\n";
 
-				$query .= "UPDATE $sTableName SET $sColumnName='$default';\n";
-
 				$Ok = !!$oProc->m_odb->query($query, __LINE__, __FILE__);
 
-				if ($OK && $notnull)
+				if ( $Ok )
+				{
+					$query = "UPDATE $sTableName SET $sColumnName='$default';\n";
+					$Ok = !!$oProc->m_odb->query($query, __LINE__, __FILE__);
+				}
+
+				if ($Ok && $notnull)
 				{
 					// unfortunally this is pgSQL >= 7.3
 					//$query .= "ALTER TABLE $sTableName ALTER COLUMN $sColumnName SET NOT NULL;\n";

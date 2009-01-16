@@ -1,8 +1,8 @@
 <?php
 	/**************************************************************************\
-	* phpGroupWare                                                             *
-	* http://www.phpgroupware.org                                              *
-  * Written by Joseph Engo <jengo@phpgroupware.org>                          *
+	* eGroupWare                                                               *
+	* http://www.egroupware.org                                                *
+	* Written by Joseph Engo <jengo@phpgroupware.org>                          *
 	* --------------------------------------------                             *
 	*  This program is free software; you can redistribute it and/or modify it *
 	*  under the terms of the GNU General Public License as published by the   *
@@ -10,14 +10,21 @@
 	*  option) any later version.                                              *
 	\**************************************************************************/
 
-  /* $Id$ */
+	/* $Id: hook_admin.inc.php 20036 2005-11-28 16:16:06Z lkneschke $ */
 {
+
+##
+#
+# There is nothing to configure in FeLaMiMail anymore
+#
+##
+
 // Only Modify the $file and $title variables.....
-	$title = $appname;
-	$file = Array(
-		'Site Configuration'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=>'admin.uiconfig.index','appname'=> $appname))
-		);
+#	$title = $appname;
+#	$file = Array(
+#		'Site Configuration'	=> $GLOBALS['phpgw']->link('/index.php','menuaction=felamimail.uifelamimail.hookAdmin')
+#	);
 //Do not modify below this line
-	display_section($appname,$title,$file);
+#	display_section($appname,$title,$file);
 }
 ?>

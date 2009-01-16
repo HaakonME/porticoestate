@@ -7,7 +7,7 @@
 	* @author Philipp Kamps <pkamps@probusiness.de>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage phpgwapi
 	* @version $Id$
@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -226,7 +226,7 @@
 		 *
 		 * @return void
 		 */
-		abstract public function read_repository();
+		abstract protected function read_repository();
 
 		/**
 		 * Save/update account information to database
@@ -309,11 +309,10 @@
 		 */
 		public function create($account, $group, $acls = array(), $modules = array())
 		{
-			$this->db->transaction_begin();
-
+		// FIXME: Conflicting transactions - there is a transaction in acl::save_repository()
+		//	$this->db->transaction_begin();
 			try
 			{
-
 				$class = get_class($account);
 				switch( $class )
 				{
@@ -343,21 +342,31 @@
 					$aclobj->add($acl['appname'], $acl['location'], $acl['rights']);
 				}
 
+/* // Didn't work...
 				foreach ( $modules as $module )
 				{
 					$aclobj->add($module, 'run', phpgwapi_acl::READ);
 				}
+*/
 				$aclobj->save_repository();
+
+				// application permissions
+				if ( $modules )
+				{
+					$apps = createObject('phpgwapi.applications', $account->id);
+					$apps->update_data(array_values($modules));
+					$apps->save_repository();
+				}
 
 			}
 			catch (Exception $e)
 			{
-				$this->db->transaction_abort();
+		//		$this->db->transaction_abort();
 				// throw it again so it can be caught higher up
 				throw $e;
 			}
 
-			$this->db->transaction_commit();
+		//	$this->db->transaction_commit();
 			return $account->id;
 		}
 
@@ -651,7 +660,7 @@
 		 *
 		 * @return void
 		 */
-		public function update_user($user, $groups, $permissions = null, $modules = null)
+		public function update_user($user, $groups, $acls = array(), $modules = null)
 		{
 			$this->set_account($user->id);
 			$this->account = $user;
@@ -680,6 +689,17 @@
 
 			//FIXME need permissions here
 
+			$aclobj =& $GLOBALS['phpgw']->acl;
+			$aclobj->set_account_id($user->id);
+			$aclobj->delete_repository('preferences', 'changepassword', $user->id);
+			$aclobj->set_account_id($user->id); //reread the current repository
+			foreach ( $acls as $acl )
+			{
+				$aclobj->add($acl['appname'], $acl['location'], $acl['rights']);
+			}
+
+			$aclobj->save_repository();
+
 			// application permissions
 			if ( is_array($modules) )
 			{
@@ -702,7 +722,7 @@
 		 */
 		public function update_data($data)
 		{
-			if ( $data['account_type'] == 'g' )
+			if ( $this->get_type($data->id) == 'g' )
 			{
 				$account = new phpgwapi_group();
 			}

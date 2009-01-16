@@ -9,34 +9,46 @@
 
 	$app = $GLOBALS['phpgw_info']['flags']['currentapp'];
 
-	$stylesheets = array
-	(
-		"/phpgwapi/js/yahoo/reset-fonts-grids/reset-fonts-grids.css",
-		"/phpgwapi/js/yahoo/menu/assets/skins/sam/menu.css",
-		"/phpgwapi/js/yahoo/button/assets/skins/sam/button.css",
-		"/phpgwapi/js/yahoo/tabview/assets/skins/sam/tabview.css",
-		"/phpgwapi/js/yahoo/resize/assets/skins/sam/resize.css",
-		"/phpgwapi/js/yahoo/layout/assets/skins/sam/layout.css",
-		"/phpgwapi/templates/portico/css/base.css",
-		"/phpgwapi/templates/portico/css/{$GLOBALS['phpgw_info']['user']['preferences']['common']['theme']}.css",
-		"/{$app}/templates/base/css/base.css",
-		"/{$app}/templates/portico/css/base.css",
-		"/{$app}/templates/portico/css/{$GLOBALS['phpgw_info']['user']['preferences']['common']['theme']}.css"
-	);
-
 	$GLOBALS['phpgw']->template->set_root(PHPGW_TEMPLATE_DIR);
 	$GLOBALS['phpgw']->template->set_unknowns('remove');
 	$GLOBALS['phpgw']->template->set_file('head', 'head.tpl');
 	$GLOBALS['phpgw']->template->set_block('head', 'stylesheet', 'stylesheets');
+	$GLOBALS['phpgw']->template->set_block('head', 'javascript', 'javascripts');
 
-	phpgwapi_yui::load_widget('dragdrop');
-	phpgwapi_yui::load_widget('element');
-	phpgwapi_yui::load_widget('container');
+	$javascripts = array();
+
+	$stylesheets = array();
+	if( !isset($GLOBALS['phpgw_info']['flags']['noframework']) )
+	{
+		phpgwapi_yui::load_widget('dragdrop');
+		phpgwapi_yui::load_widget('element');
+		phpgwapi_yui::load_widget('container');
+		phpgwapi_yui::load_widget('connection');
+		phpgwapi_yui::load_widget('resize');
+		phpgwapi_yui::load_widget('layout');
+		$javascripts = array
+		(
+			"/phpgwapi/js/json/json.js",
+			"/phpgwapi/templates/portico/js/base.js"
+
+		);
+	}
+
 	phpgwapi_yui::load_widget('button');
-	phpgwapi_yui::load_widget('connection');
-	phpgwapi_yui::load_widget('resize');
-	phpgwapi_yui::load_widget('layout');
-
+	$stylesheets = array
+		(
+			"/phpgwapi/js/yahoo/reset-fonts-grids/reset-fonts-grids.css",
+			"/phpgwapi/js/yahoo/tabview/assets/skins/sam/tabview.css",
+			"/phpgwapi/js/yahoo/resize/assets/skins/sam/resize.css",
+			"/phpgwapi/js/yahoo/layout/assets/skins/sam/layout.css",
+		);
+	$stylesheets[] = "/phpgwapi/js/yahoo/menu/assets/skins/sam/menu.css";
+	$stylesheets[] = "/phpgwapi/js/yahoo/button/assets/skins/sam/button.css";
+	$stylesheets[] = "/phpgwapi/templates/portico/css/base.css";
+	$stylesheets[] = "/phpgwapi/templates/portico/css/{$GLOBALS['phpgw_info']['user']['preferences']['common']['theme']}.css";
+	$stylesheets[] = "/{$app}/templates/base/css/base.css";
+	$stylesheets[] = "/{$app}/templates/portico/css/base.css";
+	$stylesheets[] = "/{$app}/templates/portico/css/{$GLOBALS['phpgw_info']['user']['preferences']['common']['theme']}.css";
 
 	foreach ( $stylesheets as $stylesheet )
 	{
@@ -47,9 +59,17 @@
 		}
 	}
 
+	foreach ( $javascripts as $javascript )
+	{
+		if( file_exists( PHPGW_SERVER_ROOT . $javascript ) )
+		{
+			$GLOBALS['phpgw']->template->set_var( 'javascript_uri', $GLOBALS['phpgw_info']['server']['webserver_url'] . $javascript );
+			$GLOBALS['phpgw']->template->parse('javascripts', 'javascript', true);
+		}
+	}
+
 	// Construct navbar_config by taking into account the current selected menu
 	// The only problem with this loop is that leafnodes will be included
-
 	$navbar_config = execMethod('phpgwapi.template_portico.retrieve_local', 'navbar_config');
 
 	if( isset($GLOBALS['phpgw_info']['flags']['menu_selection']) )
@@ -70,15 +90,17 @@
 		phpgwapi_template_portico::store_local('navbar_config', $navbar_config);
 	}
 
-	$_border_layout_config	= '';
-	$_navbar_config			= '';
-	if(!isset($GLOBALS['phpgw_info']['flags']['noframework']))
-	{
-		phpgwapi_yui::load_widget('menu');	
-		$_border_layout_config	= json_encode(execMethod('phpgwapi.template_portico.retrieve_local', 'border_layout_config'));
-		$_navbar_config			= json_encode($navbar_config);
+	$_border_layout_config	= execMethod('phpgwapi.template_portico.retrieve_local', 'border_layout_config');
 
+	if(isset($GLOBALS['phpgw_info']['flags']['nonavbar']) && $GLOBALS['phpgw_info']['flags']['nonavbar'])
+	{
+		//FIXME This one removes the sidepanels - but the previous settings are forgotten
+		$_border_layout_config = true;
 	}
+
+	$_border_layout_config = json_encode($_border_layout_config);
+
+	$_navbar_config			= json_encode($navbar_config);
 
 	$app = lang($app);
 	$tpl_vars = array

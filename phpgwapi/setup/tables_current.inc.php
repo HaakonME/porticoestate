@@ -39,7 +39,7 @@
 			'fd' => array(
 				'acl_account' => array('type' => 'int', 'precision' => 4),
 				'acl_rights' => array('type' => 'int', 'precision' => 4),
-				'acl_grantor' => array('type' => 'int', 'precision' => 4, 'nullable' => true),
+				'acl_grantor' => array('type' => 'int', 'precision' => 4, 'nullable' => true, 'default' => '-1'),
 				'acl_type' => array('type' => 'int', 'precision' => 2, 'nullable' => true, 'default' => '0'),
 				'location_id' => array('type' => 'int', 'precision' => 4),
 			),
@@ -176,7 +176,8 @@
 				'descr' => array('type' => 'varchar','precision' => 100,'nullable' => False),
 				'allow_grant' => array('type' => 'int','precision' => 2,'nullable' => True),
 				'allow_c_attrib' => array('type' => 'int','precision' => 2,'nullable' => True),
-				'c_attrib_table' => array('type' => 'varchar','precision' => 25,'nullable' => True)
+				'c_attrib_table' => array('type' => 'varchar','precision' => 25,'nullable' => True),
+				'allow_c_function' => array('type' => 'int','precision' => 2,'nullable' => True)
 			),
 			'pk' => array('location_id'),
 			'fk' => array(),
@@ -517,11 +518,28 @@
 			'ix' => array(),
 			'uc' => array()
 		),
+		'phpgw_cust_attribute_group' => array
+		(
+			'fd' => array
+			(
+				'location_id'	=> array('type' => 'int','precision' => 4,'nullable' => false),
+				'id'			=> array('type' => 'int','precision' => 4,'nullable' => false),
+				'name'			=> array('type' => 'varchar','precision' => 100,'nullable' => false),
+				'group_sort'	=> array('type' => 'int','precision' => 2,'nullable' => false),
+				'descr'			=> array('type' => 'varchar','precision' => 150,'nullable' => true),
+				'remark'		=> array('type' => 'text','nullable' => true)
+			),
+			'pk' => array('location_id','id'),
+			'fk' => array(),
+			'ix' => array(),
+			'uc' => array()
+		),
 		'phpgw_cust_attribute' => array
 		(
 			'fd' => array
 			(
 				'location_id' => array('type' => 'int','precision' => 2,'nullable' => false),
+				'group_id' => array('type' => 'int','precision' => 2,'nullable' => true, 'default' => 0),
 				'id' => array('type' => 'int','precision' => 2,'nullable' => false),
 				'column_name' => array('type' => 'varchar','precision' => 20,'nullable' => false),
 				'input_text' => array('type' => 'varchar','precision' => 50,'nullable' => false),

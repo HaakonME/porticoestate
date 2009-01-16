@@ -8,6 +8,8 @@
 	* @version $Id$
 	*/
 
+	phpgw::import_class('phpgwapi.yui');
+
 	if ( !isset($GLOBALS['phpgw_info']['server']['site_title']) )
 	{
 		$GLOBALS['phpgw_info']['server']['site_title'] = lang('please set a site name in admin &gt; siteconfig');
@@ -20,8 +22,36 @@
 
 	$app = $GLOBALS['phpgw_info']['flags']['currentapp'];
 
+	$theme_styles = array();
+	if( !isset($GLOBALS['phpgw_info']['flags']['noframework']) )
+	{
+		phpgwapi_yui::load_widget('dragdrop');
+		phpgwapi_yui::load_widget('element');
+		phpgwapi_yui::load_widget('container');
+		phpgwapi_yui::load_widget('connection');
+		phpgwapi_yui::load_widget('resize');
+		phpgwapi_yui::load_widget('layout');
 
-	$theme_styles[] = "{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/templates/simple/css/base.css";
+		$javascripts = array
+		(
+			"/phpgwapi/js/json/json.js",
+			"/phpgwapi/templates/portico/js/base.js"
+
+		);
+
+		$theme_styles = array
+		(
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/templates/simple/css/base.css",
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/js/yahoo/reset-fonts-grids/reset-fonts-grids.css",
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/js/yahoo/menu/assets/skins/sam/menu.css",
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/js/yahoo/button/assets/skins/sam/button.css",
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/js/yahoo/tabview/assets/skins/sam/tabview.css",
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/js/yahoo/resize/assets/skins/sam/resize.css",
+			"{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/js/yahoo/layout/assets/skins/sam/layout.css"
+		);
+	}
+	phpgwapi_yui::load_widget('button');
+
 	if(file_exists(PHPGW_SERVER_ROOT . '/phpgwapi/templates/simple/css/' . $GLOBALS['phpgw_info']['user']['preferences']['common']['theme'] . '.css'))
 	{
 		$theme_styles[] = "{$GLOBALS['phpgw_info']['server']['webserver_url']}/phpgwapi/templates/simple/css/{$GLOBALS['phpgw_info']['user']['preferences']['common']['theme']}.css";

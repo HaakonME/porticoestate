@@ -46,66 +46,29 @@
 				$this->use_session = true;
 			}
 
-			$start			= phpgw::get_var('start', 'int', 'REQUEST', 0);
-			$query			= phpgw::get_var('query');
-			$sort			= phpgw::get_var('sort');
-			$order			= phpgw::get_var('order');
-			$filter			= phpgw::get_var('filter', 'int');
-			$cat_id			= phpgw::get_var('cat_id', 'int');
-			$user_lid		= phpgw::get_var('user_lid');
-			$allrows		= phpgw::get_var('allrows', 'bool');
-			$b_account_class	= phpgw::get_var('b_account_class', 'int');
-			$district_id		= phpgw::get_var('district_id', 'int');
+			$start					= phpgw::get_var('start', 'int', 'REQUEST', 0);
+			$query					= phpgw::get_var('query');
+			$sort					= phpgw::get_var('sort');
+			$order					= phpgw::get_var('order');
+			$filter					= phpgw::get_var('filter', 'int');
+			$cat_id					= phpgw::get_var('cat_id', 'int');
+			$user_lid				= phpgw::get_var('user_lid');
+			$allrows				= phpgw::get_var('allrows', 'bool');
+			$b_account_class		= phpgw::get_var('b_account_class', 'int');
+			$district_id			= phpgw::get_var('district_id', 'int');
+			$b_account				= phpgw::get_var('b_account');
 
-
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(isset($district_id))
-			{
-				$this->district_id = $district_id;
-			}
-
-			if(isset($b_account_class))
-			{
-				$this->b_account_class = $b_account_class;
-			}
-
-			if(isset($query))
-			{
-				$this->query = $query;
-			}
-
-			if(!empty($filter))
-			{
-				$this->filter = $filter;
-			}
-			if(isset($sort))
-			{
-				$this->sort = $sort;
-			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
-			if(isset($cat_id))
-			{
-				$this->cat_id = $cat_id;
-			}
-			if(isset($user_lid))
-			{
-				$this->user_lid = $user_lid;
-			}
-			if(isset($allrows))
-			{
-				$this->allrows = $allrows;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->b_account		= isset($b_account) ? $b_account : $b_account;
+			$this->district_id		= isset($district_id) ? $district_id : $district_id;
+			$this->b_account_class	= isset($b_account_class) ? $b_account_class : $b_account_class;
+			$this->query			= isset($query) ? $query : $query;
+			$this->filter			= isset($filter) ? $filter : $filter;
+			$this->sort				= isset($sort) ? $sort : $sort;
+			$this->order			= isset($order) ? $order : $order;
+			$this->cat_id			= isset($cat_id) ? $cat_id : $cat_id;
+			$this->user_lid			= isset($user_lid) ? $user_lid : $user_lid;
+			$this->allrows			= isset($allrows) ? $allrows : $allrows;
 		}
 
 
@@ -138,6 +101,9 @@
 
 		function read_invoice($paid='',$start_date='',$end_date='',$vendor_id='',$loc1='',$workorder_id='',$voucher_id='')
 		{
+			$start_date	= $this->bocommon->date_to_timestamp($start_date);
+			$end_date	= $this->bocommon->date_to_timestamp($end_date);
+			
 			$invoice = $this->so->read_invoice(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'user_lid' => $this->user_lid,'cat_id' => $this->cat_id, 'paid' => $paid,
 											'start_date'=>$start_date,'end_date'=>$end_date,'vendor_id'=>$vendor_id,
@@ -170,11 +136,14 @@
 
 		function read_consume($start_date='',$end_date='',$vendor_id='',$loc1='',$workorder_id='',$b_account_class='',$district_id='')
 		{
+			$start_date	= $this->bocommon->date_to_timestamp($start_date);
+			$end_date	= $this->bocommon->date_to_timestamp($end_date);
+
 			$invoice = $this->so->read_consume(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'user_lid' => $this->user_lid,'cat_id' => $this->cat_id,
 											'start_date'=>$start_date,'end_date'=>$end_date,'vendor_id'=>$vendor_id,
 											'loc1'=>$loc1,'workorder_id'=>$workorder_id,'b_account_class' =>$b_account_class,
-											'district_id' => $district_id ));
+											'district_id' => $district_id, 'b_account' => $this->b_account ));
 
 			$this->total_records = $this->so->total_records;
 
@@ -307,7 +276,7 @@
 					$GLOBALS['phpgw']->xslttpl->add_file(array('user_lid_filter'));
 					break;
 			}
-			$users=$this->bocommon->get_user_list_right(1,$selected,'.invoice',$extra,$default);
+			$users=$this->bocommon->get_user_list_right(array(32, 64, 128),$selected,'.invoice',$extra,$default);
 			return $users;
 		}
 
@@ -357,14 +326,11 @@
 				$values['dima']=implode('',$values['location']);
 			}
 
-			$values['spbudact_code']=$values['b_account_id'];
-			$values['fakturanr']=$values['invoice_num'];
-			$values['spvend_code']=$values['vendor_id'];
-
-			$values['belop'] = str_replace('kr','',$values['amount']);
-			$values['belop'] = str_replace(' ','',$values['belop']);
-			$values['belop'] = str_replace(',','.',$values['belop']);
-			$values['godkjentbelop']=$values['belop'];
+			$values['spbudact_code']	= $values['b_account_id'];
+			$values['fakturanr']		= $values['invoice_num'];
+			$values['spvend_code']		= $values['vendor_id'];
+			$values['belop'] 			= $values['amount'];
+			$values['godkjentbelop']	= $values['amount'];
 
 			$values['fakturadato'] = date($this->bocommon->dateformat,mktime(2,0,0,$values['smonth'],$values['sday'],$values['syear']));
 

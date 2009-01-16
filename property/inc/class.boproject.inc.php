@@ -54,11 +54,12 @@
 		{
 		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->so 			= CreateObject('property.soproject');
-			$this->bocommon 	= CreateObject('property.bocommon');
-			$this->solocation = CreateObject('property.solocation');
+			$this->bocommon 	= & $this->so->bocommon;
+			$this->solocation 	= CreateObject('property.solocation', $this->bocommon);
 			$this->cats					= CreateObject('phpgwapi.categories');
 			$this->cats->app_name		= 'property.project';
 			$this->cats->supress_info	= true;
+			$this->interlink 	= $this->so->interlink;
 
 			if ($session)
 			{
@@ -75,43 +76,14 @@
 			$status_id	= phpgw::get_var('status_id');
 			$wo_hour_cat_id	= phpgw::get_var('wo_hour_cat_id', 'int');
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(isset($query))
-			{
-				$this->query = $query;
-			}
-			if(isset($filter))
-			{
-				$this->filter = $filter;
-			}
-			if(isset($sort))
-			{
-				$this->sort = $sort;
-			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
-			if(isset($cat_id))
-			{
-				$this->cat_id = $cat_id;
-			}
-			if(isset($status_id))
-			{
-				$this->status_id = $status_id;
-			}
-			if(isset($wo_hour_cat_id))
-			{
-				$this->wo_hour_cat_id = $wo_hour_cat_id;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->query			= isset($query) ? $query : $this->query;
+			$this->sort				= isset($sort) && $sort ? $sort : '';
+			$this->order			= isset($order) && $order ? $order : '';
+			$this->filter			= isset($filter) && $filter ? $filter : '';
+			$this->cat_id			= isset($cat_id) && $cat_id ? $cat_id : '';
+			$this->status_id		= isset($status_id) && $status_id ? $status_id : '';
+			$this->wo_hour_cat_id	= isset($vendor_id) && $wo_hour_cat_id ? $wo_hour_cat_id : '';
 		}
 
 		function save_sessiondata($data)
@@ -202,42 +174,47 @@
 			return $this->bocommon->select_list($selected,$key_location_entries);
 		}
 
-		function read($start_date='',$end_date='',$allrows='')
+		function read($data = array())
 		{
-			$start_date	= $this->bocommon->date_to_timestamp($start_date);
-			$end_date	= $this->bocommon->date_to_timestamp($end_date);
+			$start_date	= $this->bocommon->date_to_timestamp($data['start_date']);
+			$end_date	= $this->bocommon->date_to_timestamp($data['end_date']);
 
 			$project = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'filter' => $this->filter,'cat_id' => $this->cat_id,'status_id' => $this->status_id,'wo_hour_cat_id' => $this->wo_hour_cat_id,
-											'start_date'=>$start_date,'end_date'=>$end_date,'allrows'=>$allrows));
+											'start_date'=>$start_date,'end_date'=>$end_date,'allrows'=>$data['allrows'],'dry_run' => $data['dry_run']));
 			$this->total_records = $this->so->total_records;
 
 			$dateformat = $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
 
 			$this->uicols	= $this->so->uicols;
-			$this->uicols['input_type'][]	= 'link';
-			$this->uicols['name'][]			= 'ticket_id';
+			$this->uicols['input_type'][]	= 'text';
+			$this->uicols['name'][]			= 'ticket';
 			$this->uicols['descr'][]		= lang('ticket');
 			$this->uicols['statustext'][]	= false;
+			$this->uicols['exchange'][]		= false;
+			$this->uicols['align'][] 		= '';
+			$this->uicols['datatype'][]		= 'link';
 
 //			$cols_extra		= $this->so->cols_extra;
 
-			for ($i=0; $i<count($project); $i++)
+			foreach ($project as & $entry)
 			{
-				$project[$i]['start_date'] = $GLOBALS['phpgw']->common->show_date($project[$i]['start_date'],$dateformat);
-				$project[$i]['ticket_id'] = $this->so->get_ticket($project[$i]['project_id']);
-
-/*				$location_data=$this->solocation->read_single($project[$i]['location_code']);
-
-				for ($j=0;$j<count($cols_extra);$j++)
+				$entry['start_date'] = $GLOBALS['phpgw']->common->show_date($entry['start_date'],$dateformat);
+				$origin = $this->interlink->get_relation('property', '.project', $entry['project_id'], 'origin');
+				if($origin[0]['location'] == '.ticket')
 				{
-					$project[$i][$cols_extra[$j]] = $location_data[$cols_extra[$j]];
+					$entry['ticket'] = array
+										(
+											'url' 	=> $GLOBALS['phpgw']->link('/index.php', array
+														(
+															'menuaction'	=> 'property.uitts.view',
+															'id'			=> $origin[0]['data'][0]['id']
+														)
+													),
+											'text'	=> $origin[0]['data'][0]['id']
+										);
 				}
-*/
 			}
-
-//_debug_array($project);
-
 			return $project;
 		}
 
@@ -247,7 +224,7 @@
 			$contacts->role='vendor';
 
 			$config				= CreateObject('phpgwapi.config');
-			$config->read_repository();
+			$config->read();
 			$tax = 1+(isset($config->config_data['fm_tax'])?$config->config_data['fm_tax']:0)/100;
 
 			$project				= $this->so->read_single($project_id);
@@ -330,6 +307,8 @@
 				$project['p'][$project['p_entity_id']]['p_cat_name'] = $category['name'];
 			}
 
+			$project['origin'] = $this->interlink->get_relation('property', '.project', $project_id, 'origin');
+			$project['target'] = $this->interlink->get_relation('property', '.project', $project_id, 'target');
 
 //_debug_array($project);
 			return $project;
@@ -373,7 +352,7 @@
 			$historylog	= CreateObject('property.historylog','project');
 			$history_array = $historylog->return_array(array('O'),array(),'','',$id);
 			$i=0;
-			while (is_array($history_array) && list(,$value) = each($history_array))
+			foreach ($history_array as $value) 
 			{
 
 				$record_history[$i]['value_date']	= $GLOBALS['phpgw']->common->show_date($value['datetime']);

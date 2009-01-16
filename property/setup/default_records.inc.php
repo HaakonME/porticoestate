@@ -58,6 +58,8 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.location.4', 'Apartment')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.custom', 'custom queries')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant) VALUES ({$app_id}, '.project', 'Demand -> Workorder', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant, allow_c_function) VALUES ({$app_id}, '.project.workorder', 'Workorder', 1, 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant, allow_c_function) VALUES ({$app_id}, '.project.request', 'Request', 1, 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant) VALUES ({$app_id}, '.ticket', 'Helpdesk', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.ticket.external', 'Helpdesk External user')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.invoice', 'Invoice')");
@@ -94,9 +96,6 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name
 //$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_workorder_category (id, descr) VALUES (1, 'Preventive')");
 //$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_workorder_category (id, descr) VALUES (2, 'Ad Hoc')");
 
-#
-#fm_meter_category
-#
 
 $GLOBALS['phpgw_setup']->oProc->query("DELETE from phpgw_config WHERE config_app='property'");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_config (config_app, config_name, config_value) VALUES ('property','meter_table', 'fm_entity_1_1')");

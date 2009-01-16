@@ -76,11 +76,17 @@
 					$function =$data['function'];
 				}
 			}
+			// prevent path traversal
+			if ( preg_match('/\.\./', $function) )
+			{
+				return;
+			}
 
-			$file = realpath(PHPGW_SERVER_ROOT . "/property/inc/cron/{$function}.php");
+			$file = PHPGW_SERVER_ROOT . "/property/inc/cron/{$GLOBALS['phpgw_info']['user']['domain']}/{$function}.php";
+
 			if (is_file($file))
 			{
-				include_once($file);
+				require_once $file;
 				$custom = new $function;
 				$custom->pre_run($data);
 			}

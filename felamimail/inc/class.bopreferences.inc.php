@@ -1,9 +1,9 @@
 <?php
 	/***************************************************************************\
-	* phpGroupWare - FeLaMiMail                                                 *
+	* eGroupWare - FeLaMiMail                                                   *
 	* http://www.linux-at-work.de                                               *
 	* http://www.phpgw.de                                                       *
-	* http://www.phpgroupware.org                                               *
+	* http://www.egroupware.org                                                 *
 	* Written by : Lars Kneschke [lkneschke@linux-at-work.de]                   *
 	* -------------------------------------------------                         *
 	* This program is free software; you can redistribute it and/or modify it   *
@@ -11,184 +11,282 @@
 	* Free Software Foundation; either version 2 of the License, or (at your    *
 	* option) any later version.                                                *
 	\***************************************************************************/
-	/* $Id$ */
+	/* $Id: class.bopreferences.inc.php 25641 2008-06-19 08:04:49Z leithoff $ */
 
-	class felamimail_bopreferences
+	require_once(PHPGW_INCLUDE_ROOT.'/felamimail/inc/class.sopreferences.inc.php');
+	 
+	class bopreferences extends sopreferences
 	{
 		var $public_functions = array
 		(
 			'getPreferences'	=> True,
-			'none'	=> True
 		);
 		
-		/*
-		function __construct()
-		{
-		}
-		*/
+		// stores the users profile
+		var $profileData;
 		
+		function bopreferences()
+		{
+			parent::sopreferences();
+			$this->boemailadmin = CreateObject('emailadmin.emailadmin_bo');
+		//	$this->boemailadmin = new emailadmin_bo();
+		}
+
+		// get the first active user defined account		
+		function getAccountData(&$_profileData, $_accountID=NULL)
+		{
+			if(!is_a($_profileData, 'ea_preferences'))
+				die(__FILE__.': '.__LINE__);
+			$accountData = parent::getAccountData($GLOBALS['phpgw_info']['user']['account_id'],$_accountID);
+
+			// currently we use only the first profile available
+			$accountData = array_shift($accountData);
+			#_debug_array($accountData);
+
+			$icServer = CreateObject('emailadmin.defaultimap');
+			$icServer->encryption	= isset($accountData['ic_encryption']) ? $accountData['ic_encryption'] : 1;
+			$icServer->host		= $accountData['ic_hostname'];
+			$icServer->port 	= isset($accountData['ic_port']) ? $accountData['ic_port'] : 143;
+			$icServer->validatecert	= isset($accountData['ic_validatecertificate']) ? (bool)$accountData['ic_validatecertificate'] : 1;
+			$icServer->username 	= $accountData['ic_username'];
+			$icServer->loginName 	= $accountData['ic_username'];
+			$icServer->password	= $accountData['ic_password'];
+			$icServer->enableSieve	= isset($accountData['ic_enable_sieve']) ? (bool)$accountData['ic_enable_sieve'] : 1;
+			$icServer->sieveHost	= $accountData['ic_sieve_server'];
+			$icServer->sievePort	= isset($accountData['ic_sieve_port']) ? $accountData['ic_sieve_port'] : 2000;
+
+			$ogServer =& CreateObject('emailadmin.defaultsmtp');
+			$ogServer->host		= $accountData['og_hostname'];
+			$ogServer->port		= isset($accountData['og_port']) ? $accountData['og_port'] : 25;
+			$ogServer->smtpAuth	= (bool)$accountData['og_smtpauth'];
+			if($ogServer->smtpAuth) {
+				$ogServer->username 	= $accountData['og_username'];
+				$ogServer->password 	= $accountData['og_password'];
+			}
+
+			$identity =& CreateObject('emailadmin.ea_identity');
+			$identity->emailAddress	= $accountData['emailaddress'];
+			$identity->realName	= $accountData['realname'];
+			//$identity->default	= true;
+			$identity->default = (bool)$accountData['active'];
+			$identity->organization	= $accountData['organization'];
+			$identity->signature = $accountData['signatureid'];
+			$identity->id  = $accountData['id'];
+
+			$isActive = (bool)$accountData['active'];
+
+			return array('icServer' => $icServer, 'ogServer' => $ogServer, 'identity' => $identity, 'active' => $isActive);
+		}
+
+		function getAllAccountData(&$_profileData)
+		{
+			if(!is_a($_profileData, 'ea_preferences'))
+				die(__FILE__.': '.__LINE__);
+			$AllAccountData = parent::getAccountData($GLOBALS['phpgw_info']['user']['account_id'],'all');
+			#_debug_array($accountData);
+			foreach ($AllAccountData as $key => $accountData)
+			{
+				$icServer =& CreateObject('emailadmin.defaultimap');
+				$icServer->encryption	= isset($accountData['ic_encryption']) ? $accountData['ic_encryption'] : 1;
+				$icServer->host		= $accountData['ic_hostname'];
+				$icServer->port 	= isset($accountData['ic_port']) ? $accountData['ic_port'] : 143;
+				$icServer->validatecert	= isset($accountData['ic_validatecertificate']) ? (bool)$accountData['ic_validatecertificate'] : 1;
+				$icServer->username 	= $accountData['ic_username'];
+				$icServer->loginName 	= $accountData['ic_username'];
+				$icServer->password	= $accountData['ic_password'];
+				$icServer->enableSieve	= isset($accountData['ic_enable_sieve']) ? (bool)$accountData['ic_enable_sieve'] : 1;
+				$icServer->sieveHost	= $accountData['ic_sieve_server'];
+				$icServer->sievePort	= isset($accountData['ic_sieve_port']) ? $accountData['ic_sieve_port'] : 2000;
+
+				$ogServer =& CreateObject('emailadmin.defaultsmtp');
+				$ogServer->host		= $accountData['og_hostname'];
+				$ogServer->port		= isset($accountData['og_port']) ? $accountData['og_port'] : 25;
+				$ogServer->smtpAuth	= (bool)$accountData['og_smtpauth'];
+				if($ogServer->smtpAuth) {
+					$ogServer->username 	= $accountData['og_username'];
+					$ogServer->password 	= $accountData['og_password'];
+				}
+
+				$identity =& CreateObject('emailadmin.ea_identity');
+				$identity->emailAddress	= $accountData['emailaddress'];
+				$identity->realName	= $accountData['realname'];
+				//$identity->default	= true;
+				$identity->default = (bool)$accountData['active'];
+				$identity->organization	= $accountData['organization'];
+				$identity->signature = $accountData['signatureid'];
+				$identity->id  = $accountData['id'];
+				$isActive = (bool)$accountData['active'];
+				$out[] = array('icServer' => $icServer, 'ogServer' => $ogServer, 'identity' => $identity, 'active' => $isActive);
+			}
+			return $out;
+		}
+
+		function getUserDefinedIdentities()
+		{
+			$profileData        = $this->boemailadmin->getUserProfile('felamimail');
+			if(!is_a($profileData, 'ea_preferences') || !is_a($profileData->ic_server[0], 'defaultimap')) {
+				return false;
+			}
+			if($profileData->userDefinedAccounts) {
+				// get user defined accounts
+				$allAccountData = $this->getAllAccountData($profileData);
+				if ($allAccountData) {
+					foreach ($allAccountData as $tmpkey => $accountData)
+					{
+						$accountArray[] = $accountData['identity'];
+					}
+					return $accountArray;
+				}
+			}
+			return array();
+		}	
+
 		function getPreferences()
 		{
-/*			while(list($key,$value) = each($GLOBALS['phpgw_info']['server']) )
+			if(!is_a($this->profileData,'ea_preferences '))
 			{
-				print ". $key: $value<br>";
-				if (is_array($value))
-				{
-					while(list($key1,$value1) = each($value) )
-					{
-						print ".. &nbsp;$mbsp;-$key1: $value1<br>";
+
+				$imapServerTypes	= $this->boemailadmin->getIMAPServerTypes();
+				$profileData		= $this->boemailadmin->getUserProfile('felamimail');
+
+				if(!is_a($profileData, 'ea_preferences') || !is_a($profileData->ic_server[0], 'defaultimap')) {
+
+					return false;
+				}
+				if($profileData->userDefinedAccounts) {
+					// get user defined accounts
+					$accountData = $this->getAccountData($profileData);
+					
+					if($accountData['active']) {
+					
+						// replace the global defined IMAP Server
+						if(is_a($accountData['icServer'],'defaultimap'))
+							$profileData->setIncomingServer($accountData['icServer'],0);
+					
+						// replace the global defined SMTP Server
+						if(is_a($accountData['ogServer'],'defaultsmtp'))
+							$profileData->setOutgoingServer($accountData['ogServer'],0);
+					
+						// replace the global defined identity
+						if(is_a($accountData['identity'],'ea_identity')) {
+							$profileData->setIdentity($accountData['identity'],0);
+							$rememberID = $accountData['identity']->id;
+						}
+					}
+					$allUserIdentities = $this->getUserDefinedIdentities();
+					if (is_array($allUserIdentities)) {
+						$i=count($allUserIdentities);
+						foreach ($allUserIdentities as $tmpkey => $id)
+						{
+							if ($id->id != $rememberID) {
+								$profileData->setIdentity($id,$i);
+								$i++;
+							}
+						}
 					}
 				}
-			}
-*/			
-
-			$config = CreateObject('phpgwapi.config','felamimail');
-			$config->read_repository();
-			$felamimailConfig = $config->config_data;
-			if(!isset($felamimailConfig) || count($felamimailConfig)==0)
-			{
-				$GLOBALS['phpgw']->common->phpgw_header(true);
-				echo "<center><h1>You have to configure felamimail in the admin section <br> please contakt the system administrator</h1></center>";
-				die();
-			}
-
-			#_debug_array($felamimailConfig);
-			unset($config);
-			
-			$felamimailUserPrefs = isset($GLOBALS['phpgw_info']['user']['preferences']['felamimail']) ? $GLOBALS['phpgw_info']['user']['preferences']['felamimail'] : '';
-			
-			#_debug_array($GLOBALS['phpgw_info']['user']);
-			#print "<hr>";
-			
-			// set values to the global values
-			$data['imapServerAddress']	= isset($GLOBALS['phpgw_info']['server']['mail_server']) ? $GLOBALS['phpgw_info']['server']['mail_server'] : '';
-			$data['key']			= $GLOBALS['phpgw_info']['user']['passwd'];
-			if ($felamimailConfig["mailLoginType"] == 'vmailmgr')
-				$data['username']		= $GLOBALS['phpgw_info']['user']['userid']."@".$felamimailConfig["mailSuffix"];
-			else
-			$data['username']		= $GLOBALS['phpgw_info']['user']['userid'];
-			$data['imap_server_type']	= strtolower($felamimailConfig["imapServerMode"]);
-			$data['realname']		= $GLOBALS['phpgw_info']['user']['fullname'];
-			$data['defaultDomainname']	= $GLOBALS['phpgw_info']["server"]["mail_suffix"];
-
-			$data['smtpServerAddress']	= isset($GLOBALS['phpgw_info']["server"]["smtp_server"]) ? $GLOBALS['phpgw_info']["server"]["smtp_server"] : '';
-			$data['smtpPort']		= (isset($GLOBALS['phpgw_info']["server"]["smtp_port"])?$GLOBALS['phpgw_info']["server"]["smtp_port"]:'');
-			
-			// check for felamimail specific settings
-
-			$data['encoding'] = isset($felamimailConfig['encoding']) && $felamimailConfig['encoding'] ? $felamimailConfig['encoding'] : 'utf8';
-			if(!empty($felamimailConfig['imapServer']))
-				$data['imapServerAddress']	= $felamimailConfig['imapServer'];
-
-			if(!empty($felamimailConfig['smtpServer']))
-				$data['smtpServerAddress']	= $felamimailConfig['smtpServer'];
-			
-			if(!empty($felamimailConfig['smtpServer']))
-				$data['smtpPort']		= (isset($felamimailConfig['smtpPort'])?$felamimailConfig['smtpPort']:'');
-
-			if(!empty($felamimailConfig['mailSuffix']))
-				$data['defaultDomainname']	= $felamimailConfig['mailSuffix'];
-
-			if(!empty($felamimailConfig['organizationName']))
-				$data['organizationName']	= $felamimailConfig['organizationName'];
-
-			$data['emailAddress']		= $data['username']."@".$data['defaultDomainname'];
-			$data['smtpAuth']		= $felamimailConfig['smtpAuth'];
-			$data['smtpUser']		= isset($felamimailConfig['smtpUser'])?$felamimailConfig['smtpUser']:'';
-			$data['smtpPassword']		= isset($felamimailConfig['smtpPassword'])?$felamimailConfig['smtpPassword']:'';			
-
-			if($GLOBALS['phpgw_info']['server']['account_repository'] == 'ldap')
-			{
-				// do a ldap lookup to fetch users email address
-				$ldap = $GLOBALS['phpgw']->common->ldapConnect();
-				$filter = sprintf("(&(uid=%s)(objectclass=posixAccount))",$GLOBALS['phpgw_info']['user']['userid']);
 				
-				$sri = @ldap_search($ldap,$GLOBALS['phpgw_info']['server']['ldap_context'],$filter);
-				if ($sri)
+				$GLOBALS['phpgw']->preferences->read();
+				$userPrefs = $GLOBALS['phpgw_info']['user']['preferences']['felamimail'];
+				if(empty($userPrefs['deleteOptions']))
+					$userPrefs['deleteOptions'] = 'mark_as_deleted';
+				
+				#$data['trash_folder']		= $userPrefs['felamimail']['trashFolder'];
+				if (!empty($userPrefs['trash_folder'])) 
+					$userPrefs['move_to_trash'] 	= True;
+				if (!empty($userPrefs['sent_folder'])) 
+					$userPrefs['move_to_sent'] 	= True;
+				$userPrefs['signature']		= $userPrefs['email_sig'];
+				
+	 			unset($userPrefs['email_sig']);
+ 			
+ 				$profileData->setPreferences($userPrefs);
+
+				#_debug_array($profileData);exit;
+			
+				$this->profileData = $profileData;
+				
+				#_debug_array($this->profileData);
+			} 
+			return $this->profileData;
+		}
+		
+		function ggetSignature($_signatureID, $_unparsed = false) 
+		{
+			if($_signatureID == -1) {
+				$profileData = $this->boemailadmin->getUserProfile('felamimail');
+				
+				$systemSignatureIsDefaultSignature = !parent::getDefaultSignature($GLOBALS['phpgw_info']['user']['account_id']);
+
+				$systemSignature = array(
+					'signatureid'		=> -1,
+					'description'		=> 'eGroupWare '. lang('default signature'),
+					'signature'		=> ($_unparsed === true ? $profileData->ea_default_signature : $GLOBALS['phpgw']->preferences->parse_notify($profileData->ea_default_signature)),
+					'defaultsignature'	=> $systemSignatureIsDefaultSignature,
+				);
+				
+				return $systemSignature;
+				
+			} else {
+				require_once('class.felamimail_signatures.inc.php');
+				$signature = new felamimail_signatures($_signatureID);
+				if($_unparsed === false) {
+					$signature->fm_signature = $GLOBALS['phpgw']->preferences->parse_notify($signature->fm_signature);
+				}
+				return $signature;
+			}
+		}
+		
+		function ggetDefaultSignature() 
+		{
+			return parent::getDefaultSignature($GLOBALS['phpgw_info']['user']['account_id']);
+		}
+		
+		function ddeleteSignatures($_signatureID) 
+		{
+			if(!is_array($_signatureID)) {
+				return false;
+			}
+			return parent::deleteSignatures($GLOBALS['phpgw_info']['user']['account_id'], $_signatureID);
+		}
+		
+		function saveAccountData($_icServer, $_ogServer, $_identity) 
+		{
+			if(is_object($_icServer) && !isset($_icServer->validatecert)) {
+				$_icServer->validatecert = true;
+			}
+			if(isset($_icServer->host)) {
+				$_icServer->sieveHost = $_icServer->host;
+			}
+			return parent::saveAccountData($GLOBALS['phpgw_info']['user']['account_id'], $_icServer, $_ogServer, $_identity);
+		}
+	
+		function deleteAccountData($_identity)
+		{
+			if (is_array($_identity)) {
+				foreach ($_identity as $tmpkey => $id)
 				{
-					$allValues = ldap_get_entries($ldap, $sri);
-
-
-					if(isset($allValues[0]['emailaddress'][0]))
-					{
-						$data['emailAddress']		= $allValues[0]['emailaddress'][0];
-					}
-					elseif(isset($allValues[0]['maillocaladdress'][0]))
-					{
-						$data['emailAddress']           = $allValues[0]['maillocaladdress'][0];
-					}
-					elseif(isset($allValues[0]['mail'][0]))
-					{
-						$data['emailAddress']           = $allValues[0]['mail'][0];
+					if ($id->id) {
+						$identity[] = $id->id;
+					} else {
+						$identity[] = $id;
 					}
 				}
-			}
-			
-			// check for user specific settings
-			#_debug_array($felamimailUserPrefs);
-			if ((isset($felamimailConfig['userDefinedAccounts']) && $felamimailConfig['userDefinedAccounts'] == 'yes') &&
-				(isset($felamimailUserPrefs['use_custom_settings']) && $felamimailUserPrefs['use_custom_settings'] == 'yes'))
-			{
-				if(!empty($felamimailUserPrefs['username']))
-					$data['username']		= $felamimailUserPrefs['username'];
-
-				if(!empty($felamimailUserPrefs['key']))
-					$data['key']			= $felamimailUserPrefs['key'];
-
-				if(!empty($felamimailUserPrefs['emailAddress']))
-					$data['emailAddress']		= $felamimailUserPrefs['emailAddress'];
-
-				if(!empty($felamimailUserPrefs['imapServerAddress']))
-					$data['imapServerAddress']	= $felamimailUserPrefs['imapServerAddress'];
-
-				if(!empty($felamimailUserPrefs['imap_server_type']))
-					$data['imap_server_type']	= strtolower($felamimailUserPrefs['imap_server_type']);
-			}
-			
-			switch($data['imap_server_type'])
-			{
-				case "imaps-encr-only":
-				case "imaps-encr-auth":
-					$data['imapPort']	= 993;
-					break;
-				default:
-					$data['imapPort']	= 143;
-					break;
-			}
-			
-			#_debug_array($data);
-			
-			$GLOBALS['phpgw']->preferences->read_repository();
-			$userPrefs = $GLOBALS['phpgw_info']['user']['preferences'];
-			
-			// how to handle deleted messages
-			if(isset($userPrefs['felamimail']['deleteOptions']))
-			{
-				$data['deleteOptions'] = $userPrefs['felamimail']['deleteOptions'];
-			}
-			else
-			{
-				$data['deleteOptions'] = 'mark_as_deleted';
-			}
-
-			$data['htmlOptions'] = (isset($userPrefs['felamimail']['htmlOptions'])?$userPrefs['felamimail']['htmlOptions']:'');
-
-			// where is the trash folder
-			$data['trash_folder']		= (isset($userPrefs['felamimail']['trashFolder'])?$userPrefs['felamimail']['trashFolder']:'');
-			if(!empty($userPrefs['felamimail']['sentFolder']))
-			{
-				$data['sent_folder']		= (isset($userPrefs['felamimail']['sentFolder'])?$userPrefs['felamimail']['sentFolder']:'');
-				$data['sentFolder']		= $data['sent_folder']; //$userPrefs['felamimail']['sentFolder'];
-			}
-			$data['refreshTime'] 		= (isset($userPrefs['felamimail']['refreshTime'])?$userPrefs['felamimail']['refreshTime']:'');
-
-			if (!empty($data['trash_folder'])) 
-				$data['move_to_trash'] 	= True;
-			if (!empty($data['sent_folder'])) 
-				$data['move_to_sent'] 	= True;
-			$data['signature']		= (isset($userPrefs['felamimail']['email_sig'])?$userPrefs['felamimail']['email_sig']:'');
-
-			#_debug_array($data);
-			return $data;
+			} else {
+				$identity = $_identity;
+			} 
+	
+			parent::deleteAccountData($GLOBALS['phpgw_info']['user']['account_id'], $identity);
 		}
-}
+
+		function ssaveSignature($_signatureID, $_description, $_signature, $_isDefaultSignature) 
+		{
+			return parent::saveSignature($GLOBALS['phpgw_info']['user']['account_id'], $_signatureID, $_description, $_signature, (bool)$_isDefaultSignature);
+		}
+
+		function setProfileActive($_status, $_identity=NULL) 
+		{
+			parent::setProfileActive($GLOBALS['phpgw_info']['user']['account_id'], $_status, $_identity);
+		}
+	}
+?>

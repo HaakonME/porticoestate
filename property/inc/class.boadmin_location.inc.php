@@ -189,10 +189,94 @@
 			}
 			else if($type_id && $id && $attrib)
 			{
-				$this->custom->delete('property',".location.{$type_id}",$id /*, 'fm_location' . $type_id */ );
-				$this->custom->delete('property',".location.{$type_id}",$id /*, 'fm_location' . $type_id . '_history'*/ );
+				$this->custom->delete('property',".location.{$type_id}", $id , "fm_location{$type_id}_history", true );
+				$this->custom->delete('property',".location.{$type_id}", $id , "fm_location{$type_id}" );
 			}
 		}
+
+
+		function get_attrib_group_list($location, $selected)
+		{
+			$group_list = $this->read_attrib_group($entity_id, $cat_id, true);
+			
+			foreach($group_list as &$group)
+			{
+				if( $group['id'] ==  $selected )
+				{
+					$group['selected'] = true;
+				}
+			}
+//_debug_array($group_list);die();
+			return $group_list;
+		}
+
+		function read_attrib_group($location, $allrows='')
+		{
+			if($allrows)
+			{
+				$this->allrows = $allrows;
+			}
+
+			$attrib = $this->custom->find_group('property', $location, $this->start, $this->query, $this->sort, $this->order, $this->allrows);
+			$this->total_records = $this->custom->total_records;
+
+			return $attrib;
+		}
+
+		function read_single_attrib_group($location, $id)
+		{
+			return $this->custom->get_group('property', $location, $id, true);
+		}
+
+		function resort_attrib_group($location, $id, $resort)
+		{
+			$this->custom->resort_group($id, $resort, 'property', $location);
+		}
+
+		public function save_attrib_group($group, $action='')
+		{
+			$group['appname'] = 'property';
+
+			if ( $action=='edit' && $group['id'] )
+			{
+				if ( $this->custom->edit_group($group) )
+				{
+					return array
+					(
+						'msg'	=> array('msg' => lang('group has been updated'))
+					);
+				}
+
+				return array('error' => lang('Unable to update group'));
+			}
+			else
+			{
+				$id = $this->custom->add_group($group);
+				if ( $id <= 0  )
+				{
+					return array('error' => lang('Unable to add group'));
+				}
+				else if ( $id == -1 )
+				{
+					return array
+					(
+						'id'	=> 0,
+						'error'	=> array
+						(
+							array('msg' => lang('group already exists, please choose another name')),
+							array('msg' => lang('Attribute group has NOT been saved'))
+						)
+					);
+				}
+
+				return array
+				(
+					'id'	=> $id,
+					'msg'	=> array('msg' => lang('group has been created'))
+				);
+			}
+		}
+
 
 		function read_attrib($type_id)
 		{
@@ -236,9 +320,9 @@
 
 			if ( $action=='edit' && $attrib['id'] )
 			{
-				if ( $this->custom->edit($attrib, $primary_table) )
+				if ( $this->custom->edit($attrib, $history_table, true) )
 				{
-					$this->custom->edit($attrib, $history_table);
+					$this->custom->edit($attrib, $primary_table);
 					return array
 					(
 						'msg'	=> array('msg' => lang('Field has been updated'))
@@ -250,10 +334,9 @@
 			else
 			{
 				$id = $this->custom->add($attrib, $primary_table);
+				$this->custom->add($attrib, $history_table, true);
 				if ( $id <= 0  )
 				{
-					$this->custom->add($attrib, $history_table, true);
-
 					return array('error' => lang('Unable to add field'));
 				}
 				else if ( $id == -1 )

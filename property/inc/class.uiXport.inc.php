@@ -252,6 +252,7 @@
 					}
 					else
 					{
+						$GLOBALS['phpgw_info']['flags']['noframework'] = true;
 						$this->debug_import($buffer,$invoice_common);
 						return;
 					}
@@ -455,16 +456,14 @@
 
 			);
 
-			$vendor	= $this->contacts->read_single(array('actor_id'=>$table[0]['spvend_code']));
-			if(is_array($vendor))
+			$vendor	= $this->contacts->read_single($table[0]['spvend_code'], array('attributes'=>array(array('column_name' => 'org_name'))));
+
+			foreach($vendor['attributes'] as $attribute)
 			{
-				foreach($vendor['attributes'] as $attribute)
+				if($attribute['column_name']=='org_name')
 				{
-					if($attribute['name']=='org_name')
-					{
-						$vendor_name=$attribute['value'];
-						break;
-					}
+					$vendor_name = $attribute['value'];
+					break;
 				}
 			}
 

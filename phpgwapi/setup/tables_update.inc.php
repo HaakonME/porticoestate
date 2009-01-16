@@ -1829,7 +1829,7 @@
 		));
 
 		$rows = array();
-		$GLOBALS['phpgw_setup']->oProc->m_odb->query('SELECT acl_location, acl_account, acl_rights'
+		$GLOBALS['phpgw_setup']->oProc->m_odb->query('SELECT DISTINCT acl_location, acl_account, acl_rights'
 			. " FROM phpgw_acl WHERE acl_appname = 'phpgw_group'", __LINE__, __FILE__);
 		while ( $GLOBALS['phpgw_setup']->oProc->m_odb->next_record() )
 		{
@@ -1859,7 +1859,7 @@
 		foreach ( $apps as $app )
 		{
 			$sql = 'INSERT INTO phpgw_acl_location(appname, id, descr)'
-				. " VALUES ('{$app}', 'run', 'app run rights automagically created location during 0.9.17.514 migration')";
+				. " VALUES ('{$app}', 'run', 'app run rights created during 0.9.17.516 migration')";
 			
 			$GLOBALS['phpgw_setup']->oProc->m_odb->query($sql, __LINE__, __FILE__);
 		}
@@ -2334,235 +2334,58 @@
 		}
 	}
 
+	$test[] = '0.9.17.519';
+	/**
+	* Replace the primary key of the phpgw_cache_user table
+	*
+	* @return string the new version number
+	*/
 	function phpgwapi_upgrade0_9_17_519()
 	{
-		$tables = array
-		(
-			'phpgw_s_roles'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'role' => array('type' => 'varchar', 'precision' => 100, 'nullable' => false),
-					'ical_role' => array('type' => 'varchar', 'precison' => 10, 'nullable' => false),
-					'location' => array('type' => 'int', 'precision' => 4, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_src_type'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'src_type' => array('type' => 'varchar', 'precision' => 25, 'nullable' => false),
-					'descr' => array('type' => 'text', 'nullable' => false),
-					'active' => array('type' => 'int', 'precision' => 2, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_calendars'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'owner_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'location_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'as_todo' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'src_type_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'src_url' => array('type' => 'varchar', 'precision' => 100, 'nullable' => false),
-					'active' => array('type' => 'int', 'precision' => 2, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_recur_ex'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'event_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'exception_date' => array('type' => 'int', 'precision' => 4, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_parts'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'event_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'contact_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'status_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'role_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'comment' => array('type' => 'text', 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_events'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'seq' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'cal_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'summary' => array('type' => 'varchar', 'precision' => 200, 'nullable' => false),
-					'descr' => array('type' => 'text', 'nullable' => false),
-					'location' => array('type' => 'varchar', 'precision' => 225, 'nullable' => false),
-					'start' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'end' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'rinterval' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'rdays' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'rend' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'e_status_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'priority' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'access' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'completed' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'geo_long' => array('type' => 'int', 'float' => 4, 'nullable' => false),
-					'geo_lat' => array('type' => 'int', 'float' => 4, 'nullable' => false),
-					'transparent' => array('type' => 'int', 'precision' => 2, 'nullable' => false),
-					'role_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'uid' => array('type' => 'varchar', 'precision' => 100, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_alarms'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'participant_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'time' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'method_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'method_data' => array('type' => 'text', 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_alarm_methofs'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'summary' => array('type' => 'varchar', 'precision' => 100, 'nullable' => false),
-					'method' => array('type' => 'varchar', 'precision' => 60, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_part_stati'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'status' => array('type' => 'varchar', 'precision' => 25, 'nullable' => false),
-					's_type_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_event_notes'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'event_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'contact_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'note' => array('type' => 'text', 'nullable' => false),
-					'entered' => array('type' => 'int', 'precision' => 4, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_cats'	=> array
-			(
-				'fd' => array
-				(
-					'event_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'cat_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false)
-				),
-				'pk' => array('event_id', 'cat_id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_resources'	=> array
-			(
-				'fd' => array
-				(
-					'event_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false),
-					'resource_id' => array('type' => 'int', 'precision' => 4, 'nullable' => false)
-				),
-				'pk' => array('event_id', 'resource_id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			),
-
-			'phpgw_s_status'	=> array
-			(
-				'fd' => array
-				(
-					'id' => array('type' => 'auto', 'precision' => 4, 'nullable' => false),
-					'status' => array('type' => 'varchar', 'precision' => 20, 'nullable' => false),
-					'descr' => array('type' => 'text', 'nullable' => false),
-					'color' => array('type' => 'varchar', 'precision' => 6, 'nullable' => false),
-					'complete' => array('type' => 'int', 'precision' => 2, 'nullable' => false),
-					'active' => array('type' => 'int', 'precision' => 2, 'nullable' => false)
-				),
-				'pk' => array('id'),
-				'fk' => array(),
-				'ix' => array(),
-				'uc' => array()
-			)
-		);
-
 		$GLOBALS['phpgw_setup']->oProc->m_odb->transaction_begin();
 
-		foreach ( $tables as $table => $def )
+		$GLOBALS['phpgw_setup']->oProc->AddColumn('phpgw_cust_attribute','group_id',array(
+			'type' => 'int',
+			'precision' => '2',
+			'nullable' => True,
+			'default'	=> 0
+		));
+
+		$GLOBALS['phpgw_setup']->oProc->CreateTable('phpgw_cust_attribute_group', array
+		(
+			'fd' => array
+			(
+				'location_id'	=> array('type' => 'int','precision' => 4,'nullable' => false),
+				'id'			=> array('type' => 'int','precision' => 2,'nullable' => false),
+				'name'			=> array('type' => 'varchar','precision' => 100,'nullable' => false),
+				'group_sort'	=> array('type' => 'int','precision' => 2,'nullable' => false),
+				'descr'			=> array('type' => 'varchar','precision' => 150,'nullable' => true),
+				'remark'		=> array('type' => 'text','nullable' => true)
+			),
+			'pk' => array('location_id','id'),
+			'fk' => array(),
+			'ix' => array(),
+			'uc' => array()
+		));
+
+		$GLOBALS['phpgw_setup']->oProc->m_odb->query("SELECT DISTINCT location_id FROM phpgw_cust_attribute");
+		$locations = array();
+		while ($GLOBALS['phpgw_setup']->oProc->m_odb->next_record())
 		{
-			$GLOBALS['phpgw_setup']->oProc->CreateTable($table, $def);
+			$locations[] = $GLOBALS['phpgw_setup']->oProc->f('location_id');
 		}
+
+		foreach ($locations as $location_id)
+		{
+			$GLOBALS['phpgw_setup']->oProc->m_odb->query("INSERT INTO phpgw_cust_attribute_group (location_id, id, name, group_sort, descr)"
+			." VALUES ({$location_id}, 1, 'Default group', 1, 'Auto created from db-update')", __LINE__, __FILE__);
+		}
+
+		$GLOBALS['phpgw_setup']->oProc->m_odb->query("UPDATE phpgw_cust_attribute SET group_id = 1");
 
 		if ( $GLOBALS['phpgw_setup']->oProc->m_odb->transaction_commit() )
 		{
-			$ver =& $GLOBALS['setup_info']['phpgwapi']['currentver'];
-			$ver = '0.9.17.530';
-			return $var;
+			$GLOBALS['setup_info']['phpgwapi']['currentver'] = '0.9.17.520';
+			return $GLOBALS['setup_info']['phpgwapi']['currentver'];
 		}
 	}

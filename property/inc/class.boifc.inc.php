@@ -266,16 +266,27 @@ _debug_array('hei');
 				$receipt = $this->so->add($values,$values_attribute);
 			}
 
-			$custom_functions = $this->custom->find(array('appname'=>'property','location' => $this->acl_location,'allrows'=>true));
+			$criteria = array
+			(
+				'appname'	=> 'property',
+				'location'	=> $this->acl_location,
+				'allrows'	=> true
+			);
 
-			if (isSet($custom_functions) AND is_array($custom_functions))
+			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
+
+			foreach ( $custom_functions as $entry )
 			{
-				foreach($custom_functions as $entry)
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					if (is_file(PHPGW_APP_INC . "/custom/{$entry['file_name']}") && $entry['active'])
-					{
-						include_once(PHPGW_APP_INC . "/custom/{$entry['file_name']}");
-					}
+					continue;
+				}
+
+				$file = PHPGW_APP_INC . "/custom/{$GLOBALS['phpgw_info']['user']['domain']}/{$entry['file_name']}";
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once $file;
 				}
 			}
 

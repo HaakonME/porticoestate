@@ -266,7 +266,7 @@
 		function read_event($data)
 		{
 			$boalarm		= CreateObject('property.boalarm');
-			$event	= $this->so->read_single($data);
+			$event	= $this->so->read_single($data['r_agreement_id']);
 			$event['alarm_date']=$event['termination_date'];
 			$event['alarm']	= $boalarm->read_alarms($type='r_agreement',$data['r_agreement_id']);
 			return $event;
@@ -336,6 +336,20 @@
 				$values['p'][$values['p_entity_id']]['p_cat_name'] = $category['name'];
 			}
 			return $values;
+		}
+
+		/**
+		* Arrange attributes within groups
+		*
+		* @param string  $location    the name of the location of the attribute
+		* @param array   $attributes  the array of the attributes to be grouped
+		*
+		* @return array the grouped attributes
+		*/
+
+		public function get_attribute_groups($location, $attributes = array())
+		{
+			return $this->custom->get_attribute_groups('property', $location, $attributes);
 		}
 
 		function save($values,$values_attribute='',$action='')

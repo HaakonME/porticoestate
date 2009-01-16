@@ -4,7 +4,7 @@
 	* @author coreteam <phpgroupware-developers@gnu.org>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/ GNU General Public License v3 or later
+	* @license http://www.gnu.org/licenses/ GNU General Public License v2 or later
 	* @package admin
 	* @subpackage accounts
 	* @version $Id$
@@ -13,7 +13,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -193,6 +193,14 @@
 				$GLOBALS['phpgw']->accounts->update_group($new_group, $values['account_user'],
 														$values['account_apps']);
 			}
+
+			//Delete cached menu for members of group
+			$members = $GLOBALS['phpgw']->accounts->member($id);
+			foreach($members as $entry)
+			{
+				phpgwapi_cache::user_clear('phpgwapi', 'menu', $entry['account_id']);
+			}
+			return $id;
 		}
 
 		/**
@@ -285,7 +293,7 @@
 				'lid'				=> $values['lid'],
 				'firstname'			=> $values['firstname'],
 				'lastname'			=> $values['lastname'],
-				'enabled'			=> $values['enabled'],
+				'enabled'			=> isset($values['enabled']) ? $values['enabled'] : '',
 				'expires'			=> $values['expires'],
 				'quota'				=> $values['quota']
 			);
@@ -303,9 +311,18 @@
 
 			$groups = $values['account_groups'];
 			$acls = array();
+			if ( $values['changepassword'] )
+			{
+				$acls[] = array
+				(
+					'appname' 	=> 'preferences',
+					'location'	=> 'changepassword',
+					'rights'	=> 1
+				);
+			}
+			
 			$apps = $values['account_permissions'];
 			unset($values['account_groups'], $values['account_permissions']);
-
 
 			try
 			{
@@ -319,6 +336,11 @@
 				throw $e;
 			}
 
+			if ( $user->id )
+			{
+				phpgwapi_cache::user_clear('phpgwapi', 'menu', $user->id);
+			}
+
 			if ( !$user->is_dirty() )
 			{
 				return $user->id;
@@ -326,6 +348,7 @@
 
 			if ( $user->id )
 			{
+
 				if ( $GLOBALS['phpgw']->accounts->update_user($user, $groups, $acls, $apps) )
 				{
 					return $user->id;
@@ -373,7 +396,7 @@
 				$GLOBALS['phpgw']->redirect_link('index.php',
 						array('menuaction' => 'admin.uiaccounts.list_users'));
 			}
-			return $GLOBALS['phpgw']->accounts->delete($account_id);
+			return $GLOBALS['phpgw']->accounts->delete($id);
 		}
 
 

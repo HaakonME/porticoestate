@@ -141,8 +141,10 @@
 				$wo_hour_cat_id	= isset($data['wo_hour_cat_id']) ? $data['wo_hour_cat_id'] : '';
 				$b_group		= isset($data['b_group']) ? $data['b_group'] : '';
 				$paid			= isset($data['paid']) ? $data['paid'] : '';
+				$b_account		= isset($data['b_account']) ? $data['b_account'] : '';
+				$district_id	= isset($data['district_id']) ? $data['district_id'] : '';
+				$dry_run		= isset($data['dry_run']) ? $data['dry_run'] : '';
 			}
-
 
 			$sql = $this->bocommon->fm_cache('sql_workorder'.!!$search_vendor . '_' . !!$wo_hour_cat_id . '_' . !!$b_group);
 //echo $sql;
@@ -293,7 +295,7 @@
 
 			$filtermethod = '';
 
-			$GLOBALS['phpgw']->config->read_repository();
+			$GLOBALS['phpgw']->config->read();
 			if(isset($GLOBALS['phpgw']->config->config_data['acl_at_location']) && $GLOBALS['phpgw']->config->config_data['acl_at_location'])
 			{
 				$access_location = $this->bocommon->get_location_list(PHPGW_ACL_READ);
@@ -331,6 +333,18 @@
 			{
 				/* 0 => cancelled, 1 => obligation , 2 => paid */
 				$filtermethod .= " $where fm_workorder.paid = $paid AND vendor_id > 0";
+				$where= 'AND';
+			}
+
+			if ($b_account)
+			{
+				$filtermethod .= " {$where} fm_workorder.account_id = '{$b_account}'";
+				$where= 'AND';
+			}
+
+			if ($district_id)
+			{
+				$filtermethod .= " {$where} district_id = {$district_id}";
 				$where= 'AND';
 			}
 
@@ -391,7 +405,7 @@
 			}
 
 			$sql .= " $filtermethod $querymethod $querymethod_vendor";
-//echo $sql;
+
 
 			if($GLOBALS['phpgw_info']['server']['db_type']=='postgres')
 			{
@@ -408,14 +422,23 @@
 			}
 
 			$sql .= " $group_method";
-
-			if(!$allrows)
+			
+			//cramirez.r@ccfirst.com 23/10/08 avoid retrieve data in first time, only render definition for headers (var myColumnDefs)
+		
+			if($dry_run)
 			{
-				$this->db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
+				return array();
 			}
 			else
 			{
-				$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
+				if(!$allrows)
+				{
+					$this->db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
+				}
+				else
+				{
+					$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
+				}
 			}
 
 			$count_cols_return=count($cols_return);
@@ -446,11 +469,13 @@
 
 		function read_single($workorder_id)
 		{
+			$workorder_id = (int) $workorder_id;
 			$sql = "SELECT fm_workorder.*, fm_chapter.descr as chapter ,fm_project.user_id from fm_workorder $this->join fm_project on fm_workorder.project_id=fm_project.id  $this->left_join fm_chapter on "
-				. " fm_workorder.chapter_id = fm_chapter.id where fm_workorder.id=$workorder_id";
+				. " fm_workorder.chapter_id = fm_chapter.id where fm_workorder.id={$workorder_id}";
 
 			$this->db->query($sql,__LINE__,__FILE__);
 
+			$workorder = array();
 			if ($this->db->next_record())
 			{
 				$workorder['workorder_id']		= $this->db->f('id');
@@ -490,7 +515,9 @@
 
 		function project_budget_from_workorder($project_id = '')
 		{
-			$this->db->query("select budget, id as workorder_id from fm_workorder where project_id='$project_id'");
+			$project_id = (int) $project_id;
+			$this->db->query("select budget, id as workorder_id from fm_workorder where project_id={$project_id}");
+			$budget = array();
 			while ($this->db->next_record())
 			{
 				$budget[] = array(
@@ -503,8 +530,9 @@
 
 		function branch_p_list($project_id = '')
 		{
-
-			$this->db2->query("SELECT branch_id from fm_projectbranch WHERE project_id='$project_id' ",__LINE__,__FILE__);
+			$project_id = (int) $project_id;
+			$this->db2->query("SELECT branch_id from fm_projectbranch WHERE project_id={$project_id}",__LINE__,__FILE__);
+			$selected = array();
 			while ($this->db2->next_record())
 			{
 				$selected[] = array('branch_id' => $this->db2->f('branch_id'));

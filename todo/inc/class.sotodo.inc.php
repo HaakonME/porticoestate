@@ -29,7 +29,7 @@
 			$this->grants      = $GLOBALS['phpgw']->acl->get_grants('todo');
 			$this->account     = $GLOBALS['phpgw_info']['user']['account_id'];
 			$this->user_groups = $GLOBALS['phpgw']->accounts->membership($this->account);
-			$this->historylog  = CreateObject('phpgwapi.historylog','todo');
+			$this->historylog  = CreateObject('phpgwapi.historylog','todo', '.');
 
 			// This is so our transactions follow across classes
 			$this->historylog->db =& $this->db;
@@ -74,17 +74,26 @@
 				$filter = 'none';
 			}
 
-			$filtermethod = "(( todo_owner = {$this->account} OR todo_assigned = {$this->account}";
+			$filtermethod = "(( todo_owner = {$this->account} OR todo_assigned = '{$this->account}'";
 
+             /**
+              * Begin Orlando Fix
+              *
+              * I had to change the way $group variables were read to
+              * object -> attributes
+              */
 			if ( is_array($this->user_groups) && count($this->user_groups) )
-			{
-				$filtermethod .= ' OR assigned_group IN(0';
+			{                
+				$filtermethod .= " OR assigned_group IN('0'";
 				foreach ( $this->user_groups as $group )
-				{
-					$filtermethod .= ', ' . $group['account_id'];
+				{                    
+                    $filtermethod .= ",'" . $group->id."' ";
 				}
 				$filtermethod .= ')';
 			}
+            /**
+             * End Orlando Fix
+             */
 
 			$filtermethod .= ')';
 
@@ -114,13 +123,14 @@
 				$filtermethod .= ' AND todo_cat = ' . (int) $cat_id;
 			}
 
+           
 			$querymethod = '';
 			if($query)
 			{
 				$query = $this->db->db_addslashes($query);
-
 				$querymethod = " AND (todo_des LIKE '%$query%' OR todo_title LIKE '%$query%')";
 			}
+            
 
 			$parentmethod = '';
 			if($parent)
@@ -220,14 +230,37 @@
 			$values['assigned'] = $this->db->db_addslashes($values['assigned']);
 			$values['assigned_group'] = $this->db->db_addslashes($values['assigned_group']);
 
-			$this->db->transaction_begin();
-			$this->db->query('insert into phpgw_todo (todo_id_main,todo_id_parent,todo_level,todo_owner,todo_access,todo_cat,'
-				. 'todo_des,todo_title,todo_pri,todo_status,todo_datecreated,todo_startdate,todo_enddate,todo_assigned,assigned_group) values ('
-				. (int)$values['main'] . ',' . (int)$values['parent'] . ',' . (int)$values['level'] . ',' . $this->account . ",'" . (int)!!$values['access']
-				. "'," . (int)$values['cat'] . ",'" . $values['descr'] . "','" . $values['title'] . "'," . (int)$values['pri'] . ",'"
-				. (int)$values['status'] . "'," . time() . ',' . (int)$values['sdate'] . ',' . (int)$values['edate'] . ",'" . $values['assigned']
-				. "','" . $values['assigned_group'] . "')", __LINE__, __FILE__);
+            /**
+             * Begin Orlando Fix
+             *
+             * I had to include another field in the INSERT query: entry_date
+             * because it didn't accept null values, and it now stores the actual time()
+             */
+            $this->db->transaction_begin();
+            $sql=   "insert into phpgw_todo (todo_id_main,todo_id_parent,todo_level,todo_owner,todo_access,todo_cat,todo_des,todo_title,todo_pri,todo_status,todo_datecreated,todo_startdate,todo_enddate,todo_assigned,assigned_group,entry_date) "
+                    ."values ("
+                    .(int)$values['main']
+                    ."," . (int)$values['parent']
+                    ."," . (int)$values['level']
+                    ." ," . $this->account . ","
+                    .(int)!!$values['access']
+                    .",". (int)$values['cat']
+                    .",'" . $values['descr'] ."' "
+                    .",'" . $values['title'] ."' "
+                    ."," . (int)$values['pri']
+                    .",". (int)$values['status']
+                    .",'" . time() ."'"
+                    .",'" . (int)$values['sdate'] ."' "
+                    .',' . (int)$values['edate']
+                    .",'" . $values['assigned']
+                    ."','" . $values['assigned_group'] ."'"
+                    ."," .time() . ")";
+           
+			$this->db->query($sql, __LINE__, __FILE__);
 			$todo_id = $this->db->get_last_insert_id('phpgw_todo','todo_id');
+            /**
+             * End Orlando Fix
+             */
 
 			if (!$values['parent'] || $values['parent'] == 0)
 			{
@@ -323,42 +356,42 @@
 
 			if(($old_values['parent'] || $values['parent']) && ($old_values['parent'] != $values['parent']))
 			{
-				$this->historylog->add('P',$values['id'],$values['parent']);
+				$this->historylog->add('P',$values['id'],$values['parent'], $old_values['parent']);
 			}
 
 			if($old_values['pri'] != $values['pri'])
 			{
-				$this->historylog->add('U',$values['id'],$values['pri']);
+				$this->historylog->add('U',$values['id'],$values['pri'], $old_values['pri']);
 			}
 
 			if($old_values['status'] != $values['status'])
 			{
-				$this->historylog->add('s',$values['id'],$values['status']);
+				$this->historylog->add('s',$values['id'],$values['status'], $old_values['status']);
 			}
 
 			if($old_values['access'] != $values['access'])
 			{
-				$this->historylog->add('a',$values['id'],$values['access']);
+				$this->historylog->add('a',$values['id'],$values['access'], $old_values['access']);
 			}
 
 			if(($old_values['sdate'] || $values['sdate']) && ($old_values['sdate'] != $values['sdate']))
 			{
-				$this->historylog->add('S',$values['id'],$values['sdate']);
+				$this->historylog->add('S',$values['id'],$values['sdate'], $old_values['sdate']);
 			}
 
 			if(($old_values['edate'] || $values['edate']) && ($old_values['edate'] != $values['edate']))
 			{
-				$this->historylog->add('E',$values['id'],$values['edate']);
+				$this->historylog->add('E',$values['id'],$values['edate'], $old_values['edate']);
 			}
 
 			if($old_values['title'] != $values['title'])
 			{
-				$this->historylog->add('T',$values['id'],$values['title']);
+				$this->historylog->add('T',$values['id'],$values['title'], $old_values['title']);
 			}
 
 			if($old_values['cat'] != $values['cat'])
 			{
-				$this->historylog->add('C',$values['id'],$values['cat']);
+				$this->historylog->add('C',$values['id'],$values['cat'],$old_values['cat']);
 			}
 
 			$values['title'] = $this->db->db_addslashes($values['title']);
@@ -367,7 +400,7 @@
 			$this->db->query("update phpgw_todo set todo_des='". $values['descr'] . "', todo_id_parent=" . $values['parent']
 				. ', todo_pri=' . intval($values['pri']) . ", todo_status='" . $values['status'] . "', todo_id_main=" . intval($values['main'])
 				. ", todo_access='" . $values['access'] . "', todo_level=" . intval($values['level'])
-				. ', todo_startdate=' . intval($values['sdate']) . ', todo_enddate=' . intval($values['edate']) . "', todo_title='" . $values['title']
+				. ', todo_startdate=' . intval($values['sdate']) . ', todo_enddate=' . intval($values['edate']) . ", todo_title='" . $values['title']
 				. "', todo_cat=" . intval($values['cat']) . ", todo_assigned='" . $values['assigned'] . "', assigned_group='" . $values['assigned_group']
 				. "' where todo_id=" . $values['id'],__LINE__,__FILE__);
 			$this->db->transaction_commit();

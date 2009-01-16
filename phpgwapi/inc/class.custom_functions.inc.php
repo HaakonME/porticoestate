@@ -5,7 +5,7 @@
 	 * @author Sigurd Nes <sigurdne@online.no>
 	 * @author Dave Hall dave.hall at skwashd.com
 	 * @copyright Copyright (C) 2003-2006 Free Software Foundation http://www.fsf.org/
-	 * @license http://www.gnu.org/licenses/gpl.html GNU General Public License v3 or later
+	 * @license http://www.gnu.org/licenses/gpl.html GNU General Public License v2 or later
 	 * @package phpgroupware
 	 * @subpackage phpgwapi
 	 * @version $Id: class.custom_fields.inc.php 1114 2008-06-02 18:15:22Z sigurd $
@@ -14,7 +14,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -149,7 +149,7 @@
 		}
 
 		/**
-		 * Delete a function
+		 * Delete a custom attribute or custom function
 		 * 
 		 * @param string $appname the application name
 		 * @param string $location the location
@@ -206,7 +206,6 @@
 		{
 			$id = (int) $custom_function['id'];
 
-			$custom_function['active'] = false;
 			if ( isset($custom_function['active']) ) 
 			{
 				$custom_function['active'] = !!$custom_function['active'];
@@ -252,7 +251,7 @@
 
 			$location_id = $GLOBALS['phpgw']->locations->get_id($data['appname'], $data['location']);
 
-			$start = -1;
+			$start = 0;
 			if ( isset($data['start']) )
 			{
 				$start = (int) $data['start'];
@@ -266,7 +265,7 @@
 
 
 			$ordermethod = ' ORDER BY custom_sort ASC';
-			if ( isset($data['order']) )
+			if ( isset($data['order']) && $data['order'] )
 			{
 				$data['sort'] = 'ASC';
 				if ( isset($data['sort']) && $data['sort'] == 'DESC' )
@@ -303,11 +302,11 @@
 
 			if ( true ) //$allrows )
 			{
-				$this->_db->query("SELECT * {$sql} {$ordermethod}");
+				$this->_db->query("SELECT * {$sql} {$ordermethod}", __LINE__, __FILE__);
 			}
 			else
 			{
-				$this->_db->limit_query("SELECT * {$sql} {$ordermethod}", $start);
+				$this->_db->limit_query("SELECT * {$sql} {$ordermethod}", $start, __LINE__, __FILE__);
 			}
 
 			while ( $this->_db->next_record() )
@@ -382,13 +381,17 @@
 			}
 
 			$id		= (int)$id;
-			$resort	= 'up';
+
 			if ( $resort == 'down' )
 			{
 				$resort = 'down';
 			}
+			else
+			{
+				$resort	= 'up';
+			}
 
-			$loccation_id = $GLOBALS['phpgw']->location->get_id($appname, $location);
+			$location_id = $GLOBALS['phpgw']->locations->get_id($appname, $location);
 
 			$this->_db->transaction_begin();
 			

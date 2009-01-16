@@ -4,7 +4,7 @@
 	*
 	* @author Sigurd Nes <sigurdne@online.no>
 	* @copyright Copyright (C) 2003-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/gpl.html GNU General Public License v3 or later
+	* @license http://www.gnu.org/licenses/gpl.html GNU General Public License v2 or later
 	* @internal Development of this application was funded by http://www.bergen.kommune.no/bbb_/ekstern/
 	* @package hrm
 	* @subpackage admin
@@ -214,7 +214,7 @@
 			return $category_list;
 		}
 
-		function set_permission2($values,$r_processed, $grantor = 0, $type = 0)
+		function set_permission2($values,$r_processed, $grantor = -1, $type = 0)
 		{
 			if ( !is_array($values) )
 			{
@@ -272,6 +272,7 @@
 
 		function set_permission($values,$r_processed,$set_grant = false)
 		{
+			$this->acl->enable_inheritance = phpgw::get_var('enable_inheritance', 'bool', 'POST');
 
 			$process = explode('_', $r_processed);
 
@@ -285,7 +286,7 @@
 				$values['mask'] = array();
 			}
 
-			$grantor = 0;
+			$grantor = -1;
 			if($set_grant)
 			{
 				if($this->granting_group)
@@ -309,6 +310,8 @@
 				$receipt['message'][] = array('msg' => lang('%1 userlists cleared from cache',$cleared));
 			}
 
+			phpgwapi_cache::user_clear('phpgwapi', 'menu', -1);
+
 			return $receipt;
 		}
 
@@ -324,7 +327,7 @@
 				$check_account_type = array('groups','accounts');
 			}
 
-			$grantor = 0;
+			$grantor = -1;
 			if($get_grants)
 			{
 				if($this->granting_group)
