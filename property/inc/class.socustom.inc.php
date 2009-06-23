@@ -34,17 +34,12 @@
 
 	class property_socustom
 	{
-		function property_socustom()
+		function __construct()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->account	= $GLOBALS['phpgw_info']['user']['account_id'];
-			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           	= $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
-			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
-
-			$this->join			= $this->bocommon->join;
-			$this->like			= $this->bocommon->like;
+			$this->db           = & $GLOBALS['phpgw']->db;
+			$this->join			= & $this->db->join;
+			$this->like			= & $this->db->like;
 		}
 
 		function read($data)
@@ -80,16 +75,14 @@
 
 			if($query)
 			{
-				$query = preg_replace("/'/",'',$query);
-				$query = preg_replace('/"/','',$query);
-
+				$query = $this->db->db_addslashes($query);
 				$querymethod = " $where name $this->like '%$query%'";
 			}
 
 			$sql = "SELECT * FROM fm_custom $filtermethod $querymethod";
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			$this->db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
 			if(!$allrows)
 			{
@@ -115,15 +108,20 @@
 
 		function read_single($custom_id)
 		{
-			$this->db->query("select * from fm_custom where id='$custom_id'",__LINE__,__FILE__);
+			$custom_id = (int) $custom_id;
+			$this->db->query("SELECT * from fm_custom where id={$custom_id}",__LINE__,__FILE__);
 
+			$custom = array();
 			if ($this->db->next_record())
 			{
-				$custom['id']			= (int)$this->db->f('id');
-				$custom['name']			= stripslashes($this->db->f('name'));
-				$custom['sql_text']			= stripslashes($this->db->f('sql_text'));
-				$custom['entry_date']	= $this->db->f('entry_date');
-				$custom['cols'] 		= $this->read_cols($custom_id);
+				$custom = array
+				(
+					'id'			=> (int)$this->db->f('id'),
+					'name'			=> $this->db->f('name', true),
+					'sql_text'		=> $this->db->f('sql_text', true),
+					'entry_date'	=> $this->db->f('entry_date'),
+					'cols'			=> $this->read_cols($custom_id)
+				);
 			}
 
 			return $custom;
@@ -131,43 +129,41 @@
 
 		function read_cols($custom_id)
 		{
-			$sql = "SELECT * FROM fm_custom_cols WHERE custom_id=$custom_id ORDER by sorting";
+			$custom_id = (int) $custom_id;
+			$sql = "SELECT * FROM fm_custom_cols WHERE custom_id={$custom_id} ORDER by sorting";
 			$this->db->query($sql);
 
+			$cols = array();
 			while ($this->db->next_record())
 			{
-				$choice[] = array
+				$cols[] = array
 				(
 					'id'	=> $this->db->f('id'),
 					'name'	=> $this->db->f('name'),
-					'descr'	=> $this->db->f('descr'),
+					'descr'	=> $this->db->f('descr', true),
 					'sorting'=> $this->db->f('sorting')
 				);
 
 			}
-			return $choice;
+			return $cols;
 		}
 
 		function read_custom_name($custom_id)
 		{
-			$this->db->query("select name from fm_custom where id='$custom_id'",__LINE__,__FILE__);
-
-			if ($this->db->next_record())
-			{
-				$name			= stripslashes($this->db->f('name'));
-			}
-
-			return $name;
+			$custom_id = (int) $custom_id;
+			$this->db->query("SELECT name FROM fm_custom where id={$custom_id}",__LINE__,__FILE__);
+			$this->db->next_record();
+			return $this->db->f('name', true);
 		}
 
 		function add($custom)
 		{
 			$custom['name'] = $this->db->db_addslashes($custom['name']);
-			$custom['sql_text'] = $this->db->db_addslashes($custom['sql_text']);
+			$custom['sql_text'] = $this->db->db_addslashes(htmlspecialchars_decode($custom['sql_text']));
 
 			$this->db->transaction_begin();
 
-			$id = $this->bocommon->next_id('fm_custom');
+			$id = $this->db->next_id('fm_custom');
 
 			$this->db->query("INSERT INTO fm_custom (id,entry_date,sql_text,name,user_id) "
 				. "VALUES ($id,'" . time() . "','" . $custom['sql_text'] . "','" . $custom['name'] . "'," . $this->account . ")",__LINE__,__FILE__);
@@ -184,19 +180,18 @@
 		function edit($custom)
 		{
 			$custom['name'] = $this->db->db_addslashes($custom['name']);
-			$custom['sql_text'] = $this->db->db_addslashes($custom['sql_text']);
+			$custom['sql_text'] = $this->db->db_addslashes(htmlspecialchars_decode($custom['sql_text']));
 
-			$this->db->query("UPDATE fm_custom set sql_text='" . $custom['sql_text'] . "', entry_date='" . time() . "', name='" . $custom['name'] . "' WHERE id=" . intval($custom['custom_id']),__LINE__,__FILE__);
+			$this->db->query("UPDATE fm_custom set sql_text='" . $custom['sql_text'] . "', entry_date='" . time() . "', name='" . $custom['name'] . "' WHERE id=" . (int) $custom['custom_id'],__LINE__,__FILE__);
 
 			if($custom['new_name'])
 			{
-				$column_id = $this->bocommon->next_id('fm_custom_cols' ,array('custom_id'=>$custom['custom_id']));
+				$column_id = $this->db->next_id('fm_custom_cols', array('custom_id'=>$custom['custom_id']));
 
 				$sql = "SELECT max(sorting) as max_sort FROM fm_custom_cols WHERE custom_id=" . $custom['custom_id'];
 				$this->db->query($sql);
 				$this->db->next_record();
 				$sorting	= $this->db->f('max_sort')+1;
-
 
 				$values= array(
 					$custom['custom_id'],
@@ -206,7 +201,7 @@
 					$sorting
 					);
 
-				$values	= $this->bocommon->validate_db_insert($values);
+				$values	= $this->db->validate_insert($values);
 
 				$this->db->query("INSERT INTO fm_custom_cols (custom_id,id,name,descr,sorting) "
 				. "VALUES ($values)");
@@ -291,25 +286,27 @@
 		{
 			if(is_array($data))
 			{
-				$start	= (isset($data['start'])?$data['start']:0);
-				$filter	= (isset($data['filter'])?$data['filter']:'none');
-				$query = (isset($data['query'])?$data['query']:'');
-				$sort = (isset($data['sort'])?$data['sort']:'DESC');
-				$order = (isset($data['order'])?$data['order']:'');
-				$cat_id = (isset($data['cat_id'])?$data['cat_id']:0);
-				$allrows 		= (isset($data['allrows'])?$data['allrows']:'');
-				$custom_id 		= (isset($data['custom_id'])?$data['custom_id']:'');
+				$start		= isset($data['start']) && $data['start'] ? $data['start'] : 0;
+				$filter		= isset($data['filter']) && $data['filter'] ? $data['filter'] : 'none';
+				$query		= isset($data['query']) ? $data['query'] : '';
+				$sort		= isset($data['sort']) && $data['sort'] ? $data['sort'] : 'DESC';
+				$order		= isset($data['order']) ? $data['order'] : '';
+				$allrows 	= isset($data['allrows']) ? $data['allrows'] : '';
+				$custom_id 	= isset($data['custom_id']) && $data['custom_id'] ? (int)$data['custom_id'] : 0;
 			}
 
-			$this->db->query("select sql_text from fm_custom where id='$custom_id'",__LINE__,__FILE__);
+			$this->db->query("SELECT sql_text FROM fm_custom where id={$custom_id}",__LINE__,__FILE__);
 			$this->db->next_record();
-			$sql = stripslashes($this->db->f('sql_text'));
+			$sql = $this->db->f('sql_text', true);
 
 			$uicols = $this->read_cols($custom_id);
 			$this->uicols = $uicols;
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			//FIXME:
+			$ordermethod = '';
+			
+			$this->db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
 			if(!$allrows)
 			{
@@ -338,8 +335,9 @@
 
 		function delete($custom_id)
 		{
-			$this->db->query('DELETE FROM fm_custom WHERE id=' . intval($custom_id),__LINE__,__FILE__);
-			$this->db->query('DELETE FROM fm_custom_cols WHERE custom_id=' . intval($custom_id),__LINE__,__FILE__);
+			$custom_id = (int) $custom_id;
+			$this->db->query("DELETE FROM fm_custom WHERE id={$custom_id}",__LINE__,__FILE__);
+			$this->db->query("DELETE FROM fm_custom_cols WHERE custom_id={$custom_id}",__LINE__,__FILE__);
 		}
 	}
 

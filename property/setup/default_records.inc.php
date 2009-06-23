@@ -58,6 +58,8 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.location.4', 'Apartment')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.custom', 'custom queries')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant) VALUES ({$app_id}, '.project', 'Demand -> Workorder', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant, allow_c_function) VALUES ({$app_id}, '.project.workorder', 'Workorder', 1, 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant, allow_c_function) VALUES ({$app_id}, '.project.request', 'Request', 1, 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_grant) VALUES ({$app_id}, '.ticket', 'Helpdesk', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.ticket.external', 'Helpdesk External user')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.invoice', 'Invoice')");
@@ -74,6 +76,7 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.tenant_claim', 'Tenant claim')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.budget', 'Budet')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.budget.obligations', 'Obligations')");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.budget.basis', 'Basis for high level lazy budgeting')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr) VALUES ({$app_id}, '.ifc', 'ifc integration')");
 
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name, descr, allow_c_attrib,c_attrib_table) VALUES ({$app_id}, '.agreement', 'Agreement',1,'fm_agreement')");
@@ -94,9 +97,6 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_locations (app_id, name
 //$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_workorder_category (id, descr) VALUES (1, 'Preventive')");
 //$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_workorder_category (id, descr) VALUES (2, 'Ad Hoc')");
 
-#
-#fm_meter_category
-#
 
 $GLOBALS['phpgw_setup']->oProc->query("DELETE from phpgw_config WHERE config_app='property'");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_config (config_app, config_name, config_value) VALUES ('property','meter_table', 'fm_entity_1_1')");
@@ -234,9 +234,43 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_request_condition_type (id
 # fm_document_category
 #
 
-$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_document_category (id, descr) VALUES ('1', 'Picture')");
-$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_document_category (id, descr) VALUES ('2', 'Report')");
-$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO fm_document_category (id, descr) VALUES ('3', 'Instruction')");
+$GLOBALS['phpgw_setup']->oProc->query("DELETE FROM phpgw_categories WHERE cat_appname = 'property.document'");
+$GLOBALS['phpgw_info']['server']['account_repository'] = isset($GLOBALS['phpgw_info']['server']['account_repository']) ? $GLOBALS['phpgw_info']['server']['account_repository'] : '';
+$GLOBALS['phpgw']->accounts		= createObject('phpgwapi.accounts');
+$GLOBALS['phpgw']->db = & $GLOBALS['phpgw_setup']->oProc->m_odb;
+$GLOBALS['phpgw']->acl = CreateObject('phpgwapi.acl');
+$GLOBALS['phpgw']->hooks = CreateObject('phpgwapi.hooks', $GLOBALS['phpgw_setup']->oProc->m_odb);
+$cats = CreateObject('phpgwapi.categories', -1, 'property.document');
+
+$cats->add(	array
+	(
+		'name'	=> 'Picture',
+		'descr'	=> 'Picture',
+		'parent' => 'none',
+		'old_parent' => 0,
+		'access' => 'public'
+	)
+);
+
+$cats->add(	array
+	(
+		'name'	=> 'Report',
+		'descr'	=> 'Report',
+		'parent' => 'none',
+		'old_parent' => 0,
+		'access' => 'public'
+	)
+);
+
+$cats->add(	array
+	(
+		'name'	=> 'Instruction',
+		'descr'	=> 'Instruction',
+		'parent' => 'none',
+		'old_parent' => 0,
+		'access' => 'public'
+	)
+);
 
 #
 # fm_tts_category
@@ -629,6 +663,10 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (locatio
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 13, 'owner_id', 'owner_id', 'owner_id', 'I', NULL, NULL, NULL, 4, NULL, NULL, 'True', NULL)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 14, 'change_type', 'change_type', 'change_type', 'I', NULL, NULL, NULL, 4, NULL, NULL, 'True', NULL)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 15, 'rental_area', 'Rental area', 'Rental area', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 16, 'area_gross', 'Gross area', 'Sum of the areas included within the outside face of the exterior walls of a building.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 17, 'area_net', 'Net area', 'The wall-to-wall floor area of a room.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 18, 'area_usable', 'Usable area', 'generally measured from paint to paint inside the permanent walls and to the middle of partitions separating rooms', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 8, 1, 'OK')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 8, 2, 'Not OK')");
 
@@ -638,6 +676,9 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (locatio
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 10, 'remark', 'Remark', 'Remark', 'T', NULL, 2, NULL, NULL, NULL, NULL, 'True', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 11, 'change_type', 'change_type', 'change_type', 'I', NULL, NULL, NULL, 4, NULL, NULL, 'True', NULL)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 12, 'rental_area', 'Rental area', 'Rental area', 'N', NULL, 3, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 13, 'area_gross', 'Gross area', 'Sum of the areas included within the outside face of the exterior walls of a building.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 14, 'area_net', 'Net area', 'The wall-to-wall floor area of a room.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 15, 'area_usable', 'Usable area', 'generally measured from paint to paint inside the permanent walls and to the middle of partitions separating rooms', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 9, 1, 'OK')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 9, 2, 'Not OK')");
 
@@ -646,6 +687,9 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (locatio
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 11, 'remark', 'Remark', 'Remark', 'T', NULL, 2, NULL, NULL, NULL, NULL, 'True', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 12, 'change_type', 'change_type', 'change_type', 'I', NULL, NULL, NULL, 4, NULL, NULL, 'True', NULL)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 13, 'rental_area', 'Rental area', 'Rental area', 'N', NULL, 3, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 14, 'area_gross', 'Gross area', 'Sum of the areas included within the outside face of the exterior walls of a building.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 15, 'area_net', 'Net area', 'The wall-to-wall floor area of a room.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 16, 'area_usable', 'Usable area', 'generally measured from paint to paint inside the permanent walls and to the middle of partitions separating rooms', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 10, 1, 'OK')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 10, 2, 'Not OK')");
 
@@ -658,6 +702,9 @@ $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (locatio
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 15, 'tenant_id', 'tenant_id', 'tenant_id', 'I', NULL, NULL, NULL, 4, NULL, NULL, 'True', NULL)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, size, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 16, 'change_type', 'change_type', 'change_type', 'I', NULL, NULL, NULL, 4, NULL, NULL, 'True', NULL)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 17, 'rental_area', 'Rental area', 'Rental area', 'N', NULL, 4, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 18, 'area_gross', 'Gross area', 'Sum of the areas included within the outside face of the exterior walls of a building.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 19, 'area_net', 'Net area', 'The wall-to-wall floor area of a room.', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
+$GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_attribute (location_id, id, column_name, input_text, statustext, datatype, list, attrib_sort, precision_, scale, default_value, nullable,custom) VALUES ($location_id, 20, 'area_usable', 'Usable area', 'generally measured from paint to paint inside the permanent walls and to the middle of partitions separating rooms', 'N', NULL, 5, 20, 2, NULL, 'True', 1)");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 11, 1, 'OK')");
 $GLOBALS['phpgw_setup']->oProc->query("INSERT INTO phpgw_cust_choice (location_id, attrib_id, id, value) VALUES ($location_id, 11, 2, 'Not OK')");
 

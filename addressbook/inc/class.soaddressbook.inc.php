@@ -504,9 +504,9 @@
 			if($account_id)
 			{
 				$account = CreateObject('phpgwapi.accounts',$account_id,'u');
-				$account_data = $account->read_repository();
-				$account_data['account_firstname'] = $fields['tab_person_data']['per_first_name'];
-				$account_data['account_lastname'] = $fields['tab_person_data']['per_last_name'];
+				$account_data = $account->read();
+				$account_data->firstname = $fields['tab_person_data']['per_first_name'];
+				$account_data->lastname = $fields['tab_person_data']['per_last_name'];
 				$account->update_data($account_data);
 				$account->save_repository();
 			}
@@ -1092,26 +1092,16 @@
 		*/
 		function read_preferences($contact_type)
 		{
-			$prefs =& $GLOBALS['phpgw']->preferences->data['addressbook'];
-
-			if($contact_type==$this->tab_main_persons)
+			$prefs = $GLOBALS['phpgw']->preferences->read();
+			$prefs = isset($prefs['addressbook']) ? $prefs['addressbook'] : array();
+			if(isset($prefs['person_columns']) && $contact_type==$this->tab_main_persons)
 			{
-				if ( isset($prefs['person_columns'])
-					&& strlen($prefs['person_columns']) )
-				{
-					return unserialize($prefs['person_columns']);
-				}
+				
+				return $prefs['person_columns'];
 			}
-			elseif($contact_type==$this->tab_main_organizations)
+			elseif(isset($prefs['org_columns']) && $contact_type==$this->tab_main_organizations)
 			{
-				if ( isset($prefs['org_columns'])
-					&& strlen($prefs['org_columns']) )
-				{
-					return unserialize($prefs['org_columns']);
-				}
-			}
-			return array();//whoops
+				return $prefs['org_columns'];
+			}	
 		}
-
 	}
-?>

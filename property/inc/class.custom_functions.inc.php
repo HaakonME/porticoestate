@@ -40,7 +40,7 @@
 			'index' => true
 		);
 
-		function property_custom_functions()
+		function __construct()
 		{
 			$GLOBALS['phpgw_info']['flags']['noheader'] = true;
 			$GLOBALS['phpgw_info']['flags']['nonavbar'] = true;
@@ -65,7 +65,8 @@
 			}
 			else
 			{
-				$data = unserialize(urldecode($_GET['data']));
+				$data = unserialize(urldecode(phpgw::get_var('data')));
+
 				$data = phpgw::clean_value($data);
 				if(!isset($data['function']))
 				{
@@ -76,11 +77,17 @@
 					$function =$data['function'];
 				}
 			}
+			// prevent path traversal
+			if ( preg_match('/\.\./', $function) )
+			{
+				return;
+			}
 
-			$file = realpath(PHPGW_SERVER_ROOT . "/property/inc/cron/{$function}.php");
+			$file = PHPGW_SERVER_ROOT . "/property/inc/cron/{$GLOBALS['phpgw_info']['user']['domain']}/{$function}.php";
+
 			if (is_file($file))
 			{
-				include_once($file);
+				require_once $file;
 				$custom = new $function;
 				$custom->pre_run($data);
 			}

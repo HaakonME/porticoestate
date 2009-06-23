@@ -1,9 +1,9 @@
-<!-- $Id: group_select.xsl,v 1.1 2005/01/17 10:03:18 sigurdne Exp $ -->
+<!-- $Id$ -->
 
 	<xsl:template name="group_select">
 	<xsl:variable name="lang_group_statustext"><xsl:value-of select="lang_group_statustext"/></xsl:variable>
 	<xsl:variable name="select_group_name"><xsl:value-of select="select_group_name"/></xsl:variable>
-		<select name="{$select_group_name}" class="forms" onMouseover="window.status='{$lang_group_statustext}'; return true;" onMouseout="window.status='';return true;">
+		<select name="{$select_group_name}" class="forms" title = "{$lang_group_statustext}" onMouseover="window.status='{$lang_group_statustext}'; return true;" onMouseout="window.status='';return true;">
 			<option value=""><xsl:value-of select="lang_no_group"/></option>
 				<xsl:apply-templates select="group_list"/>
 		</select>

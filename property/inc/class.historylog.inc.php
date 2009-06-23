@@ -98,7 +98,7 @@
 
 			$this->appname = $appname;
 
-			$this->db      = CreateObject('phpgwapi.db');
+			$this->db      = & $GLOBALS['phpgw']->db;
 		}
 
 		function delete($record_id,$attrib_id='')
@@ -127,18 +127,19 @@
 
 			if($date)
 			{
-				$timestamp = $this->db->to_timestamp($date);
+				$timestamp = date($this->db->date_format(),$date);
 			}
 			else
 			{
-				$timestamp = $this->db->to_timestamp(time());
+				$timestamp = date($this->db->datetime_format());
 			}
 
 			$this->db->query("insert into $this->table (history_record_id,"
-				. "history_appname,history_owner,history_status,history_new_value,history_timestamp $attrib_id_field $detail_id_field) "
+				. "history_appname,history_owner,history_status,history_new_value, history_old_value, history_timestamp $attrib_id_field $detail_id_field) "
 				. "values ('$record_id','" . $this->appname . "','"
 				. $this->account . "','$status','"
-				. $this->db->db_addslashes($new_value) . "','" . $timestamp
+				. $this->db->db_addslashes($new_value) . "','"
+				. $this->db->db_addslashes($old_value) . "','" . $timestamp
 				. "' $attrib_id_value $detail_id_value)",__LINE__,__FILE__);
 		}
 
@@ -191,22 +192,21 @@
 				. $this->appname . "' and history_record_id='$record_id' $filter $only_show_filter "
 				. "$orderby",__LINE__,__FILE__);
 
+			$return_values = array();
 			while ($this->db->next_record())
 			{
-				$return_values[] = array(
+				$return_values[] = array
+				(
 					'id'         => $this->db->f('history_id'),
 					'record_id'  => $this->db->f('history_record_id'),
 					'owner'      => $GLOBALS['phpgw']->accounts->id2name($this->db->f('history_owner')),
 //					'status'     => lang($this->types[$this->db->f('history_status')]),
 					'status'     => preg_replace('/ /','',$this->db->f('history_status')),
-					'new_value'  => $this->db->f('history_new_value'),
-					'datetime'   => $this->db->from_timestamp($this->db->f('history_timestamp'))
+					'new_value'  => htmlspecialchars_decode($this->db->f('history_new_value',true)),
+					'old_value'  => htmlspecialchars_decode($this->db->f('history_old_value',true)),
+					'datetime'   => strtotime($this->db->f('history_timestamp'))
 				);
 			}
-
-			if(isset ($return_values))
-			{
-				return $return_values;
-			}
+			return $return_values;
 		}
 	}

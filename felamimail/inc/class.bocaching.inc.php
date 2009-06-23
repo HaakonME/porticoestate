@@ -1,9 +1,9 @@
 <?php
 	/***************************************************************************\
-	* phpGroupWare - FeLaMiMail                                                 *
+	* eGroupWare - FeLaMiMail                                                   *
 	* http://www.linux-at-work.de                                               *
 	* http://www.phpgw.de                                                       *
-	* http://www.phpgroupware.org                                               *
+	* http://www.egroupware.org                                                 *
 	* Written by : Lars Kneschke [lkneschke@linux-at-work.de]                   *
 	* -------------------------------------------------                         *
 	* This program is free software; you can redistribute it and/or modify it   *
@@ -11,7 +11,7 @@
 	* Free Software Foundation; either version 2 of the License, or (at your    *
 	* option) any later version.                                                *
 	\***************************************************************************/
-	/* $Id$ */
+	/* $Id: class.bocaching.inc.php 19442 2005-10-18 05:21:02Z lkneschke $ */
 
 	class bocaching
 	{
@@ -38,7 +38,7 @@
 			$this->foldername	= $_foldername;
 			$this->accountid	= $GLOBALS['phpgw_info']['user']['account_id'];
 			
-			$this->socaching	= CreateObject('felamimail.socaching',
+			$this->socaching	=& CreateObject('felamimail.socaching',
 							$this->hostname, $this->accountname, $this->foldername, $this->accountid);
 			
 			$status = $this->socaching->getImapStatus();
@@ -63,7 +63,19 @@
 		
 		function addToCache($_data)
 		{
-			$this->socaching->addToCache($_data);
+			$search = array('[\016]','[\017]',
+					'[\020]','[\021]','[\022]','[\023]','[\024]','[\025]','[\026]','[\027]',
+					'[\030]','[\031]','[\032]','[\033]','[\034]','[\035]','[\036]','[\037]');
+			$replace = '';
+			
+			$data = preg_replace($search,$replace,$_data);
+			
+			$this->socaching->addToCache($data);
+		}
+		
+		function clearCache($_folderName='')
+		{
+			$this->socaching->clearCache($_folderName);
 		}
 		
 		function debug()
@@ -97,11 +109,11 @@
 		
 		// return the numbers of messages in cache currently
 		// but use the use filter
-		function getMessageCounter($_filter)
+		function getMessageCounter($_filter=FALSE)
 		{
 			return $this->socaching->getMessageCounter($_filter);
 		}
-
+		
 		function getNextMessage($_uid, $_sort, $_filter)
 		{
 			return $this->socaching->getNextMessage($_uid, $_sort, $_filter);
@@ -116,26 +128,26 @@
 		function updateImapStatus($_status)
 		{
 			// are we updating the first time
-			if ($this->uidnext == 0)
-			{
+			#if ($this->uidnext == 0)
+			#{
+			#	$this->messages		= $_status->messages;
+			#	$this->recent 		= $_status->recent;
+			#	$this->unseen 		= $_status->unseen;
+			#	$this->uidnext 		= $_status->uidnext;
+			#	$this->uidvalidity 	= $_status->uidvalidity;
+			#
+			#	$this->socaching->updateImapStatus($_status,true);
+			#}
+			#else
+			#{
 				$this->messages		= $_status->messages;
 				$this->recent 		= $_status->recent;
 				$this->unseen 		= $_status->unseen;
 				$this->uidnext 		= $_status->uidnext;
 				$this->uidvalidity 	= $_status->uidvalidity;
 			
-				$this->socaching->updateImapStatus($_status,true);
-			}
-			else
-			{
-				$this->messages		= $_status->messages;
-				$this->recent 		= $_status->recent;
-				$this->unseen 		= $_status->unseen;
-				$this->uidnext 		= $_status->uidnext;
-				$this->uidvalidity 	= $_status->uidvalidity;
-			
-				$this->socaching->updateImapStatus($_status,false);
-			}
+				return $this->socaching->updateImapStatus($_status);
+			#}
 			
 		}
 		

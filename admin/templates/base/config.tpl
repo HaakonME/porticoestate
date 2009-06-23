@@ -13,7 +13,7 @@
 <!-- END header -->
 <!-- BEGIN body -->
    <tr class="row_on">
-    <td>{lang_Would_you_like_phpGroupWare_to_check_for_a_new_version<br />when_admins_login_?}:</td>
+    <td>{lang_Would_you_like_phpGroupWare_to_check_for_a_new_version_when_admins_login_?}:</td>
     <td>
      <select name="newsettings[checkfornewversion]">
       <option value="">{lang_No}</option>
@@ -68,11 +68,11 @@
    </tr>
 
     <tr class="row_on">
-    <td>{lang_Would_you_like_phpGroupWare_to_cache_the_langfiles_in_shared_memory_?}:</td>
+    <td>{lang_Would_you_like_phpGroupWare_to_cache_data_in_shared_memory_?}:</td>
     <td>
-     <select name="newsettings[shm_lang]">
+     <select name="newsettings[shm_enable]">
       <option value="">{lang_No}</option>
-      <option value="True"{selected_shm_lang_True}>{lang_Yes}</option>
+      <option value="True"{selected_shm_enable_True}>{lang_Yes}</option>
      </select>
     </td>
    </tr>
@@ -226,6 +226,26 @@
        </select>
     </td>
    </tr>
+   <tr class="row_off">
+    <td>{lang_collect_missing_translations_}:</td>
+    <td>
+      <select name="newsettings[collect_missing_translations]">
+         <option value="">{lang_No}</option>
+	 <option value="True"{selected_collect_missing_translations_True}>{lang_Yes}</option>
+       </select>
+    </td>
+   </tr>
+   <tr class="row_on">
+    <td>{lang_use_HTML_Filtering}:<br>
+    <td>
+     <select name="newsettings[html_filtering]">
+      <option value="" {selected_html_filtering_}>NO</option>
+      <option value="1" {selected_html_filtering_1}>YES</option>
+     </select>
+    </td>
+   </tr>
+
+
 <!-- END body -->
 
 <!-- BEGIN footer -->

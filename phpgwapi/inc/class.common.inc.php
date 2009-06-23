@@ -83,6 +83,11 @@
 
 			for($i=1;$i<6;++$i)
 			{
+				if(!isset($regs2[$i]) && !isset($regs[$i]))
+				{
+					continue;
+				}
+
 				if($debug) { echo "<br />$i: $regs[$i] - $regs2[$i]"; }
 
 				if($regs2[$i] == $regs[$i])
@@ -286,11 +291,14 @@
 			if ( is_null($final_called) )
 			{
 				// call the asyncservice check_run function if it is not explicitly set to cron-only
-				if (!isset($GLOBALS['phpgw_info']['server']['asyncservice']) || !$GLOBALS['phpgw_info']['server']['asyncservice'] )
+				if ( !isset($GLOBALS['phpgw_info']['server']['asyncservice'])
+					|| !$GLOBALS['phpgw_info']['server']['asyncservice'] 
+					|| $GLOBALS['phpgw_info']['server']['asyncservice'] == 'fallback')
 				{
 					ExecMethod('phpgwapi.asyncservice.check_run', 'fallback');
 				}
 				$GLOBALS['phpgw']->db->disconnect();
+				$GLOBALS['phpgw']->session->commit_session();
 				$final_called = true;
 			}
 		}
@@ -1186,7 +1194,8 @@ HTML;
 		{
 			if (!$t || (substr(php_uname(), 0, 7) == "Windows" && intval($t) <= 0))
 			{
-				$t = phpgwapi_datetime::gmtnow();
+				return ''; // return nothing if not valid input
+//				$t = phpgwapi_datetime::gmtnow();
 			}
 
 			//  + (date('I') == 1?3600:0)
@@ -1562,19 +1571,22 @@ HTML;
 					{
 						$img	= $this->image('phpgwapi','msgbox_good');
 						$alt	= lang('OK');
+						$class  = 'msg_good';
 					}
 					else
 					{
 						$img	= $this->image('phpgwapi','msgbox_bad');
 						$alt	= lang('ERROR');
+						$class  = 'error';
 					}
 
 					$data[] = array
 					(
-						'msgbox_text'				=> lang($key),
+						'msgbox_text'				=> $key,
 						'msgbox_img'				=> $img,
 						'msgbox_img_alt'			=> $alt,
-						'lang_msgbox_statustext'	=> $alt
+						'lang_msgbox_statustext'	=> $alt,
+						'msgbox_class'				=> $class
 					);
 				}
 			}
@@ -1622,26 +1634,25 @@ HTML;
 
 		public function msgbox_data($receipt)
 		{
-			$msgbox_data_error=array();
+			$msgbox_data_error	 = array();
+			$msgbox_data_message = array();
 			if (isSet($receipt['error']) AND is_array($receipt['error']))
 			{
-				foreach($receipt['error'] as $errors)
+				foreach($receipt['error'] as $dummy => $error)
 				{
-					$msgbox_data_error += array($errors['msg']=> False);
+					$msgbox_data_error[$error['msg']] = false;
 				}
 			}
-
-			$msgbox_data_message=array();
 
 			if (isSet($receipt['message']) AND is_array($receipt['message']))
 			{
-				foreach($receipt['message'] as $messages)
+				foreach($receipt['message'] as $dummy => $message)
 				{
-					$msgbox_data_message += array($messages['msg']=> True);
+					$msgbox_data_message[$message['msg']] = true;
 				}
 			}
 
-			$msgbox_data = $msgbox_data_error + $msgbox_data_message;
+			$msgbox_data = array_merge($msgbox_data_error, $msgbox_data_message);
 
 			return $msgbox_data;
 		}

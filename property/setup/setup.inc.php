@@ -3,7 +3,7 @@
 	* phpGroupWare - property: a Facilities Management System.
 	*
 	* @author Sigurd Nes <sigurdne@online.no>
-	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
+	* @copyright Copyright (C) 2003-2009 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/gpl.html GNU General Public License
 	* @internal Development of this application was funded by http://www.bergen.kommune.no/bbb_/ekstern/
 	* @package property
@@ -11,10 +11,10 @@
  	* @version $Id$
 	*/
 
-	$setup_info['property']['name']		= 'property';
-	$setup_info['property']['version']	= '0.9.17.544';
+	$setup_info['property']['name']			= 'property';
+	$setup_info['property']['version']		= '0.9.17.564';
 	$setup_info['property']['app_order']	= 8;
-	$setup_info['property']['enable']	= 1;
+	$setup_info['property']['enable']		= 1;
 	$setup_info['property']['app_group']	= 'office';
 
 	$setup_info['property']['author'] = array
@@ -79,6 +79,7 @@
 		'fm_vendor',
 		'fm_vendor_category',
 		'fm_district',
+		'fm_locations',
 		'fm_location1_category',
 		'fm_location1',
 		'fm_location1_history',
@@ -118,8 +119,10 @@
 		'fm_template_hours',
 		'fm_chapter',
 		'fm_ns3420',
+		'fm_project_status',
 		'fm_project',
 		'fm_projectbranch',
+		'fm_project_group',
 		'fm_project_history',
 		'fm_tts_status',
 		'fm_tts_tickets',
@@ -136,12 +139,14 @@
 		'fm_ecologg',
 		'fm_ecomva',
 		'fm_ecouser',
+		'fm_event',
+		'fm_event_action',
+		'fm_event_exception',
 		'fm_investment',
 		'fm_investment_value',
 		'fm_event_receipt',
 		'fm_idgenerator',
 		'fm_document',
-		'fm_document_category',
 		'fm_document_history',
 		'fm_document_status',
 		'fm_standard_unit',
@@ -161,13 +166,13 @@
 		'fm_custom_cols',
 		'fm_orders',
 		'fm_s_agreement',
+		'fm_s_agreement_budget',
 		'fm_s_agreement_category',
 		'fm_s_agreement_detail',
 		'fm_s_agreement_pricing',
 		'fm_s_agreement_history',
 		'fm_async_method',
 		'fm_cron_log',
-		'fm_origin',
 		'fm_tenant_claim',
 		'fm_tenant_claim_category',
 		'fm_r_agreement',

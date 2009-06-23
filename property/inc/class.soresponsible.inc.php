@@ -9,13 +9,13 @@
 	* @package phpgroupware
 	* @subpackage property
 	* @category core
- 	* @version $Id: class.uiresponsible.inc.php 732 2008-02-10 16:21:14Z sigurd $
+ 	* @version $Id$
 	*/
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -41,6 +41,7 @@
 		var $db;
 		var $account;
 		var $acl_location;
+		var $appname = 'property';
 
 		/**
 		* @var the total number of records for a search
@@ -86,7 +87,7 @@
 
 			if ($order)
 			{
-				$ordermethod = " order by $order $sort";
+				$ordermethod = " order by fm_responsibility.$order $sort";
 			}
 			else
 			{
@@ -96,18 +97,26 @@
 			$where= 'WHERE';
 			$filtermethod = '';
 
+/*
 			if(is_array($filter) && $location)
 			{
 				$filtermethod .= " $where cat_id IN (" . implode(',', $filter) . ')';
 				$where = 'AND';
 			}
+*/
+			if($location)
+			{
+				$filtermethod .= " $where fm_responsibility.location_id =" . $GLOBALS['phpgw']->locations->get_id($this->appname, $location);
+				$where = 'AND';
+			}
+
 			$querymethod = '';
 			if($query)
 			{
-				$querymethod = "$where (name $this->like '%$query%' OR descr $this->like '%$query%')";
+				$querymethod = "$where (fm_responsibility.name $this->like '%$query%' OR fm_responsibility.descr $this->like '%$query%')";
 			}
 
-			$sql = "SELECT * FROM fm_responsibility $filtermethod $querymethod";
+			$sql = "SELECT fm_responsibility.*, phpgw_locations.name as location FROM fm_responsibility $this->join phpgw_locations ON fm_responsibility.location_id = phpgw_locations.location_id $filtermethod $querymethod";
 
 			$this->db->query($sql, __LINE__, __FILE__);
 			$this->total_records = $this->db->num_rows();
@@ -131,6 +140,7 @@
 					'name'			=> $this->db->f('name', true),
 					'descr'			=> $this->db->f('descr', true),
 					'active'		=> $this->db->f('active'),
+					'location'		=> $this->db->f('location'),
 					'cat_id'		=> $this->db->f('cat_id'),
 					'created_by'	=> $this->db->f('created_by'),
 					'created_on'	=> $this->db->f('created_on'),
@@ -158,6 +168,7 @@
 			(
 				$values['name'],
 				$values['descr'],
+				$GLOBALS['phpgw']->locations->get_id($this->appname, $values['location']),
 				(int) $values['cat_id'],
 				isset($values['active']) ? !!$values['active'] : '',
 				$this->account,
@@ -168,7 +179,7 @@
 
 			$this->db->transaction_begin();
 
-			$this->db->query("INSERT INTO fm_responsibility (name, descr, cat_id, active, created_by, created_on) "
+			$this->db->query("INSERT INTO fm_responsibility (name, descr,location_id, cat_id, active, created_by, created_on) "
 				. "VALUES ($insert_values)", __LINE__, __FILE__);
 
 			if($this->db->transaction_commit())
@@ -342,6 +353,7 @@
 					'p_num'				=> $this->db->f('p_num', true),
 					'p_entity_id'		=> $this->db->f('p_entity_id'),
 					'p_cat_id'			=> $this->db->f('p_cat_id'),
+					'ecodimb'			=> $this->db->f('ecodimb'),
 					'remark'			=> $this->db->f('remark', true),
 				);
 			}
@@ -367,12 +379,13 @@
 			(
 				(int) $values['responsibility_id'],
 				(int) $values['contact_id'],
-				implode('-', $values['location']),
+				@implode('-', $values['location']),
 				$values['active_from'],
 				$values['active_to'],
 				isset($values['extra']['p_num']) ? $values['extra']['p_num'] : '',
 				isset($values['extra']['p_entity_id']) ? $values['extra']['p_entity_id'] : '',
 				isset($values['extra']['p_cat_id']) ? $values['extra']['p_cat_id'] : '',
+				$values['ecodimb'],
 				$values['remark'],
 				$this->account,
 				time()
@@ -383,7 +396,7 @@
 			$this->db->transaction_begin();
 
 			$this->db->query("INSERT INTO fm_responsibility_contact (responsibility_id, contact_id,"
-				." location_code, active_from, active_to, p_num, p_entity_id, p_cat_id, remark, created_by, created_on)"
+				." location_code, active_from, active_to, p_num, p_entity_id, p_cat_id, ecodimb, remark, created_by, created_on)"
 				." VALUES ($insert_values)", __LINE__, __FILE__);
 
 			if($this->db->transaction_commit())
@@ -413,11 +426,12 @@
 
 			$orig = $this->read_single_contact($values['id']);
 
-			if(implode('-', $values['location']) != $orig['location_code']
+			if(isset($values['location']) &&(@implode('-', $values['location']) != $orig['location_code'])
 				|| $values['active_from'] != $orig['active_from']
 				|| $values['active_to'] != $orig['active_to']
 				|| $values['extra']['p_num'] != $orig['p_num']
-				|| $values['remark'] != $orig['remark'])
+				|| $values['remark'] != $orig['remark']
+				|| $values['ecodimb'] != $orig['ecodimb'])
 			{
 				$receipt = $this->add_contact($values);
 				
@@ -427,6 +441,7 @@
 
 					$value_set['expired_by']	= $this->account;
 					$value_set['expired_on']	= time();
+					$value_set['ecodimb']		= $values['ecodimb'];
 				}
 
 				$value_set	= $this->db->validate_update($value_set);
@@ -494,6 +509,7 @@
 				'expired_by'		=> $this->db->f('expired_by'),
 				'expired_on'		=> $this->db->f('expired_on'),
 				'priority'			=> $this->db->f('priority'), // FIXME - evaluate the need for this one
+				'ecodimb'			=> $this->db->f('ecodimb')
 			);
 
 			return $values;
@@ -525,13 +541,18 @@
 		{
 			$location_filter = array();
 
-			if(!isset($values['location']) || !is_array($values['location']))
+			if((!isset($values['location']) || !is_array($values['location'])) || !isset($values['ecodimb']) || !$values['ecodimb'])
 			{
 				return 0;
 			}
 			
 			$item_filter = '';
-			if(isset($values['extra']) && is_array($values['extra']))
+			
+			if(isset($values['ecodimb']) && $values['ecodimb'])
+			{
+				$item_filter =   " WHERE ecodimb = '{$values['ecodimb']}'";
+			}
+			elseif(isset($values['extra']) && is_array($values['extra']))
 			{
 				$location_code = implode('-', $values['location']);
 
@@ -592,5 +613,27 @@
 			$this->db->query($sql, __LINE__, __FILE__);
 			$this->db->next_record();
 			return $this->db->f('account_id');
+		}
+
+		/**
+		* Get the user_id for a particular responsibility
+		*
+		* @param integer $person_id the ID of the given contact
+		*
+		* @return user_id
+		*/
+
+		public function get_responsible_user_id($responsibility_id)
+		{
+			$responsibility_id = (int)$responsibility_id;
+			$now = time();
+			$sql = "SELECT contact_id FROM fm_responsibility_contact"
+			 . " $this->join fm_responsibility ON fm_responsibility_contact.responsibility_id = fm_responsibility.id"
+			 . " AND active = 1 AND active_from < {$now} AND active_to > {$now} AND expired_on IS NULL";
+
+			$this->db->query($sql, __LINE__, __FILE__);
+			$this->db->next_record(); 
+			$contact_id = $this->db->f('contact_id');
+			return $this->get_contact_user_id($contact_id);
 		}
 	}

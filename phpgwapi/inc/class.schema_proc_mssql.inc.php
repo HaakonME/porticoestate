@@ -87,6 +87,9 @@
 				case 'text':
 					$sTranslated = 'text';
 					break;
+				case 'time':
+					$sTranslated = 'time';
+					break;
 				case 'timestamp':
 					$sTranslated = 'datetime';
 					break;
@@ -286,7 +289,7 @@
 					$keypair = explode('=',$keypair);
 					$keystr[] = "'" . $keypair[0] . "' => '" . $keypair[1] . "'";
 				}
-				$this->fk[] = $table . "' => array(" . implode(', ',$keystr)  . ')';
+				$this->fk[] = "'" . $table . "' => array(" . implode(', ',$keystr)  . ')';
 			}
 
 			/*FIXME: not working as expected */

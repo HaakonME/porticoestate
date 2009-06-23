@@ -12,7 +12,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -82,6 +82,15 @@
 					'text'	=> $GLOBALS['phpgw']->translation->translate('manage groups', array(), true),
 					'url'	=> $GLOBALS['phpgw']->link('/index.php',
 								array('menuaction' => 'admin.uiaccounts.list_groups'))
+				);
+			}
+
+			if (! $GLOBALS['phpgw']->acl->check('sync_account', PHPGW_ACL_READ, 'admin'))
+			{
+				$menus['admin']['sync_account'] = array
+				(
+					'text'	=> $GLOBALS['phpgw']->translation->translate('Sync Account-Contact', array(), true),
+					'url'	=> $GLOBALS['phpgw']->link('/index.php', array('menuaction' => 'admin.uiaccounts.sync_accounts_contacts') )
 				);
 			}
 

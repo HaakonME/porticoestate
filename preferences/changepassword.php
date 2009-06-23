@@ -23,7 +23,7 @@
 	$n_passwd   = isset($_POST['n_passwd']) && $_POST['n_passwd'] ? $_POST['n_passwd'] : '';
 	$n_passwd_2 = isset($_POST['n_passwd_2']) && $_POST['n_passwd_2'] ? $_POST['n_passwd_2'] : '';
 
-	if (! $GLOBALS['phpgw']->acl->check('changepassword', 1) || (isset($_POST['cancel']) && $_POST['cancel']))
+	if (! $GLOBALS['phpgw']->acl->check('changepassword', 1, 'preferences') || (isset($_POST['cancel']) && $_POST['cancel']))
 	{
 		$GLOBALS['phpgw']->redirect_link('/preferences/index.php');
 		$GLOBALS['phpgw']->common->phpgw_exit();
@@ -52,11 +52,25 @@
 		{
 			$errors[] = lang('The two passwords are not the same');
 		}
+		else
+		{
+			$account	= new phpgwapi_user();
+			try
+			{
+				$account->validate_password($n_passwd);
+			}
+			catch(Exception $e)
+			{
+				$errors[] = $e->getMessage();
+			//	trigger_error($e->getMessage(), E_USER_WARNING);
+			}
+		}
 
 		if (! $n_passwd)
 		{
 			$errors[] = lang('You must enter a password');
 		}
+
 
 		if (count($errors))
 		{

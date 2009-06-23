@@ -27,10 +27,7 @@
 		var $ix = array();
 		var $uc = array();
 
-		protected $engine = 'MyISAM'; // default choice - no transaction support
-		//protected $engine = 'InnoDB'; // uncomment this line for transaction support 
-
-		public function __construct()
+		function __construct()
 		{
 			$this->m_sStatementTerminator = ';';
 			/* The use of a temp_db is to allow this process to be run from other than setup*/
@@ -65,6 +62,9 @@
 			{
 				case 'auto':
 					$sTranslated = 'int(11) auto_increment';
+					break;
+				case 'bool':
+					$sTranslated = 'bool';
 					break;
 				case 'blob':
 					$sTranslated = 'blob';
@@ -116,6 +116,9 @@
 				case 'text':
 					$sTranslated = 'text';
 					break;
+				case 'time':
+					$sTranslated = 'time';
+					break;
 				case 'timestamp':
 					$sTranslated = 'timestamp';
 					break;
@@ -141,9 +144,9 @@
 				case 'current_date':
 				case 'current_timestamp':
 					return 'now()';
-			}
 
-			return "'{$sDefault}'";
+			}
+			return "'" . $sDefault . "'";
 		}
 
 		/* Inverse of above, convert sql column types to array info */
@@ -194,6 +197,7 @@
 					$sTranslated = "'type' => 'float', 'precision' => $iPrecision";
 					break;
 				case 'datetime':
+				case 'timestamp':
 					$sTranslated = "'type' => 'timestamp'";
 					break;
 				case 'enum':
@@ -228,7 +232,7 @@
 
 		function GetUCSQL($sFields)
 		{
-			return "UNIQUE($sFields)";
+			return "UNIQUE KEY ($sFields)";
 		}
 
 		function GetIXSQL($sFields, $sTableName = '')
@@ -239,13 +243,13 @@
 			}
 			else
 			{
-				return "INDEX ($sFields)";			
+				return "KEY ($sFields)";			
 			}
 		}
 
-	   	// foreign key supports needs MySQL 3.23.44 and up with InnoDB or MySQL 5.1
-	   	// or other versions the syntax is parsed in table create commands
-	   	// see chapter 1.8.4.5
+		// foreign key supports needs MySQL 3.23.44 and up with InnoDB or MySQL 5.1
+		// or other versions the syntax is parsed in table create commands
+		// see chapter 1.8.4.5
 
 		function GetFKSQL($reftable, $sFields)
 		{
@@ -298,7 +302,7 @@
 						}
 					}
 				}
-				elseif ($scales[1])
+				else if ( isset($scales[1]) )
 				{
 					$prec  = $scales[0];
 					$scale = $scales[1];
@@ -350,69 +354,53 @@
 
 		function DropTable($oProc, &$aTables, $sTableName)
 		{
-			return !!($oProc->m_odb->query("DROP TABLE " . $sTableName, __LINE__, __FILE__));
+			return !!($oProc->m_odb->query("DROP TABLE " . $sTableName, __LINE__, __FILE__, true));
 		}
 
 		function DropColumn($oProc, &$aTables, $sTableName, $aNewTableDef, $sColumnName, $bCopyData = true)
 		{
-			if ( $oProc->m_odb->query("ALTER TABLE $sTableName ENGINE = {$this->engine}", __LINE__, __FILE__) )
-			{
-				return !!($oProc->m_odb->query("ALTER TABLE $sTableName DROP COLUMN $sColumnName", __LINE__, __FILE__));
-			}
-			return false;
+			return !!($oProc->m_odb->query("ALTER TABLE $sTableName DROP COLUMN $sColumnName", __LINE__, __FILE__));
 		}
 
 		function RenameTable($oProc, &$aTables, $sOldTableName, $sNewTableName)
 		{
-			if ( $oProc->m_odb->query("ALTER TABLE $sOldTableName ENGINE = {$this->engine}", __LINE__, __FILE__) )
-			{
-				return !!($oProc->m_odb->query("ALTER TABLE $sOldTableName RENAME $sNewTableName", __LINE__, __FILE__));
-			}
+			return !!($oProc->m_odb->query("ALTER TABLE $sOldTableName RENAME $sNewTableName", __LINE__, __FILE__));
 		}
 
 		function RenameColumn($oProc, &$aTables, $sTableName, $sOldColumnName, $sNewColumnName, $bCopyData = true)
 		{
-			if ( $oProc->m_odb->query("ALTER TABLE $sTableName ENGINE = {$this->engine}", __LINE__, __FILE__) )
+			/*
+			 TODO: This really needs testing - it can affect primary keys, and other table-related objects
+			 like sequences and such
+			*/
+			global $DEBUG;
+			if ($DEBUG) { echo '<br>RenameColumn: calling _GetFieldSQL for ' . $sNewColumnName; }
+			if (isset($aTables[$sTableName]["fd"][$sNewColumnName]) && $oProc->_GetFieldSQL($aTables[$sTableName]["fd"][$sNewColumnName], $sNewColumnSQL))
 			{
-				/*
-				 TODO: This really needs testing - it can affect primary keys, and other table-related objects
-				 like sequences and such
-				*/
-				global $DEBUG;
-				if ($DEBUG) { echo '<br>RenameColumn: calling _GetFieldSQL for ' . $sNewColumnName; }
-				if (isset($aTables[$sTableName]["fd"][$sNewColumnName]) && $oProc->_GetFieldSQL($aTables[$sTableName]["fd"][$sNewColumnName], $sNewColumnSQL))
-				{
-					return !!($oProc->m_odb->query("ALTER TABLE $sTableName CHANGE $sOldColumnName $sNewColumnName " . $sNewColumnSQL, __LINE__, __FILE__));
-				}
+				return !!($oProc->m_odb->query("ALTER TABLE $sTableName CHANGE $sOldColumnName $sNewColumnName " . $sNewColumnSQL, __LINE__, __FILE__));
 			}
 			return false;
 		}
 
 		function AlterColumn($oProc, &$aTables, $sTableName, $sColumnName, &$aColumnDef, $bCopyData = true)
 		{
-			if ( $oProc->m_odb->query("ALTER TABLE $sTableName ENGINE = {$this->engine}", __LINE__, __FILE__) )
+			global $DEBUG;
+			if ($DEBUG) { echo '<br>AlterColumn: calling _GetFieldSQL for ' . $sNewColumnName; }
+			if (isset($aTables[$sTableName]["fd"][$sColumnName]) && $oProc->_GetFieldSQL($aTables[$sTableName]["fd"][$sColumnName], $sNewColumnSQL))
 			{
-				global $DEBUG;
-				if ($DEBUG) { echo '<br>AlterColumn: calling _GetFieldSQL for ' . $sNewColumnName; }
-				if (isset($aTables[$sTableName]["fd"][$sColumnName]) && $oProc->_GetFieldSQL($aTables[$sTableName]["fd"][$sColumnName], $sNewColumnSQL))
-				{
-					return !!($oProc->m_odb->query("ALTER TABLE $sTableName MODIFY $sColumnName " . $sNewColumnSQL, __LINE__, __FILE__));
-					/* return !!($oProc->m_odb->query("ALTER TABLE $sTableName CHANGE $sColumnName $sColumnName " . $sNewColumnSQL)); */
-				}
+				return !!($oProc->m_odb->query("ALTER TABLE $sTableName MODIFY $sColumnName " . $sNewColumnSQL, __LINE__, __FILE__));
+				/* return !!($oProc->m_odb->query("ALTER TABLE $sTableName CHANGE $sColumnName $sColumnName " . $sNewColumnSQL)); */
 			}
+
 			return false;
 		}
 
 		function AddColumn($oProc, &$aTables, $sTableName, $sColumnName, &$aColumnDef)
 		{
-			if ( $oProc->m_odb->query("ALTER TABLE $sTableName ENGINE = {$this->engine}", __LINE__, __FILE__) )
-			{
-				$oProc->_GetFieldSQL($aColumnDef, $sFieldSQL);
-				$query = "ALTER TABLE $sTableName ADD COLUMN $sColumnName $sFieldSQL";
+			$oProc->_GetFieldSQL($aColumnDef, $sFieldSQL);
+			$query = "ALTER TABLE $sTableName ADD COLUMN $sColumnName $sFieldSQL";
 
-				return !!($oProc->m_odb->query($query, __LINE__, __FILE__));
-			}
-			return false;
+			return !!($oProc->m_odb->query($query, __LINE__, __FILE__));
 		}
 
 		function GetSequenceSQL($sTableName, &$sSequenceSQL)
@@ -429,6 +417,8 @@
 
 		function CreateTable($oProc, &$aTables, $sTableName, $aTableDef)
 		{
+			global $DEBUG;
+
 			if ($oProc->_GetTableSQL($sTableName, $aTableDef, $sTableSQL, $sSequenceSQL, $sTriggerSQL))
 			{
 				/* create sequence first since it will be needed for default */
@@ -437,10 +427,14 @@
 					$oProc->m_odb->query($sSequenceSQL, __LINE__, __FILE__);
 				}
 
-				$query = "CREATE TABLE $sTableName ($sTableSQL) ENGINE = {$this->engine} DEFAULT CHARSET=utf8";
-				return !!($oProc->m_odb->query($query, __LINE__, __FILE__));
+				$query = "CREATE TABLE $sTableName ($sTableSQL) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+
+				if($DEBUG) { echo '<br>CREATE TABLE STATEMENT: ' ; var_dump($query); }
+
+				return !!($oProc->m_odb->query($query, __LINE__, __FILE__, true));
 			}
 
 			return false;
 		}
 	}
+?>

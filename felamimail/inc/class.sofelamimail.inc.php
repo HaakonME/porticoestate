@@ -1,9 +1,9 @@
 <?php
 	/***************************************************************************\
-	* phpGroupWare - FeLaMiMail                                                 *
+	* eGroupWare - FeLaMiMail                                                   *
 	* http://www.linux-at-work.de                                               *
 	* http://www.phpgw.de                                                       *
-	* http://www.phpgroupware.org                                               *
+	* http://www.egroupware.org                                                 *
 	* Written by : Lars Kneschke [lkneschke@linux-at-work.de]                   *
 	* -------------------------------------------------                         *
 	* This program is free software; you can redistribute it and/or modify it   *
@@ -11,13 +11,13 @@
 	* Free Software Foundation; either version 2 of the License, or (at your    *
 	* option) any later version.                                                *
 	\***************************************************************************/
-	/* $Id$ */
+	/* $Id: class.sofelamimail.inc.php 18876 2005-07-23 15:52:49Z ralfbecker $ */
 
 	class sofelamimail
 	{
 		function sofelamimail()
 		{
-			#$this->bopreferences	= CreateObject('felamimail.bopreferences');
+			#$this->bopreferences	=& CreateObject('felamimail.bopreferences');
 		}
 
 		function fetchheader($_header)

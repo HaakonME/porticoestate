@@ -26,6 +26,11 @@
 		public $userlang = 'en';
 
 		/**
+		* @var bool $lang_is_cached break off the function populate_cache
+		*/
+		public $lang_is_cached = false;
+
+		/**
 		* @var array $lang the translated strings - speeds look up
 		*/
 		private $lang = array();
@@ -34,6 +39,11 @@
 		* @var array $errors errors returned from function calls
 		*/
 		public $errors = array();
+
+		/**
+		* @var bool $collect_missing collects missing translations to the lang_table with app_name = ##currentapp##
+		*/
+		private $collect_missing = false;
 
 		/**
 		* Maxiumum length of a translation string
@@ -55,6 +65,12 @@
 
 			$this->set_userlang($lang);
 			$this->reset_lang($reset);
+
+			if ( isset($GLOBALS['phpgw_info']['server']['collect_missing_translations']) 
+				&& $GLOBALS['phpgw_info']['server']['collect_missing_translations'])
+			{
+				 $this->collect_missing = true;
+			}
 		}
 
 		/**
@@ -62,10 +78,11 @@
 		*/
 		protected function reset_lang()
 		{
-			$lang = $GLOBALS['phpgw']->cache->system_get('phpgwapi', "lang_{$this->userlang}");
+			$lang = $GLOBALS['phpgw']->cache->system_get('phpgwapi', "lang_{$this->userlang}", true);
 			if ( is_array($lang) )
 			{
 				$this->lang = $lang;
+				$this->lang_is_cached = true;
 				return;
 			}
 			$this->lang = array();
@@ -132,6 +149,10 @@
 		*/
 		public function populate_cache()
 		{
+			if($this->lang_is_cached)
+			{
+				return;
+			}
 			$sql = "SELECT * from phpgw_lang ORDER BY app_name DESC";
 			$GLOBALS['phpgw']->db->query($sql,__LINE__,__FILE__);
 			while ($GLOBALS['phpgw']->db->next_record())
@@ -144,7 +165,7 @@
 			{
 				foreach($language as $lang)
 				{
-					$GLOBALS['phpgw']->cache->system_set('phpgwapi', "lang_{$lang}", $lang_set[$lang]);
+					$GLOBALS['phpgw']->cache->system_set('phpgwapi', "lang_{$lang}", $lang_set[$lang], true);
 				}
 			}
 		}
@@ -184,7 +205,7 @@
  				$sql = 'SELECT message_id, content'
 					. " FROM phpgw_lang WHERE lang = '{$userlang}' AND message_id = '" . $GLOBALS['phpgw']->db->db_addslashes($lookup_key) . '\''
 					. " AND app_name IN({$applist}) {$order}";
-
+					
 				$GLOBALS['phpgw']->db->query($sql,__LINE__,__FILE__);
 				while ($GLOBALS['phpgw']->db->next_record())
 				{
@@ -197,6 +218,19 @@
 			if ( isset($this->lang[$key]) )
 			{
 				$ret = $this->lang[$key];
+			}
+			else if ($this->collect_missing)
+			{
+				$lookup_key = $GLOBALS['phpgw']->db->db_addslashes($lookup_key);
+				$sql = "SELECT message_id FROM phpgw_lang WHERE lang = '{$userlang}' AND message_id = '{$lookup_key}'"
+					. " AND app_name = '##{$GLOBALS['phpgw_info']['flags']['currentapp']}##'";
+				
+				$GLOBALS['phpgw']->db->query($sql,__LINE__,__FILE__);
+
+				if( !$GLOBALS['phpgw']->db->next_record() )
+				{	
+					$GLOBALS['phpgw']->db->query("INSERT INTO phpgw_lang (message_id,app_name,lang,content) VALUES('{$lookup_key}','##{$GLOBALS['phpgw_info']['flags']['currentapp']}##','$userlang','missing')",__LINE__,__FILE__);
+				}
 			}
 			$ndx = 1;
 			foreach ( $vars as $key => $val )
@@ -280,6 +314,10 @@
 
 			if (count($lang_selected))
 			{
+				$GLOBALS['phpgw']->db->query("SELECT config_value FROM phpgw_config WHERE config_app='phpgwapi' AND config_name='install_id'",__LINE__,__FILE__);
+				$GLOBALS['phpgw']->db->next_record();
+				$GLOBALS['phpgw_info']['server']['install_id'] = $GLOBALS['phpgw']->db->f('config_value', true);
+
 				if ($upgrademethod == 'dumpold')
 				{
 					// dont delete the custom main- & loginscreen messages every time
@@ -342,6 +380,28 @@
 
 							$raw[$app_name][$message_id] = $content;
 						}
+						
+						// Override with localised translations
+						
+						$ConfigDomain = phpgw::get_var('ConfigDomain');
+						$appfile_override = PHPGW_SERVER_ROOT . "/{$app}/setup/{$ConfigDomain}/phpgw_{$lang}.lang";
+
+						if ( is_file($appfile_override) )
+						{
+							$lines = $this->parse_lang_file($appfile_override, $lang);
+							if ( count($lines) )
+							{
+								foreach ( $lines as $line )
+								{
+									$message_id = $GLOBALS['phpgw']->db->db_addslashes(strtolower(trim(substr($line['message_id'], 0, self::MAX_MESSAGE_ID_LENGTH))));
+									$app_name = $GLOBALS['phpgw']->db->db_addslashes(trim($line['app_name']));
+									$content = $GLOBALS['phpgw']->db->db_addslashes(trim($line['content']));
+
+									$raw[$app_name][$message_id] = $content;
+								}
+							}
+						}
+
 						$GLOBALS['phpgw_info']['server']['lang_ctimes'][$lang][$app['name']] = filectime($appfile);
 					}
 
@@ -372,7 +432,7 @@
 
 				$GLOBALS['phpgw']->db->query("DELETE from phpgw_config WHERE config_app='phpgwapi' AND config_name='lang_ctimes'",__LINE__,__FILE__);
 				$GLOBALS['phpgw']->db->query("INSERT INTO phpgw_config(config_app,config_name,config_value) VALUES ('phpgwapi','lang_ctimes','".
-					$GLOBALS['phpgw']->db->db_addslashes(serialize($GLOBALS['phpgw_info']['server']['lang_ctimes']))."')",__LINE__,__FILE__);
+				$GLOBALS['phpgw']->db->db_addslashes(serialize($GLOBALS['phpgw_info']['server']['lang_ctimes']))."')",__LINE__,__FILE__);
 
 				$GLOBALS['phpgw']->db->transaction_commit();
 			}

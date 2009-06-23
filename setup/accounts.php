@@ -2,7 +2,7 @@
 	/**
 	* Setup
 	*
-	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
+	* @copyright Copyright (C) 2000-2009 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/gpl.html GNU General Public License
 	* @package setup
 	* @version $Id$
@@ -78,9 +78,9 @@
 		(
 			'common' => array
 			(
-				'maxmatchs'		=> 25,
-				'template_set'	=> 'idots',
-				'theme'			=> 'idots',
+				'maxmatchs'		=> 10,
+				'template_set'	=> 'portico',
+				'theme'			=> 'portico',
 				'tz_offset'		=> 0,
 				'dateformat'	=> 'Y/m/d',
 				'lang'			=> substr(phpgw::get_var('ConfigLang'), 0, 2),
@@ -191,6 +191,7 @@
 					. " OR config_name = 'account_repository'"
 					. " OR config_name = 'auth_type'"
 					. " OR config_name = 'encryption_type'"
+					. " OR config_name = 'encryptkey'"
 					. " OR config_name = 'password_level'"
 					. " OR config_name = 'webserver_url'";
 
@@ -202,8 +203,9 @@
 		
 		$GLOBALS['phpgw'] = new phpgw;
 		$GLOBALS['phpgw']->db       =& $db;
-		$GLOBALS['phpgw']->acl		= CreateObject('phpgwapi.acl');
 		$GLOBALS['phpgw']->accounts = CreateObject('phpgwapi.accounts');
+		$GLOBALS['phpgw']->acl		= CreateObject('phpgwapi.acl');
+		$GLOBALS['phpgw']->crypto->init(array(md5(session_id() . $GLOBALS['phpgw_info']['server']['encryptkey']), $GLOBALS['phpgw_info']['server']['mcrypt_iv']));
 
 		/* Posted admin data */
 		// We need to reverse the entities or the password can be mangled
@@ -214,13 +216,18 @@
 		$lname			= phpgw::get_var('lname', 'string', 'POST');
 
 		if ( ($GLOBALS['phpgw_info']['server']['account_repository'] == 'ldap')
-			&& !$GLOBALS['phpgw']->accounts->ds )
+			&& !$GLOBALS['phpgw']->accounts->connected )
 		{
 			echo "<strong>Error: Error connecting to LDAP server {$GLOBALS['phpgw_info']['server']['ldap_host']}</strong><br>";
 			exit;
 		}
 
 		$errors = validate_admin($username, $passwd, $passwd2, $fname, $lname);
+		
+		if(in_array($username, array('admin', 'default')))
+		{
+			$errors[] = lang('That loginid has already been taken');
+		}
 		
 		if ( !count($errors) )
 		{
@@ -233,7 +240,8 @@
 			);
 
 			// Begin transaction for acl, etc
-			$GLOBALS['phpgw_setup']->db->transaction_begin();
+			// FIXME: Conflicting transactions - there are transactions in phpgwapi_accounts_::create() and acl::save_repository()
+			//$GLOBALS['phpgw_setup']->db->transaction_begin();
 
 			// Now, clear out existing tables
 			$contacts_to_delete = $GLOBALS['phpgw']->accounts->get_account_with_contact();
@@ -241,6 +249,28 @@
 			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_preferences');
 			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_acl');
 			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_mapping');
+			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_group_map');
+			$GLOBALS['phpgw_setup']->db->query("DELETE FROM phpgw_nextid WHERE appname = 'groups' OR appname = 'accounts'");
+			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_contact');
+			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_contact_person');
+			$GLOBALS['phpgw_setup']->db->query('DELETE FROM phpgw_contact_org');
+
+			// Clean out LDAP
+			if( $GLOBALS['phpgw_info']['server']['account_repository'] == 'ldap' || $GLOBALS['phpgw_info']['server']['account_repository'] = 'sqlldap')
+			{
+				$accounts = $GLOBALS['phpgw']->accounts->get_list('accounts', -1, '', '', '',-1);
+
+				foreach ($accounts as $account)
+				{
+					$GLOBALS['phpgw']->accounts->delete($account->id);
+				}
+				$accounts = $GLOBALS['phpgw']->accounts->get_list('groups', -1, '', '', '',-1);
+				foreach ($accounts as $account)
+				{
+					$GLOBALS['phpgw']->accounts->delete($account->id);
+				}
+			}
+
 			$contacts = CreateObject('phpgwapi.contacts');
 			if(is_array($contacts_to_delete))
 			{
@@ -265,6 +295,13 @@
 				'todo'
 			);
 
+			$acls[] = array
+			(
+				'appname'	=> 'preferences',
+				'location'	=> 'changepassword',
+				'rights'	=> 1
+			);
+			
 			$group = array('username' => 'default');
 			$defaultgroupid = add_account($group, 'g', array(), $modules);
 
@@ -275,10 +312,7 @@
 
 			$groups = array($defaultgroupid, $admingroupid);
 
-			$accountid = add_account($admin_acct, 'u', $groups, array('admin'));
-
-			$GLOBALS['phpgw_setup']->db->transaction_commit();
-
+			$accountid = add_account($admin_acct, 'u', $groups, array('admin'), $acls);
 			Header('Location: index.php');
 			exit;
 		}
@@ -314,7 +348,7 @@
 		$db->query('SELECT COUNT(*) AS cnt FROM phpgw_accounts', __LINE__, __FILE__);
 		$db->next_record();
 		$number_of_accounts = $db->f('cnt');
-		if ( !$number_of_accounts )
+		if ( $number_of_accounts )
 		{
 			$account_creation_notice .= "\n" 
 				. lang('<b>!!!THIS WILL DELETE ALL EXISTING ACCOUNTS!!!</b><br>');

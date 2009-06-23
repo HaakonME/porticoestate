@@ -5,16 +5,16 @@
 	 *
 	 * @author Dave Hall <skwashd@phpgroupware.org>
 	 * @copyright Copyright (C) 2008 Free Software Foundation, Inc. http://www.fsf.org/
-	 * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	 * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	 * @package phpgroupware
 	 * @subpackage phpgwapi
-	 * @version $Id: class.accounts_.inc.php 779 2008-02-26 09:53:55Z dave $
+	 * @version $Id$
 	 */
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -88,7 +88,8 @@
 			'expires'			=> 0,
 			'person_id'			=> 0,
 			'quota'				=> 0,
-			'old_loginid'		=> ''
+			'old_loginid'		=> '',
+			'type' 				=> ''
 		);
 
 		/**
@@ -227,6 +228,25 @@
 	 */
 	class phpgwapi_group extends phpgwapi_account
 	{
+
+		/**
+		 * @var array $_data the group data
+		 */
+
+		protected $_data = array
+		(
+			'id'				=> 0,
+			'lid'				=> '',
+			'firstname'			=> '',
+			'lastname'			=> 'Group',
+			'passwd_hash'		=> '',
+			'enabled'			=> false,
+			'expires'			=> 0,
+			'person_id'			=> 0,
+			'old_loginid'		=> '',
+			'type' 				=> 'g'
+		);
+
 		/**
 		 * Initialise the values of the object - this should only be called from phpgwapi_accounts
 		 *
@@ -255,7 +275,8 @@
 					// we ignore the rest
 				}
 			}
-			$this->_data['lastname'] = 'Group';
+		//	$this->_data['lastname'] = 'Group';
+		//	$this->_data['type'] = 'g';
 			$this->_hash = $this->_generate_hash();
 		}
 
@@ -266,7 +287,8 @@
 		 */
 		public function __construct()
 		{
-			$this->_data['lastname'] = 'Group';
+			$this->_data['lastname']	= 'Group';
+			$this->_data['type'] 		= parent::TYPE_GROUP;
 		}
 
 		/**
@@ -292,6 +314,7 @@
 				case 'person_id':
 				case 'quota':
 				case 'old_loginid':
+				case 'type':
 					return $this->_data[$name];
 
 				default:
@@ -356,10 +379,20 @@
 				throw new Exception('Group name is too short');
 			}
 
-			if ( $lookup && 
-				$this->_data['id'] != $GLOBALS['phpgw']->accounts->name2id($group) )
+			if ( $lookup )
 			{
-				throw new Exception('Group name already in use');
+				if ($this->_data['id'])
+				{
+					if($this->_data['id'] != $GLOBALS['phpgw']->accounts->name2id($group)
+						&& $GLOBALS['phpgw']->accounts->name2id($group) )
+					{
+						throw new Exception('Group name already in use');
+					}
+				}
+				else if($GLOBALS['phpgw']->accounts->name2id($group))
+				{
+					throw new Exception('Group name already in use');				
+				}
 			}
 
 			phpgw::import_class('phpgwapi.globally_denied');
@@ -381,6 +414,12 @@
 	 */
 	class phpgwapi_user extends phpgwapi_account
 	{
+
+		public function __construct()
+		{
+			$this->_data['type'] 		= parent::TYPE_USER;
+		}
+
 		/**
 		 * Initialise the values of the object - this should only be called from phpgwapi_accounts
 		 *
@@ -412,6 +451,7 @@
 					case 'enabled':
 					case 'person_id':
 					case 'quota':
+					case 'type':
 						$this->_data[$key] = $val;
 				}
 			}
@@ -425,7 +465,7 @@
 		 */
 		public function is_expired()
 		{
-			$expires = $this->data['expires'];
+			$expires = $this->_data['expires'];
 			return $expires <> -1 && $expires < time();
 		}
 
@@ -470,6 +510,7 @@
 				case 'person_id':
 				case 'quota':
 				case 'old_loginid':
+				case 'type':
 					return $this->_data[$name];
 				default:
 					throw new Exception(lang('Unknown value: %1', $name));
@@ -505,7 +546,7 @@
 					break;
 
 				case 'passwd':
-					$this->_validate_password($value);
+					$this->validate_password($value);
 					$this->_data['passwd_hash'] = ExecMethod('phpgwapi.auth.create_hash', $value);
 					$this->_data['last_passwd_change'] = time();
 					break;
@@ -533,6 +574,10 @@
 
 				case 'quota':
 					$this->_validate_quota($value);
+					break;
+
+				case 'type':
+					$this->_data['type'] = 'u';
 					break;
 
 				case 'dn':
@@ -650,7 +695,7 @@
 		 *
 		 * @throws Exception when password is invalid/insecure
 		 */
-		protected function _validate_password($passwd)
+		public function validate_password($passwd)
 		{
 			$dict_loc = ini_get('crack.default_dictionary');
 

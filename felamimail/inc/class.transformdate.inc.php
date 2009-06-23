@@ -1,14 +1,14 @@
 <?php
 	/**
-    	 **  date.php
-    	 **
-    	 **  Takes a date and parses it into a usable format.  The form that a
-    	 **  date SHOULD arrive in is:
-    	 **        <Tue,> 29 Jun 1999 09:52:11 -0500 (EDT)
-    	 **  (as specified in RFC 822) -- 'Tue' is optional
-    	 **
-    	 **  $Id$
-    	 **/
+			 **  date.php
+			 **
+			 **  Takes a date and parses it into a usable format.  The form that a
+			 **  date SHOULD arrive in is:
+			 **        <Tue,> 29 Jun 1999 09:52:11 -0500 (EDT)
+			 **  (as specified in RFC 822) -- 'Tue' is optional
+			 **
+			 **  $Id: class.transformdate.inc.php 18876 2005-07-23 15:52:49Z ralfbecker $
+			 **/
 
 	class transformdate
 	{
@@ -139,11 +139,11 @@
 			if (intval(trim($dateParts[0])) > 0) 
 			{
 				$string = $dateParts[0] . ' ' . $dateParts[1] . ' ' . 
-						       $dateParts[2] . ' ' . $dateParts[3];
+									 $dateParts[2] . ' ' . $dateParts[3];
 				return $this->getGMTSeconds(strtotime($string), $dateParts[4]);
 			}
 			$string = $dateParts[0] . ' ' . $dateParts[1] . ' ' .
-			          $dateParts[2] . ' ' . $dateParts[3] . ' ' . $dateParts[4];
+								$dateParts[2] . ' ' . $dateParts[3] . ' ' . $dateParts[4];
 			if (isset($dateParts[5]))
 				return $this->getGMTSeconds(strtotime($string), $dateParts[5]);
 			else

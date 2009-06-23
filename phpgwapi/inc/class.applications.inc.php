@@ -14,7 +14,7 @@
 	/*
 		This program is free software: you can redistribute it and/or modify
 		it under the terms of the GNU Lesser General Public License as published by
-		the Free Software Foundation, either version 3 of the License, or
+		the Free Software Foundation, either version 2 of the License, or
 		(at your option) any later version.
 
 		This program is distributed in the hope that it will be useful,
@@ -323,7 +323,11 @@
 		*/
 		public function read_installed_apps()
 		{
-			$apps = (array) $this->db->adodb->GetAssoc('SELECT * FROM phpgw_applications WHERE app_enabled != 0 ORDER BY app_order ASC');
+			$this->db->fetchmode = 'ASSOC';
+			$sql = 'SELECT * FROM phpgw_applications WHERE app_enabled != 0 ORDER BY app_order ASC';
+			$this->db->query($sql,__LINE__,__FILE__);
+			$apps = $this->db->resultSet;
+			$this->db->fetchmode = 'BOTH';
 			foreach($apps as $key => $value)
 			{
 				$GLOBALS['phpgw_info']['apps'][$value['app_name']] = array
@@ -347,7 +351,7 @@
 		*/
 		public function is_system_enabled($appname)
 		{
-			if(!is_array($GLOBALS['phpgw_info']['apps']))
+			if( !isset($GLOBALS['phpgw_info']['apps']) || !is_array($GLOBALS['phpgw_info']['apps']))
 			{
 				$this->read_installed_apps();
 			}

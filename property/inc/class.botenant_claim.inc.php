@@ -168,7 +168,7 @@
 			return $this->so->read_category_name($cat_id);
 		}
 
-		function read($data=0)
+		function read($data = array())
 		{
 			$claim = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'filter' => $this->filter,'status' => $this->status,'cat_id' => $this->cat_id,
@@ -221,7 +221,7 @@
 
 
 			$this->config = CreateObject('phpgwapi.config','property');
-			$this->config->read_repository();
+			$this->config->read();
 			$claim_notify_mails = $this->config->config_data['tenant_claim_notify_mails'];
 			if ($claim_notify_mails)
 			{

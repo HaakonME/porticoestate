@@ -85,37 +85,17 @@
 				$this->use_session = true;
 			}
 
-			$start	= phpgw::get_var('start', 'int', 'REQUEST', 0);
-			$query	= phpgw::get_var('query');
-			$sort	= phpgw::get_var('sort');
-			$order	= phpgw::get_var('order');
+			$start		= phpgw::get_var('start', 'int', 'REQUEST', 0);
+			$query		= phpgw::get_var('query');
+			$sort		= phpgw::get_var('sort');
+			$order		= phpgw::get_var('order');
 			$allrows	= phpgw::get_var('allrows', 'bool');
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(isset($query))
-			{
-				$this->query = $query;
-			}
-			if(isset($sort))
-			{
-				$this->sort = $sort;
-			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
-			if(isset($allrows))
-			{
-				$this->allrows = $allrows;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->query			= isset($query) ? $query : $this->query;
+			$this->sort				= isset($sort) && $sort ? $sort : '';
+			$this->order			= isset($order) && $order ? $order : '';
+			$this->allrows			= isset($allrows) && $allrows ? $allrows : '';
 		}
 
 
@@ -181,24 +161,138 @@
 			return $receipt;
 		}
 
-		function delete($type_id,$id,$attrib='')
+		function delete($type_id,$id,$attrib='',$group_id)
 		{
 			if($id && !$attrib)
 			{
-				$this->so->delete($id);
+				$receipt = $this->so->delete($id);
 			}
 			else if($type_id && $id && $attrib)
 			{
-				$this->custom->delete('property',".location.{$type_id}",$id /*, 'fm_location' . $type_id */ );
-				$this->custom->delete('property',".location.{$type_id}",$id /*, 'fm_location' . $type_id . '_history'*/ );
+				$ok = 0;
+				$receipt = array();
+				
+				if($this->custom->delete('property',".location.{$type_id}", $id , "fm_location{$type_id}_history", true ))
+				{
+					$ok++;
+				}
+				if($this->custom->delete('property',".location.{$type_id}", $id , "fm_location{$type_id}" ))
+				{
+					$ok++;
+				}
+				if ($ok == 2)
+				{
+					$receipt['message'][] = array('msg' => lang('attibute has been deleted'));
+				}
+				else
+				{
+					$receipt['error'][] = array('msg' => lang('something went wrong'));
+				}
 			}
+			else if($type_id && $group_id)
+			{
+				if($this->custom->delete_group('property',".location.{$type_id}", $group_id))
+				{
+					$receipt['message'][] = array('msg' => lang('attibute group %1 has been deleted',$group_id));
+				}
+				else
+				{
+					$receipt['error'][] = array('msg' => lang('something went wrong'));
+				}
+			}
+
+			return $receipt;
 		}
 
-		function read_attrib($type_id)
+
+		function get_attrib_group_list($type_id, $selected)
+		{
+			$location = ".location.{$type_id}";
+			$group_list = $this->read_attrib_group($location, true);
+			
+			foreach($group_list as &$group)
+			{
+				if( $group['id'] ==  $selected )
+				{
+					$group['selected'] = true;
+				}
+			}
+			return $group_list;
+		}
+
+		function read_attrib_group($location, $allrows='')
 		{
 			if($allrows)
 			{
 				$this->allrows = $allrows;
+			}
+
+			$attrib = $this->custom->find_group('property', $location, $this->start, $this->query, $this->sort, $this->order, $this->allrows);
+			$this->total_records = $this->custom->total_records;
+
+			return $attrib;
+		}
+
+		function read_single_attrib_group($location, $id)
+		{
+			return $this->custom->get_group('property', $location, $id, true);
+		}
+
+		function resort_attrib_group($location, $id, $resort)
+		{
+			$this->custom->resort_group($id, $resort, 'property', $location);
+		}
+
+		public function save_attrib_group($group, $action='')
+		{
+			$group['appname'] = 'property';
+
+			if ( $action=='edit' && $group['id'] )
+			{
+				if ( $this->custom->edit_group($group) )
+				{
+					return array
+					(
+						'msg'	=> array('msg' => lang('group has been updated'))
+					);
+				}
+
+				return array('error' => lang('Unable to update group'));
+			}
+			else
+			{
+				$id = $this->custom->add_group($group);
+				if ( $id <= 0  )
+				{
+					return array('error' => lang('Unable to add group'));
+				}
+				else if ( $id == -1 )
+				{
+					return array
+					(
+						'id'	=> 0,
+						'error'	=> array
+						(
+							array('msg' => lang('group already exists, please choose another name')),
+							array('msg' => lang('Attribute group has NOT been saved'))
+						)
+					);
+				}
+
+				return array
+				(
+					'id'	=> $id,
+					'msg'	=> array('msg' => lang('group has been created'))
+				);
+			}
+		}
+
+
+		function read_attrib($type_id, $allrows = '')
+		{
+			if($allrows || phpgw::get_var('allrows') == 1)
+			{
+				$this->allrows = true;
 			}
 
 			$attrib = $this->custom->find('property', '.location.' . $type_id, $this->start, $this->query, $this->sort, $this->order, $this->allrows);
@@ -236,9 +330,9 @@
 
 			if ( $action=='edit' && $attrib['id'] )
 			{
-				if ( $this->custom->edit($attrib, $primary_table) )
+				if ( $this->custom->edit($attrib, $history_table, true) )
 				{
-					$this->custom->edit($attrib, $history_table);
+					$this->custom->edit($attrib, $primary_table);
 					return array
 					(
 						'msg'	=> array('msg' => lang('Field has been updated'))
@@ -250,10 +344,9 @@
 			else
 			{
 				$id = $this->custom->add($attrib, $primary_table);
+				$this->custom->add($attrib, $history_table, true);
 				if ( $id <= 0  )
 				{
-					$this->custom->add($attrib, $history_table, true);
-
 					return array('error' => lang('Unable to add field'));
 				}
 				else if ( $id == -1 )

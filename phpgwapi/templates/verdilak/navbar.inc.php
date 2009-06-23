@@ -54,13 +54,26 @@ HTML;
 		$var['about_text']              = lang('about');
 		$var['logout_url']              = $GLOBALS['phpgw']->link('/logout.php');
 		$var['logout_text']             = lang('logout');
-
-		if ( isset($navbar['preferences']) )
+		if ( isset($GLOBALS['phpgw_info']['user']['apps']['manual']) )
 		{
-			$var['preferences_url'] = $navbar['preferences']['url'];
-			$var['preferences_text'] = $navbar['preferences']['text'];
+			$var['help_url'] = "javascript:openwindow('"
+			 . $GLOBALS['phpgw']->link('/index.php', array
+			 (
+			 	'menuaction'=> 'manual.uimanual.help',
+			 	'app' => $GLOBALS['phpgw_info']['flags']['currentapp'],
+			 	'section' => isset($GLOBALS['phpgw_info']['apps']['manual']['section']) ? $GLOBALS['phpgw_info']['apps']['manual']['section'] : '',
+			 	'referer' => phpgw::get_var('menuaction')
+			 )) . "','700','600')";
+
+			$var['help_text'] = lang('help');
+			$var['help_icon'] = 'icon icon-help';
 		}
 
+		if ( $GLOBALS['phpgw']->acl->check('run', PHPGW_ACL_READ, 'preferences') )
+		{
+			$var['preferences_url'] = $GLOBALS['phpgw']->link('/preferences/index.php');
+			$var['preferences_text'] = lang('preferences');
+		}
 
 		if ($GLOBALS['phpgw_info']['flags']['currentapp'] == 'home')
 		{

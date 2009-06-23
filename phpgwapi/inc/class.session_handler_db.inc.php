@@ -6,14 +6,14 @@
 	* @license http://www.fsf.org/licenses/lgpl.html GNU Lesser General Public License
 	* @package phpgwapi
 	* @subpackage sessions
-	* @version $Id: class.sessions_db.inc.php 682 2008-02-01 12:19:55Z dave $
+	* @version $Id$
 	* @link http://php.net/session_set_save_handler
 	*/
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -90,7 +90,18 @@
 			$GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
 			while ($GLOBALS['phpgw']->db->next_record())
 			{
-				$data = $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('data', true));
+				$rawdata = $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('data', true));
+
+				//taken from http://no.php.net/manual/en/function.session-decode.php#79244
+				$vars = preg_split('/([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff^|]*)\|/',
+				$rawdata, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+				$data = array();
+
+				if(isset($vars[3]))
+				{
+					$data[$vars[0]]=unserialize($vars[1]);
+					$data[$vars[2]]=unserialize($vars[3]);
+				}
 
 				// skip invalid or anonymous sessions
 				if ( !isset($data['phpgw_session'])
@@ -100,11 +111,11 @@
 					continue;
 				}
 
-				$values[$GLOBALS['phpgw']->db->f('session_id', true)] = array
+				$values[$data['phpgw_session']['session_id']] = array
 				(
-					'id'		=> $GLOBALS['phpgw']->db->f('id', true),
+					'id'		=> $data['phpgw_session']['session_id'],
 					'lid'		=> $data['phpgw_session']['session_lid'],
-					'ip'		=> $GLOBALS['phpgw']->db->f('ip', true),
+					'ip'		=> $data['phpgw_session']['session_ip'],
 					'action'	=> $data['phpgw_session']['session_action'],
 					'dla'		=> $data['phpgw_session']['session_dla'],
 					'logints'	=> $data['phpgw_session']['session_logintime']
@@ -145,7 +156,8 @@
 			$GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
 			if ( $GLOBALS['phpgw']->db->next_record() )
 			{
-				return $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('data', true));
+			//	return $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('data', true));
+				return unserialize($GLOBALS['phpgw']->db->f('data', true));
 			}
 			return '';
 		}
@@ -159,12 +171,16 @@
 		 */
 		public static function write($id, $data)
 		{
-			$id = $GLOBALS['phpgw']->db->db_addslashes($id);
-			$data = $GLOBALS['phpgw']->db->db_addslashes($GLOBALS['phpgw']->crypto->encrypt($data));
-			$ts = time();
+			$db 	= & $GLOBALS['phpgw']->db;
+		//	$crypto = & $GLOBALS['phpgw']->crypto;
 
-			$GLOBALS['phpgw']->db->query("SELECT session_id FROM phpgw_sessions WHERE session_id = '{$id}'", __LINE__, __FILE__);
-			if ( $GLOBALS['phpgw']->db->next_record() )
+			$id   = $db->db_addslashes($id);
+		//	$data = $db->db_addslashes($crypto->encrypt($data));
+			$data = $db->db_addslashes(serialize($data));
+			$ts   = time();
+
+			$db->query("SELECT session_id FROM phpgw_sessions WHERE session_id = '{$id}'", __LINE__, __FILE__);
+			if ( $db->next_record() )
 			{
 				$sql = 'UPDATE phpgw_sessions'
 					. " SET data = '{$data}', lastmodts = {$ts}"
@@ -176,7 +192,7 @@
 				$sql = "INSERT INTO phpgw_sessions VALUES('{$id}', '{$ip}', '{$data}', {$ts})";
 			}
 
-			$ret = $GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
+			$ret = $db->query($sql, __LINE__, __FILE__);
 			return $ret;
 		}
 	}

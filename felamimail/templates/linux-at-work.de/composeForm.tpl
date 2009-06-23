@@ -17,7 +17,7 @@
 <center>
 <form method="post" name="doit" action="{link_action}" ENCTYPE="multipart/form-data">
 <table width="98%" border="0" cellspacing="0" cellpading="1">
-<tr class="th">
+<tr bgcolor="{th_bg}">
 	<td colspan="2">
 		{lang_back_to_folder}:&nbsp;<a class="body_link" href="{link_message_list}">{folder_name}</a>
 	</td>
@@ -133,7 +133,7 @@ document.doit.{focusElement}.focus();
 <!-- BEGIN attachment -->
 <br>
 <table width="95%" border="0" cellspacing="0" cellpading="0">
-<tr class="th">
+<tr bgcolor="{th_bg}">
 	<td>
 		<b>{lang_attachments}</b>
 	</td>
@@ -175,7 +175,7 @@ document.doit.{focusElement}.focus();
 <!-- END attachment_row -->
 
 <!-- BEGIN attachment_row_bold -->
-<tr class="th">
+<tr bgcolor="{th_bg}">
 	<td>
 		<b>{name}</b>
 	</td>

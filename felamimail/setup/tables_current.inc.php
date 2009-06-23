@@ -1,7 +1,7 @@
 <?php
   /**************************************************************************\
-  * phpGroupWare                                                             *
-  * http://www.phpgroupware.org                                              *
+  * eGroupWare                                                               *
+  * http://www.egroupware.org                                                *
   * --------------------------------------------                             *
   *  This program is free software; you can redistribute it and/or modify it *
   *  under the terms of the GNU General Public License as published by the   *
@@ -9,57 +9,60 @@
   *  option) any later version.                                              *
   \**************************************************************************/
 
-  /* $Id$ */
+  /* $Id: tables_current.inc.php 25641 2008-06-19 08:04:49Z leithoff $ */
 
 	$phpgw_baseline = array(
-		'phpgw_felamimail_cache' => array(
+		'egw_felamimail_displayfilter' => array(
 			'fd' => array(
-				'accountid' 	=> array('type' => 'int', 'precision' => 4, 'nullable' => false),
-				'hostname' 	=> array('type' => 'varchar', 'precision' => 60, 'nullable' => false),
-				'accountname' 	=> array('type' => 'varchar', 'precision' => 200, 'nullable' => false),
-				'foldername' 	=> array('type' => 'varchar', 'precision' => 200, 'nullable' => false),
-				'uid' 		=> array('type' => 'int', 'precision' => 4, 'nullable' => false),
-				'subject'	=> array('type' => 'text'),
-				'striped_subject'=> array('type' => 'text'),
-				'sender_name'	=> array('type' => 'varchar', 'precision' => 120),
-				'sender_address'=> array('type' => 'varchar', 'precision' => 120),
-				'to_name'	=> array('type' => 'varchar', 'precision' => 120),
-				'to_address'	=> array('type' => 'varchar', 'precision' => 120),
-				'date'		=> array('type' => 'varchar', 'precision' => 120),
-				'size'		=> array('type' => 'int', 'precision' => 4),
-				'attachments'	=> array('type' => 'varchar', 'precision' =>120)
+				'fmail_filter_accountid' => array('type' => 'int','precision' => '4','nullable' => False),
+				'fmail_filter_data' => array('type' => 'text')
 			),
-			'pk' => array('accountid','hostname','accountname','foldername','uid'),
+			'pk' => array('fmail_filter_accountid'),
 			'fk' => array(),
 			'ix' => array(),
 			'uc' => array()
 		),
-		'phpgw_felamimail_folderstatus' => array(
+		'egw_felamimail_accounts' => array(
 			'fd' => array(
-				'accountid' 	=> array('type' => 'int', 'precision' => 4, 'nullable' => false),
-				'hostname' 	=> array('type' => 'varchar', 'precision' => 60, 'nullable' => false),
-				'accountname' 	=> array('type' => 'varchar', 'precision' => 200, 'nullable' => false),
-				'foldername' 	=> array('type' => 'varchar', 'precision' => 200, 'nullable' => false),
-				'messages' 	=> array('type' => 'int', 'precision' => 4),
-				'recent'	=> array('type' => 'int', 'precision' => 4),
-				'unseen'	=> array('type' => 'int', 'precision' => 4),
-				'uidnext'	=> array('type' => 'int', 'precision' => 4),
-				'uidvalidity'	=> array('type' => 'int', 'precision' => 4)
+				'fm_owner' => array('type' => 'int','precision' => '4','nullable' => False),
+				'fm_id' => array('type' => 'auto'),
+				'fm_realname' => array('type' => 'varchar','precision' => '128'),
+				'fm_organization' => array('type' => 'varchar','precision' => '128'),
+				'fm_emailaddress' => array('type' => 'varchar','precision' => '128','nullable' => False),
+				'fm_signatureid' =>  array('type' => 'int','precision' => '4'),
+				'fm_ic_hostname' => array('type' => 'varchar','precision' => '128'),
+				'fm_ic_port' => array('type' => 'int','precision' => '4'),
+				'fm_ic_username' => array('type' => 'varchar','precision' => '128'),
+				'fm_ic_password' => array('type' => 'varchar','precision' => '128'),
+				'fm_ic_encryption' => array('type' => 'int','precision' => '4'),
+				'fm_og_hostname' => array('type' => 'varchar','precision' => '128'),
+				'fm_og_port' => array('type' => 'int','precision' => '4'),
+				'fm_og_smtpauth' => array('type' => 'bool'),
+				'fm_og_username' => array('type' => 'varchar','precision' => '128'),
+				'fm_og_password' => array('type' => 'varchar','precision' => '128'),
+				'fm_active' => array('type' => 'bool','nullable' => False),
+				'fm_ic_validatecertificate' => array('type' => 'bool'),
+				'fm_ic_enable_sieve' => array('type' => 'bool','precision' => '255'),
+				'fm_ic_sieve_server' => array('type' => 'varchar','precision' => '128'),
+				'fm_ic_sieve_port' => array('type' => 'int','precision' => '4')
 			),
-			'pk' => array('accountid','hostname','accountname','foldername'),
+			'pk' => array('fm_id'),
 			'fk' => array(),
-			'ix' => array(),
+			'ix' => array('fm_owner'),
 			'uc' => array()
 		),
-		'phpgw_felamimail_displayfilter' => array(
+		'egw_felamimail_signatures' => array(
 			'fd' => array(
-				'accountid' 	=> array('type' => 'int', 'precision' => 4, 'nullable' => false),
-				'filter' 	=> array('type' => 'text')
+				'fm_signatureid' => array('type' => 'auto'),
+				'fm_accountid' => array('type' => 'int','precision' => '4'),
+				'fm_signature' => array('type' => 'text'),
+				'fm_description' => array('type' => 'varchar','precision' => '255'),
+				'fm_defaultsignature' => array('type' => 'bool')
 			),
-			'pk' => array('accountid'),
+			'pk' => array('fm_signatureid'),
 			'fk' => array(),
 			'ix' => array(),
-			'uc' => array()
+			'uc' => array(array('fm_signatureid','fm_accountid'))
 		)
 	);
 ?>

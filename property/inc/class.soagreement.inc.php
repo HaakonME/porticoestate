@@ -36,13 +36,12 @@
 	{
 		var $role;
 
-		function property_soagreement()
+		function __construct()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
 			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           = $this->bocommon->new_db();
-			$this->db2           = $this->bocommon->new_db($this->db);
+			$this->db           = clone($GLOBALS['phpgw']->db);
+			$this->db2          = clone($this->db);
 
 			$this->join			= $this->bocommon->join;
 			$this->left_join	= $this->bocommon->left_join;
@@ -255,9 +254,11 @@
 
 			if($query)
 			{
-				$query = preg_replace("/'/",'',$query);
-				$query = preg_replace('/"/','',$query);
+				$query = $this->db->db_addslashes($query);
 
+				$querymethod[]= "fm_branch.descr {$this->like} '%{$query}%'";
+				$querymethod[]= "{$entity_table}.name {$this->like} '%{$query}%'";
+				
 				$this->db->query("SELECT * FROM $attribute_table WHERE search='1' AND $attribute_filter ");
 
 				while ($this->db->next_record())
@@ -280,7 +281,6 @@
 			}
 
 			$sql .= " $filtermethod $querymethod";
-//echo $sql;
 
 			$this->db2->query($sql,__LINE__,__FILE__);
 			$this->total_records = $this->db2->num_rows();
@@ -391,6 +391,7 @@
 				$allrows		= (isset($data['allrows'])?$data['allrows']:'');
 				$agreement_id	= (isset($data['agreement_id'])?$data['agreement_id']:'');
 			}
+$allrows = true; // return all..
 
 			$entity_table = 'fm_activity_price_index';
 

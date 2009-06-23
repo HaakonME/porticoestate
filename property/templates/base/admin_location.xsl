@@ -1,4 +1,4 @@
-<!-- $Id: admin_location.xsl,v 1.4 2006/11/24 10:11:50 sigurdne Exp $ -->
+<!-- $Id$ -->
 
 	<xsl:template name="app_data">
 		<xsl:choose>
@@ -70,6 +70,9 @@
 			<td class="th_text" width="5%" align="center">
 				<xsl:value-of select="lang_categories"/>
 			</td>
+'			<td class="th_text" width="5%" align="center">
+				<xsl:value-of select="lang_attribute_group"/>
+			</td>
 			<td class="th_text" width="5%" align="center">
 				<xsl:value-of select="lang_attribute"/>
 			</td>
@@ -113,6 +116,10 @@
 				<td align="center">
 					<xsl:variable name="link_categories"><xsl:value-of select="link_categories"/></xsl:variable>
 					<a href="{$link_categories}" onMouseover="window.status='{lang_category_text}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="text_categories"/></a>
+				</td>
+				<td align="center">
+					<xsl:variable name="link_attribute_group"><xsl:value-of select="link_attribute_group"/></xsl:variable>
+					<a href="{$link_attribute_group}" onMouseover="window.status='';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="text_attribute_group"/></a>
 				</td>
 				<td align="center">
 					<xsl:variable name="link_attribute"><xsl:value-of select="link_attribute"/></xsl:variable>
@@ -660,6 +667,19 @@
 			</tr>
 			<tr>
 				<td valign="top">
+					<xsl:value-of select="lang_group"/>
+				</td>
+				<td valign="top">
+					<xsl:variable name="lang_group_statustext"><xsl:value-of select="lang_group_statustext"/></xsl:variable>
+					<select name="values[group_id]" class="forms" onMouseover="window.status='{$lang_group_statustext}'; return true;" onMouseout="window.status='';return true;">
+						<option value=""><xsl:value-of select="lang_no_group"/></option>
+						<xsl:apply-templates select="attrib_group_list"/>
+					</select>
+				</td>
+			</tr>
+
+			<tr>
+				<td valign="top">
 					<xsl:value-of select="lang_datatype"/>
 				</td>
 				<td valign="top">
@@ -826,6 +846,20 @@
 <!-- entity_list -->	
 
 	<xsl:template match="entity_list">
+	<xsl:variable name="id"><xsl:value-of select="id"/></xsl:variable>
+		<xsl:choose>
+			<xsl:when test="selected">
+				<option value="{$id}" selected="selected"><xsl:value-of disable-output-escaping="yes" select="name"/></option>
+			</xsl:when>
+			<xsl:otherwise>
+				<option value="{$id}"><xsl:value-of disable-output-escaping="yes" select="name"/></option>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+
+<!-- attrib_group_list -->	
+
+	<xsl:template match="attrib_group_list">
 	<xsl:variable name="id"><xsl:value-of select="id"/></xsl:variable>
 		<xsl:choose>
 			<xsl:when test="selected">

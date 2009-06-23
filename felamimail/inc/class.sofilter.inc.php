@@ -1,9 +1,9 @@
 <?php
 	/***************************************************************************\
-	* phpGroupWare - FeLaMiMail                                                 *
+	* eGroupWare - FeLaMiMail                                                   *
 	* http://www.linux-at-work.de                                               *
 	* http://www.phpgw.de                                                       *
-	* http://www.phpgroupware.org                                               *
+	* http://www.egroupware.org                                                 *
 	* Written by : Lars Kneschke [lkneschke@linux-at-work.de]                   *
 	* -------------------------------------------------                         *
 	* This program is free software; you can redistribute it and/or modify it   *
@@ -11,7 +11,7 @@
 	* Free Software Foundation; either version 2 of the License, or (at your    *
 	* option) any later version.                                                *
 	\***************************************************************************/
-	/* $Id$ */
+	/* $Id: class.sofilter.inc.php 19596 2005-11-04 18:37:37Z ralfbecker $ */
 
 	class sofilter
 	{
@@ -22,39 +22,36 @@
 			'flagMessages'		=> True
 		);
 		*/
+		var $filter_table = 'egw_felamimail_displayfilter';	// only reference to table-prefix
 
 		function sofilter()
 		{
 			$this->accountid	= $GLOBALS['phpgw_info']['user']['account_id'];
-			
+//			$this->db		= clone($GLOBALS['phpgw']->db);
+			$this->db = createobject('felamimail.egw_db');
 		}
 		
 		function saveFilter($_filterArray)
 		{
-			#$data = $GLOBALS['phpgw']->crypto->encrypt($_filterArray);
-			$data = addslashes(serialize($_filterArray));
-			$query = sprintf("delete from phpgw_felamimail_displayfilter where accountid='%s'",
-				$this->accountid);
-			$GLOBALS['phpgw']->db->query($query);
+			$this->db->insert($this->filter_table,array(
+					'fmail_filter_data' => serialize($_filterArray)
+				),array(
+					'fmail_filter_accountid' => $this->accountid
+				),__LINE__,__FILE__,'felamimail');
 
-			$query = sprintf("insert into phpgw_felamimail_displayfilter(accountid,filter) values('%s','%s')",
-				$this->accountid,$data);
-			$GLOBALS['phpgw']->db->query($query);
-
-		//	unset($this->sessionData['filter'][$_filterID]); //$_filterID is not defined
+			unset($this->sessionData['filter'][$_filterID]);
 		}
 		
 		function restoreFilter()
 		{
-			$query = sprintf("select filter from phpgw_felamimail_displayfilter where accountid='%s'",
-				$this->accountid);
-			$GLOBALS['phpgw']->db->query($query);
+			$this->db->select($this->filter_table,'fmail_filter_data',array(
+					'fmail_filter_accountid' => $this->accountid
+				),__LINE__,__FILE__,False,False,'felamimail');
 			
-			if ($GLOBALS['phpgw']->db->num_rows() > 0)
+			
+			if ($this->db->next_record())
 			{
-				$GLOBALS['phpgw']->db->next_record();
-				#$filter = $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw']->db->f('filter'));
-				$filter = unserialize($GLOBALS['phpgw']->db->f('filter'));
+				$filter = unserialize($this->db->f('fmail_filter_data'));
 				return $filter;
 			}
 		}

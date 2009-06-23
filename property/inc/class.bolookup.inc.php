@@ -60,40 +60,16 @@
 			$filter			= phpgw::get_var('filter', 'int');
 			$cat_id			= phpgw::get_var('cat_id', 'int');
 			$district_id	= phpgw::get_var('district_id', 'int');
+			$allrows	= phpgw::get_var('allrows', 'bool');
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(isset($query))
-			{
-				$this->query = $query;
-			}
-			if(!empty($filter))
-			{
-				$this->filter = $filter;
-			}
-			if(isset($sort))
-			{
-				$this->sort = $sort;
-			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
-			if(isset($cat_id))
-			{
-				$this->cat_id = $cat_id;
-			}
-			if(isset($district_id))
-			{
-				$this->district_id = $district_id;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->query			= isset($query) ? $query : $this->query;
+			$this->sort				= isset($sort) && $sort ? $sort : '';
+			$this->order			= isset($order) && $order ? $order : '';
+			$this->filter			= isset($filter) && $filter ? $filter : '';
+			$this->district_id		= isset($district_id) && $district_id ? $district_id : '';
+			$this->cat_id			= isset($cat_id) && $cat_id ? $cat_id : '';
+			$this->allrows			= isset($allrows) && $allrows ? $allrows : '';
 		}
 
 		function save_sessiondata($data)
@@ -198,14 +174,10 @@
 			return $persons;
 		}
 
-
-
-
-
 		function read_vendor()
 		{
 			$vendor = $this->so->read_vendor(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id));
+											'filter' => $this->filter,'cat_id' => $this->cat_id, 'allrows' => $this->allrows));
 			$this->total_records = $this->so->total_records;
 
 			return $vendor;
@@ -214,7 +186,7 @@
 		function read_b_account()
 		{
 			$b_account = $this->so->read_b_account(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id));
+											'filter' => $this->filter,'cat_id' => $this->cat_id, 'allrows' => $this->allrows));
 			$this->total_records = $this->so->total_records;
 
 			return $b_account;
@@ -223,7 +195,7 @@
 		function read_street()
 		{
 			$street = $this->so->read_street(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id));
+											'filter' => $this->filter,'cat_id' => $this->cat_id, 'allrows' => $this->allrows));
 			$this->total_records = $this->so->total_records;
 
 			return $street;
@@ -232,7 +204,7 @@
 		function read_tenant()
 		{
 			$tenant = $this->so->read_tenant(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id));
+											'filter' => $this->filter,'cat_id' => $this->cat_id, 'allrows' => $this->allrows));
 			$this->total_records = $this->so->total_records;
 
 			return $tenant;
@@ -255,5 +227,27 @@
 
 			return $phpgw_user;
 		}
-	}
 
+		function read_project_group()
+		{
+			$project_group	= CreateObject('property.socategory');
+			$project_group->get_location_info('project_group',false);
+			$values = $project_group->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
+											'type' => 'project_group','allrows'=>$this->allrows));
+
+			$this->total_records = $project_group->total_records;
+
+			return $values;
+		}
+		function read_ecodimb()
+		{
+			$ecodimb	= CreateObject('property.socategory');
+			$ecodimb->get_location_info('dimb',false);
+			$values = $ecodimb->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
+											'allrows'=>$this->allrows));
+
+			$this->total_records = $ecodimb->total_records;
+
+			return $values;
+		}
+	}

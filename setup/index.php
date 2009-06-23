@@ -248,7 +248,14 @@
 			switch ($GLOBALS['phpgw_info']['setup']['currentver']['phpgwapi'])
 			{
 				case 'dbcreate':
-					$GLOBALS['phpgw_setup']->db->create_database($_POST['db_root'], $_POST['db_pass']);
+					try
+					{
+						$GLOBALS['phpgw_setup']->db->create_database($_POST['db_root'], $_POST['db_pass']);
+					}
+					catch (Exception $e)
+					{
+						$setup_tpl->set_var('status',$e->getMessage());
+					}
 					break;
 				case 'drop':
 					$setup_info = $GLOBALS['phpgw_setup']->detection->get_versions($setup_info);
@@ -338,7 +345,7 @@
 					$btn_config_ldap = $GLOBALS['phpgw_setup']->html->make_frm_btn_simple(
 						lang('LDAP account import/export'),
 						'POST','ldap.php',
-						'submit',lang('Configure Now'),
+						'submit',lang('Configure LDAP accounts'),
 						''
 					);
 				}

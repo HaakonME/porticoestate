@@ -120,6 +120,26 @@ a:hover
 	background-color: #ffffff;
 }
 
+.error
+{
+	background-color: #fcc;
+	border: 1px solid #f00;
+	color: #f00;
+}
+
+.msg
+{
+	color: #f00;
+	font-weight: bold;
+	text-align: center;
+}
+
+.msg_good
+{
+	background-color:  #99FF66;
+	border: 1px solid #00CC00;
+}
+
 .row_off
 {
 	background-color: #ddf0ff;
@@ -304,3 +324,47 @@ tr.notpassed
 {
 	color: #ddd;
 }
+
+/*
+	Navbar layout
+*/
+
+ul#navbar
+{
+	/*background: #fff;*/
+}
+
+ul#navbar li
+{
+	display: block;
+	white-space: nowrap;
+}
+
+ul#navbar li a
+{
+	color: #000;
+	text-decoration: none;
+	background-repeat: no-repeat;
+	background-position: left center;
+	display: inline-block;
+	padding-left: 20px;
+	margin-left: 20px;
+	padding: 2px 0px 2px 20px;
+}
+
+#navbar a.parent
+{
+	margin-left: 0px;
+}
+
+ul#navbar li a.current span
+{
+	background: #3f6ad1;
+	color: #fff;
+}
+
+ul#navbar li li
+{
+	padding-left: 20px;
+}
+

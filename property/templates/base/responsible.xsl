@@ -123,13 +123,13 @@
 				<td align="center">
 					<xsl:value-of select="active"/>
 				</td>
-				<td align="center" title="{lang_contacts_text}" style="cursor:help">
+				<td align="center" title="{lang_contacts_text}">
 					<xsl:variable name="link_contacts"><xsl:value-of select="link_contacts"/></xsl:variable>
 					<a href="{link_contacts}"><xsl:value-of select="text_contacts"/></a>
 				</td>
 				<xsl:choose>
 					<xsl:when test="link_edit != ''">
-						<td align="center" title="{lang_edit_text}" style="cursor:help">
+						<td align="center" title="{lang_edit_text}">
 							<xsl:variable name="link_edit"><xsl:value-of select="link_edit"/></xsl:variable>
 							<a href="{link_edit}"><xsl:value-of select="text_edit"/></a>
 						</td>
@@ -137,7 +137,7 @@
 				</xsl:choose>
 				<xsl:choose>
 					<xsl:when test="link_delete != ''">
-						<td align="center" title="{lang_delete_text}" style="cursor:help">
+						<td align="center" title="{lang_delete_text}">
 							<xsl:variable name="link_delete"><xsl:value-of select="link_delete"/></xsl:variable>
 							<a href="{link_delete}"><xsl:value-of select="text_delete"/></a>
 						</td>
@@ -177,8 +177,12 @@
 			<tr>
 				<td class="th_text" align="left">
 					<xsl:value-of select="location_name"/>
-					<xsl:text>::</xsl:text>
-					<xsl:value-of select="category_name"/>
+					<xsl:choose>
+						<xsl:when test="category_name != ''">
+							<xsl:text>::</xsl:text>
+							<xsl:value-of select="category_name"/>
+						</xsl:when>
+					</xsl:choose>
 					<xsl:text>::</xsl:text>
 					<xsl:value-of select="type_name"/>
 				</td>
@@ -212,6 +216,9 @@
 		<tr class="th">
 			<td class="th_text" width="20%" align="center">
 				<xsl:value-of select="lang_contact"/>
+			</td>
+			<td class="th_text" width="10%" align="left">
+				<a href="{sort_ecodimb}"><xsl:value-of select="lang_ecodimb"/></a>
 			</td>
 			<td class="th_text" width="10%" align="left">
 				<a href="{$sort_location}"><xsl:value-of select="lang_location"/></a>
@@ -261,6 +268,9 @@
 					<xsl:value-of select="contact_name"/>
 				</td>
 				<td align="left">
+					<xsl:value-of select="ecodimb"/>
+				</td>
+				<td align="left">
 					<xsl:value-of select="location_code"/>
 				</td>
 				<td align="left">
@@ -283,7 +293,7 @@
 				</td>
 				<xsl:choose>
 					<xsl:when test="link_edit != ''">
-						<td align="center" title="{lang_edit_text}" style="cursor:help">
+						<td align="center" title="{lang_edit_text}">
 							<xsl:variable name="link_edit"><xsl:value-of select="link_edit"/></xsl:variable>
 							<a href="{link_edit}"><xsl:value-of select="text_edit"/></a>
 						</td>
@@ -291,7 +301,7 @@
 				</xsl:choose>
 				<xsl:choose>
 					<xsl:when test="link_delete != ''">
-						<td align="center" title="{lang_delete_text}" style="cursor:help">
+						<td align="center" title="{lang_delete_text}">
 							<xsl:variable name="link_delete"><xsl:value-of select="link_delete"/></xsl:variable>
 							<a href="{link_delete}"><xsl:value-of select="text_delete"/></a>
 						</td>
@@ -312,9 +322,6 @@
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_add_statustext"/>
 						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
-						</xsl:attribute>
 					</input>
 				</form>
 			</td>
@@ -325,9 +332,6 @@
 							<input type="submit" name="add" value="{lang_cancel}">
 								<xsl:attribute name="title">
 									<xsl:value-of select="lang_cancel_statustext"/>
-								</xsl:attribute>
-								<xsl:attribute name="style">
-									<xsl:text>cursor:help</xsl:text>
 								</xsl:attribute>
 							</input>
 						</form>
@@ -381,7 +385,7 @@
 				</td>
 			</tr>
 			<tr>
-				<td valign="top" width="10%"  title="{lang_name_status_text}" style="cursor:help">
+				<td valign="top" width="10%"  title="{lang_name_status_text}">
 					<xsl:value-of select="lang_name"/>
 				</td>
 				<td>
@@ -390,7 +394,7 @@
 				</td>
 			</tr>
 			<tr>
-				<td valign="top"  title="{lang_descr_status_text}" style="cursor:help">
+				<td valign="top"  title="{lang_descr_status_text}">
 					<xsl:value-of select="lang_descr"/>
 				</td>
 				<td>
@@ -410,18 +414,12 @@
 								<xsl:attribute name="title">
 									<xsl:value-of select="lang_active_on_statustext"/>
 								</xsl:attribute>
-								<xsl:attribute name="style">
-									<xsl:text>cursor:help</xsl:text>
-								</xsl:attribute>
 							</input>
 						</xsl:when>
 						<xsl:otherwise>
 							<input type="checkbox" name="values[active]" value="1" onMouseout="window.status='';return true;">
 								<xsl:attribute name="title">
 									<xsl:value-of select="lang_active_off_statustext"/>
-								</xsl:attribute>
-								<xsl:attribute name="style">
-									<xsl:text>cursor:help</xsl:text>
 								</xsl:attribute>
 							</input>
 						</xsl:otherwise>
@@ -438,9 +436,6 @@
 									<xsl:attribute name="title">
 										<xsl:value-of select="lang_save_status_text"/>
 									</xsl:attribute>
-									<xsl:attribute name="style">
-										<xsl:text>cursor:help</xsl:text>
-									</xsl:attribute>
 								</input>
 							</td>
 							<td valign="bottom">
@@ -449,9 +444,6 @@
 									<xsl:attribute name="title">
 										<xsl:value-of select="lang_apply_status_text"/>
 									</xsl:attribute>
-									<xsl:attribute name="style">
-										<xsl:text>cursor:help</xsl:text>
-									</xsl:attribute>
 								</input>
 							</td>
 							<td align="left" valign="bottom">
@@ -459,9 +451,6 @@
 								<input type="submit" name="values[cancel]" value="{$lang_cancel}" onMouseout="window.status='';return true;">
 									<xsl:attribute name="title">
 										<xsl:value-of select="lang_cancel_status_text"/>
-									</xsl:attribute>
-									<xsl:attribute name="style">
-										<xsl:text>cursor:help</xsl:text>
 									</xsl:attribute>
 								</input>
 							</td>
@@ -523,20 +512,14 @@
 					<xsl:value-of select="lang_responsibility"/>
 				</td>
 				<td>
-					<input type="text" name="responsibility_id" value="{value_responsibility_id}" onClick="lookup_responsibility()" readonly="readonly" size="5" onMouseout="window.status='';return true;" >
+					<input type="text" name="responsibility_id" value="{value_responsibility_id}" readonly="readonly" size="5" onMouseout="window.status='';return true;" >
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_responsibility_status_text"/>
-						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
 						</xsl:attribute>
 					</input>
-					<input  size="30" type="text" name="responsibility_name" value="{value_responsibility_name}"  onClick="lookup_responsibility()" readonly="readonly"> 
+					<input  size="30" type="text" name="responsibility_name" value="{value_responsibility_name}" readonly="readonly"> 
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_responsibility_status_text"/>
-						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
 						</xsl:attribute>
 					</input>
 				</td>
@@ -550,21 +533,16 @@
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_contact_status_text"/>
 						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
-						</xsl:attribute>
 					</input>
 					<input  size="30" type="text" name="contact_name" value="{value_contact_name}"  onClick="lookup_contact()" readonly="readonly"> 
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_contact_status_text"/>
 						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
-						</xsl:attribute>
 					</input>
 				</td>
 			</tr>
 
+			<xsl:call-template name="ecodimb_form"/>
 			<xsl:call-template name="location_form"/>
 
 			<tr>
@@ -575,9 +553,6 @@
 					<input type="text" id="values_active_from" name="values[active_from]" size="10" value="{value_active_from}" readonly="readonly" onMouseout="window.status='';return true;" >
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_active_from_statustext"/>
-						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
 						</xsl:attribute>
 					</input>
 					<img id="values_active_from-trigger" src="{img_cal}" alt="{lang_datetitle}" title="{lang_datetitle}" style="cursor:pointer; cursor:hand;" />
@@ -592,9 +567,6 @@
 						<xsl:attribute name="title">
 							<xsl:value-of select="lang_active_to_statustext"/>
 						</xsl:attribute>
-						<xsl:attribute name="style">
-							<xsl:text>cursor:help</xsl:text>
-						</xsl:attribute>
 					</input>
 					<img id="values_active_to-trigger" src="{img_cal}" alt="{lang_datetitle}" title="{lang_datetitle}" style="cursor:pointer; cursor:hand;" />
 				</td>
@@ -602,7 +574,7 @@
 
 
 			<tr>
-				<td valign="top"  title="{lang_remark_status_text}" style="cursor:help">
+				<td valign="top"  title="{lang_remark_status_text}">
 					<xsl:value-of select="lang_remark"/>
 				</td>
 				<td>
@@ -621,9 +593,6 @@
 									<xsl:attribute name="title">
 										<xsl:value-of select="lang_save_status_text"/>
 									</xsl:attribute>
-									<xsl:attribute name="style">
-										<xsl:text>cursor:help</xsl:text>
-									</xsl:attribute>
 								</input>
 							</td>
 							<td valign="bottom">
@@ -632,9 +601,6 @@
 									<xsl:attribute name="title">
 										<xsl:value-of select="lang_apply_status_text"/>
 									</xsl:attribute>
-									<xsl:attribute name="style">
-										<xsl:text>cursor:help</xsl:text>
-									</xsl:attribute>
 								</input>
 							</td>
 							<td align="left" valign="bottom">
@@ -642,9 +608,6 @@
 								<input type="submit" name="values[cancel]" value="{$lang_cancel}" onMouseout="window.status='';return true;">
 									<xsl:attribute name="title">
 										<xsl:value-of select="lang_cancel_status_text"/>
-									</xsl:attribute>
-									<xsl:attribute name="style">
-										<xsl:text>cursor:help</xsl:text>
 									</xsl:attribute>
 								</input>
 							</td>

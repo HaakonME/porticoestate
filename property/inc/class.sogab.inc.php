@@ -37,7 +37,7 @@
 		var $gab_insert_level;
 		var $payment_date;
 
-		function property_sogab($gab_insert_level)
+		function __construct($gab_insert_level)
 		{
 		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
@@ -59,7 +59,7 @@
 				$sort			= isset($data['sort']) && $data['sort'] ? $data['sort'] : 'DESC';
 				$order			= isset($data['order']) ? $data['order'] : '';
 				$cat_id 		= isset($data['cat_id']) && $data['cat_id'] ? $data['cat_id'] : 0;
-				$loc1 			= isset($data['loc1']) ? $data['loc1'] : '';
+				$location_code 	= isset($data['location_code']) ? $data['location_code'] : '';
 				$gaards_nr		= isset($data['gaards_nr'])? (int)$data['gaards_nr'] : '';
 				$bruksnr		= isset($data['bruksnr']) ? (int)$data['bruksnr'] : '';
 				$feste_nr		= isset($data['feste_nr']) ? (int)$data['feste_nr'] : '';
@@ -92,9 +92,9 @@
 				$filtermethod .= " $where fm_gab_location.address $this->like '%$address%' ";
 				$where = 'AND';
 			}
-			if ($loc1)
+			if ($location_code)
 			{
-				$filtermethod .= " $where fm_gab_location.loc1='$loc1' ";
+				$filtermethod .= " $where fm_gab_location.location_code $this->like '$location_code%' ";
 				$where = 'AND';
 			}
 
@@ -140,11 +140,11 @@
 
 			if($check_payments)
 			{
-				$sql = "SELECT gab_id,count(gab_id) as hits, loc" . $j . "_name as address ,fm_gab_location.loc1 as location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.loc1,loc" . $j . "_name,owner ";
+				$sql = "SELECT gab_id,count(gab_id) as hits, address ,fm_gab_location.loc1 as location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.loc1,address,owner ";
 			}
 			else
 			{
-				$sql = "SELECT gab_id,count(gab_id) as hits, loc" . $j . "_name as address ,fm_gab_location.location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.location_code,loc" . $j . "_name,owner ";
+				$sql = "SELECT gab_id,count(gab_id) as hits, address ,fm_gab_location.location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.location_code,address,owner ";
 			}
 
 			$this->db->query($sql,__LINE__,__FILE__);

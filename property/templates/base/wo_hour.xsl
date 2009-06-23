@@ -1,4 +1,4 @@
-<!-- $Id: wo_hour.xsl,v 1.10 2006/12/22 14:43:54 sigurdne Exp $ -->
+<!-- $Id$ -->
 
 	<xsl:template name="app_data">
 		<xsl:choose>
@@ -37,18 +37,15 @@
 
 
 	<xsl:template match="list_deviation">
+			<!-- DataTable 0 DESVIATION-->
+			<div id="datatable-container_0"></div>
+			<div id="contextmenu_0"></div>
+		
 		<table width="100%" cellpadding="2" cellspacing="2" align="center">
-			<xsl:apply-templates select="table_header_deviation"/>
-			<xsl:apply-templates select="values_deviation"/>
+			<!--  <xsl:apply-templates select="table_header_deviation"/><xsl:apply-templates select="values_deviation"/> -->
+			<!--  <tr><td></td><td class="small_text" align="right"><xsl:value-of select="sum_deviation"/></td></tr>  -->
 			<tr>
-				<td>
-				</td>
-				<td class="small_text" align="right">
-					<xsl:value-of select="sum_deviation"/>
-				</td>
-			</tr>
-			<tr>
-				<td height="50">
+				<td height="50" width="4%">
 					<xsl:variable name="add_action"><xsl:value-of select="add_action"/></xsl:variable>
 					<xsl:variable name="lang_add"><xsl:value-of select="lang_add"/></xsl:variable>
 					<form method="post" action="{$add_action}">
@@ -61,7 +58,7 @@
 						</input>
 					</form>
 				</td>
-				<td height="50">
+				<td height="50" width="96%">
 					<xsl:variable name="done_action"><xsl:value-of select="done_action"/></xsl:variable>
 					<xsl:variable name="lang_done"><xsl:value-of select="lang_done"/></xsl:variable>
 					<form method="post" action="{$done_action}">
@@ -76,6 +73,30 @@
 				</td>
 			</tr>
 		</table>
+
+		<!--  DATATABLE DEFINITIONS-->
+		<script>
+			var property_js = <xsl:value-of select="property_js" />;
+			var base_java_url = <xsl:value-of select="base_java_url" />;
+			var datatable = new Array();
+			var myColumnDefs = new Array();
+
+			<xsl:for-each select="datatable">
+				datatable[<xsl:value-of select="name"/>] = [
+				{
+					values			:	<xsl:value-of select="values"/>,
+					total_records	: 	<xsl:value-of select="total_records"/>,
+					permission		:	<xsl:value-of select="permission"/>,
+					is_paginator	:  	<xsl:value-of select="is_paginator"/>,
+					footer			:	<xsl:value-of select="footer"/>
+				}
+				]
+			</xsl:for-each>
+			
+			<xsl:for-each select="myColumnDefs">
+				myColumnDefs[<xsl:value-of select="name"/>] = <xsl:value-of select="values"/>
+			</xsl:for-each>
+		</script>			
 	</xsl:template>
 
 
@@ -225,21 +246,52 @@
 			</tr>
 		</table>
 		<xsl:apply-templates select="workorder_data"/>
-		<table width="100%" cellpadding="2" cellspacing="2" align="center">
 		<hr noshade="noshade" width="100%" align="center" size="1"/>
+		
+		<table width="100%" cellpadding="2" cellspacing="2" align="center">
+
 			<tr >
-				<td class="th_text" colspan="3" align="right">
+				<td class="th_text" align="center" >
 					<xsl:value-of select="lang_total_records"/>
 					<xsl:text> : </xsl:text>
-				</td>
-				<td class="th_text" colspan="5" align="left">
 					<xsl:value-of select="total_hours_records"/>
 				</td>
 			</tr>
-			<xsl:apply-templates select="table_header_hour"/>
-			<xsl:apply-templates select="values_hour"/>
+			<tr>
+				<td colspan="1">
+							<!-- DataTable 0 -->
+							<div id="paging_0"> </div>
+							<div id="datatable-container_0"></div>
+				</td>
+			</tr>
+		
+			<!-- <xsl:apply-templates select="table_header_hour"/><xsl:apply-templates select="values_hour"/>  -->
+			
 		</table>
 		</div>
+		<!--  DATATABLE DEFINITIONS-->
+		<script>
+			var property_js = <xsl:value-of select="property_js" />;
+			var base_java_url = <xsl:value-of select="base_java_url" />;
+			var datatable = new Array();
+			var myColumnDefs = new Array();
+	
+			<xsl:for-each select="datatable">
+				datatable[<xsl:value-of select="name"/>] = [
+				{
+					values			:	<xsl:value-of select="values"/>,
+					total_records	: 	<xsl:value-of select="total_records"/>,
+					is_paginator	:  	<xsl:value-of select="is_paginator"/>,
+					footer			:	<xsl:value-of select="footer"/>
+				}
+				]
+			</xsl:for-each>
+			
+			<xsl:for-each select="myColumnDefs">
+				myColumnDefs[<xsl:value-of select="name"/>] = <xsl:value-of select="values"/>
+			</xsl:for-each>
+			
+		</script>		
 	</xsl:template>
 
 
@@ -304,6 +356,14 @@
 							</tr>
 						</xsl:when>
 					</xsl:choose>
+					<tr>
+						<td class="th_text"  align="left">
+							<a href="{print_action}" title="{lang_print_statustext}" style="cursor:help"><xsl:value-of select="lang_print"/></a>
+						</td>
+						<td>
+						</td>
+					</tr>
+
 					<xsl:choose>
 						<xsl:when test="email_list !=''">
 							<tr>
@@ -394,26 +454,56 @@
 							<td class="th_text" align="left">
 								<xsl:value-of select="lang_history"/>
 							</td>
-						</tr>					
+						</tr>	
+						<tr>
+							<td>
+									<div id="paging_1"> </div>
+									<div id="datatable-container_1"></div>									
+							</td>
+						</tr>							
+						<!-- 				
 						<xsl:apply-templates select="table_header_history"/>
 						<xsl:apply-templates select="workorder_history"/>
+						 -->
 					</xsl:otherwise>
 				</xsl:choose>
 				</table>
 			</td>
 		</tr>
 		<xsl:choose>
-			<xsl:when test="no_email =''">
+			<xsl:when test="table_send !=''">
 				<tr><td><xsl:apply-templates select="table_send"/></td></tr>
 			</xsl:when>
 		</xsl:choose>
 		</form>
 		<xsl:choose>
-			<xsl:when test="no_email =''">
+			<xsl:when test="table_send !=''">
 				<tr><td><xsl:apply-templates select="table_done"/></td></tr>
 			</xsl:when>
 		</xsl:choose>
 		</table>
+		
+		<script>
+		var property_js = <xsl:value-of select="property_js" />;
+		var datatable = new Array();
+		var myColumnDefs = new Array();
+
+		<xsl:for-each select="datatable">
+			datatable[<xsl:value-of select="name"/>] = [
+			{
+				values			:	<xsl:value-of select="values"/>,
+				total_records	: 	<xsl:value-of select="total_records"/>,
+				is_paginator	:  	<xsl:value-of select="is_paginator"/>,
+				footer			:	<xsl:value-of select="footer"/>
+			}
+			]
+		</xsl:for-each>
+		
+		<xsl:for-each select="myColumnDefs">
+			myColumnDefs[<xsl:value-of select="name"/>] = <xsl:value-of select="values"/>
+		</xsl:for-each>
+	</script>
+		
 	</xsl:template>
 
 	<xsl:template match="table_header_history">
@@ -498,6 +588,7 @@
 					<xsl:value-of select="lang_from"/>
 				</td>
 				<td  align="left" colspan="2">
+					<xsl:value-of select="org_name"/>
 					<xsl:value-of select="lang_district"/>
 					<xsl:text> </xsl:text>
 					<xsl:value-of select="district"/>
@@ -653,12 +744,25 @@
 		</table></td></tr>
 		<xsl:choose>
 			<xsl:when test="values_view_order!=''">
-				<tr><td><table width="100%" cellpadding="2" cellspacing="2" align="center">
-					<xsl:apply-templates select="table_header_view_order"/>
-					<xsl:apply-templates select="values_view_order"/>
-				</table></td></tr>
+				<tr><td colspand="3">
+					<table width="100%" cellpadding="2" cellspacing="2" align="center">
+						<xsl:choose>
+							<xsl:when test="use_yui_table='1'">
+								<td>
+									<div id="paging_0"> </div>
+									<div id="datatable-container_0"></div> 
+								</td>
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:apply-templates select="table_header_view_order"/>
+								<xsl:apply-templates select="values_view_order"/>
+							</xsl:otherwise>
+						</xsl:choose>
+					</table>
+				</td></tr>
 			</xsl:when>
 		</xsl:choose>
+				
 		<xsl:choose>
 			<xsl:when test="sms_data!=''">		
 				<xsl:apply-templates select="sms_data"/>
@@ -1668,6 +1772,14 @@
 					</input>
 				</td>
 				</form>
+			</tr>
+			<tr>
+				<td align="left" height="50">
+					<form method="post" action="{done_action}">
+						<input type="submit" name="save_done" value="{lang_done}">
+						</input>
+					</form>
+				</td>
 			</tr>
 		</table>
 	</xsl:template>

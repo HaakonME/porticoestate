@@ -85,7 +85,7 @@
 				if ( $test )
 				{
 					$prefs = $GLOBALS['phpgw']->preferences->create_email_preferences();
-					if (!$async->set_timer($times,'test','admin.uiasyncservice.test',$prefs['email']['address']))
+					if (!$async->set_timer($times,'test','admin.uiasyncservice.test',array('to' => $prefs['email']['address'])))
 					{
 						echo '<p><b>'.lang("Error setting timer, wrong syntax or maybe there's one already running !!!")."</b></p>\n";
 					}
@@ -104,6 +104,29 @@
 					{
 						echo '<p><b>'.lang('Error: %1 not found or other error !!!',$async->crontab)."</b></p>\n";
 					}
+					else
+					{
+						$asyncservice = 'cron';
+					}
+				}
+
+				if ( $asyncservice )
+				{
+					if (!isset($GLOBALS['phpgw_info']['server']['asyncservice'])
+						|| $asyncservice != $GLOBALS['phpgw_info']['server']['asyncservice'] )
+					{
+						$config = CreateObject('phpgwapi.config','phpgwapi');
+						$config->read();
+						$config->value('asyncservice', $asyncservice);
+						$config->save_repository();
+						unset($config);
+						$GLOBALS['phpgw_info']['server']['asyncservice'] = $asyncservice;
+					}
+
+					if(($asyncservice == 'off' || $asyncservice == 'fallback') && !$install)
+					{
+						$async->uninstall();
+					}
 				}
 			}
 			else
@@ -117,16 +140,6 @@
 			$lr_date = $last_run['end'] ? $GLOBALS['phpgw']->common->show_date($last_run['end']) : lang('never');
 			echo '<p><b>'.lang('Async services last executed').'</b>: '.$lr_date.' ('.$last_run['run_by'].")</p>\n<hr>\n";
 
-			if ( !isset($GLOBALS['phpgw_info']['server']['asyncservice'])
-				|| $asyncservice != $GLOBALS['phpgw_info']['server']['asyncservice'] )
-			{
-				$config = CreateObject('phpgwapi.config','phpgwapi');
-				$config->read_repository();
-				$config->value('asyncservice', $asyncservice);
-				$config->save_repository();
-				unset($config);
-				$GLOBALS['phpgw_info']['server']['asyncservice'] = $asyncservice;
-			}
 			if (!$async->only_fallback)
 			{
 				$installed = $async->installed();
@@ -135,7 +148,7 @@
 					$async_use['cron'] = lang('crontab only (recomended)');
 				}
 			}
-			$async_use['']    = lang('fallback (after each pageview)');
+			$async_use['fallback']    = lang('fallback (after each pageview)');
 			$async_use['off'] = lang('disabled (not recomended)');
 			echo '<p><b>'.lang('Run Asynchronous services').'</b>'.
 				' <select name="asyncservice" onChange="this.form.submit();">';
@@ -214,13 +227,15 @@
 			
 		}
 		
-		private function test($to)
+		public function test($data)
 		{
+			$to = $data['to'];
+			$from = $GLOBALS['phpgw']->preferences->values['email'];
 			if (!is_object($GLOBALS['phpgw']->send))
 			{
 				$GLOBALS['phpgw']->send = CreateObject('phpgwapi.send');
 			}
-			$returncode = $GLOBALS['phpgw']->send->msg('email',$to,$subject='Asynchronous timed services','Greatings from cron ;-)');
+			$returncode = $GLOBALS['phpgw']->send->msg('email', $to, $subject='Asynchronous timed services', 'Greatings from cron ;-)', '', '', '', $from);
 
 			if (!$returncode)	// not nice, but better than failing silently
 			{

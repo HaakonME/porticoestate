@@ -1,9 +1,9 @@
 <?php
 	/***************************************************************************\
-	* phpGroupWare - FeLaMiMail                                                 *
+	* eGroupWare - FeLaMiMail                                                   *
 	* http://www.linux-at-work.de                                               *
 	* http://www.phpgw.de                                                       *
-	* http://www.phpgroupware.org                                               *
+	* http://www.egroupware.org                                                 *
 	* Written by : Lars Kneschke [lkneschke@linux-at-work.de]                   *
 	* -------------------------------------------------                         *
 	* This program is free software; you can redistribute it and/or modify it   *
@@ -11,7 +11,7 @@
 	* Free Software Foundation; either version 2 of the License, or (at your    *
 	* option) any later version.                                                *
 	\***************************************************************************/
-	/* $Id$ */
+	/* $Id: class.bofilter.inc.php 23157 2006-12-31 11:36:55Z lkneschke $ */
 
 	class bofilter
 	{
@@ -25,34 +25,39 @@
 		{
 			$this->accountid	= $GLOBALS['phpgw_info']['user']['account_id'];
 			
-			$this->bopreferences	= CreateObject('felamimail.bopreferences');
-			$this->sofelamimail	= CreateObject('felamimail.sofelamimail');
-			$this->sofilter		= CreateObject('felamimail.sofilter');
+			$this->bopreferences	=& CreateObject('felamimail.bopreferences');
+			$this->sofelamimail	=& CreateObject('felamimail.sofelamimail');
+			$this->sofilter		=& CreateObject('felamimail.sofilter');
 			
 			$this->mailPreferences	= $this->bopreferences->getPreferences();
 			$this->sessionData['activeFilter'] = "-1";
 			
 			$this->restoreSessionData();
 			
-			if(!is_array($this->sessionData['filter']))
-			{
+			if(!is_array($this->sessionData['filter'])) {
 				$this->sessionData['filter'][0]['filterName'] = lang('Quicksearch');
 				$this->saveSessionData();
 			}
-			if(!isset($this->sessionData['activeFilter']))
+			if(!isset($this->sessionData['activeFilter'])) {
 				$this->sessionData['activeFilter'] = "-1";
+			}
 		}
 		
 		function deleteFilter($_filterID)
 		{
 			unset($this->sessionData['filter'][$_filterID]);
-			$this->sofilter->saveFilter($this->sessionData['filter']);
 			$this->saveSessionData();
+			$this->sofilter->saveFilter($this->sessionData['filter']);
 		}
-
+		
 		function getActiveFilter()
 		{
 			return $this->sessionData['activeFilter'];
+		}
+		
+		function getFilter($_filterID)
+		{
+			return $this->sessionData['filter'][$_filterID];
 		}
 		
 		function getFilterList()
@@ -62,7 +67,7 @@
 		
 		function restoreSessionData()
 		{
-			$arrayFunctions = CreateObject('phpgwapi.arrayfunctions');
+			$arrayFunctions =& CreateObject('phpgwapi.arrayfunctions');
 
 			$this->sessionData = $GLOBALS['phpgw']->session->appsession('filter_session_data');
 
@@ -108,18 +113,8 @@
 				$data['to']	= $_formData['to'];
 			if(!empty($_formData['subject']))
 				$data['subject']= $_formData['subject'];
-			if(isset($_formData['filterActive']) && $_formData['filterActive'] == "true")
-			{
-				$data['filterActive']= "true";
-			}
-
-			if(!is_array($this->sessionData['filter']))
-			{
-				print "<font color=\"red\">reset array</font><br>";
-				$this->sessionData['filter'] = array();
-			}
-
-			if($_filterID == '')
+			
+			if($_filterID === '')
 			{
 				$this->sessionData['filter'][] = $data;
 			}
@@ -156,9 +151,9 @@
 				if($_data['quickSearch'] == '')
 				{
 					$this->setActiveFilter("-1");
-			}
-			else
-			{
+				}
+				else
+				{
 					$this->setActiveFilter("0");
 					$data['filterName']	= lang('Quicksearch');
 					$data['subject']	= $_data['quickSearch'];

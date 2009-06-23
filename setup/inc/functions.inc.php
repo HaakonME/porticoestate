@@ -259,7 +259,7 @@
 			case E_STRICT:
 				$log_args['severity'] = 'N';
 				$log->notice($log_args);
-				echo "\n<br>" . lang('ERROR Notice: %1 in %2 at line %3', $error_msg, $error_file, $error_line) . "<br>\n"; //this will be commented in the final version
+			//	echo "\n<br>" . lang('ERROR Notice: %1 in %2 at line %3', $error_msg, $error_file, $error_line) . "<br>\n"; //this will be commented in the final version
 			//No default, we just ignore it, for now
 		}
 	}
@@ -339,5 +339,19 @@
 	}
 
 	$GLOBALS['phpgw_info']['server']['app_images'] = 'templates/base/images';
+
+	if($_POST['setting']['enable_mcrypt'] == 'True')
+	{
+		$GLOBALS['phpgw_info']['server']['mcrypt_enabled'] = true;
+		$_iv  = $_POST['setting']['mcrypt_iv'];
+		$_key = $_POST['setting']['setup_mcrypt_key'];
+	}
+	else
+	{
+		$_iv  = $GLOBALS['phpgw_info']['server']['mcrypt_iv'];
+		$_key = $GLOBALS['phpgw_info']['server']['setup_mcrypt_key'];	
+	}
+
+	$GLOBALS['phpgw']->crypto->init(array($_key, $_iv));
 
 	$GLOBALS['phpgw_setup'] = CreateObject('phpgwapi.setup', True, True);

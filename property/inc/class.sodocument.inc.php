@@ -35,57 +35,55 @@
 	class property_sodocument
 	{
 
-		function property_sodocument()
+		function __construct()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
-			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
-			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           = $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
-			$this->historylog	= CreateObject('property.historylog','document');
-			$this->vfs 			= CreateObject('phpgwapi.vfs');
-			$this->rootdir 		= $this->vfs->basedir;
-			$this->fakebase 	= $this->vfs->fakebase;
-			$this->socommon		= CreateObject('property.socommon');
+			$this->account				= $GLOBALS['phpgw_info']['user']['account_id'];
+			$this->bocommon				= CreateObject('property.bocommon');
+			$this->historylog			= CreateObject('property.historylog','document');
+			$this->vfs 					= CreateObject('phpgwapi.vfs');
+			$this->vfs->fakebase 		= '/property';
+			$this->fakebase 			= $this->vfs->fakebase;
+			$this->cats					= CreateObject('phpgwapi.categories');
+			$this->cats->app_name		= 'property.document';
+			$this->cats->supress_info	= true;
 
-			$this->join			= $this->socommon->join;
-			$this->like			= $this->socommon->like;
+
+			$this->db           	= & $GLOBALS['phpgw']->db;
+			$this->join				= & $this->db->join;
+			$this->like				= & $this->db->like;
 		}
 
-
-		function read_single_category($id='')
-		{
-			$this->db->query("SELECT descr FROM fm_document_category where id='$id' ");
-			$this->db->next_record();
-			return $this->db->f('descr');
-		}
 
 		function select_status_list()
 		{
+			$status = array();
 			$this->db->query("SELECT id, descr FROM fm_document_status ORDER BY id ");
 
-			$i = 0;
 			while ($this->db->next_record())
 			{
-				$status_entries[$i]['id']				= $this->db->f('id');
-				$status_entries[$i]['name']				= stripslashes($this->db->f('descr'));
-				$i++;
+				$status[] = array
+				(
+					'id'	=> $this->db->f('id'),
+					'name'	=> $this->db->f('descr',true)
+				);
 			}
-			return $status_entries;
+			return $status;
 		}
 
 		function select_branch_list()
 		{
+			$branch = array();
 			$this->db->query("SELECT id, descr FROM fm_branch ORDER BY id ");
 
-			$i = 0;
 			while ($this->db->next_record())
 			{
-				$branch_entries[$i]['id']				= $this->db->f('id');
-				$branch_entries[$i]['name']				= stripslashes($this->db->f('descr'));
-				$i++;
+				$branch[] = array
+				(
+					'id'	=> $this->db->f('id'),
+					'name'	=> $this->db->f('descr',true)
+				);
 			}
-			return $branch_entries;
+			return $branch;
 		}
 
 		function read($data)
@@ -99,8 +97,10 @@
 				$order		= isset($data['order'])?$data['order']:'';
 				$cat_id		= isset($data['cat_id']) && $data['cat_id'] ? $data['cat_id']:0;
 				$entity_id	= isset($data['entity_id'])?$data['entity_id']:'';
-				$doc_type	= isset($data['doc_type']) && $data['doc_type'] ? $data['doc_type']:0;
+				$doc_type		= isset($data['doc_type']) && $data['doc_type'] ? $data['doc_type']: 0;
 			}
+
+			$doc_types = $this->get_sub_doc_types($doc_type);
 
 			$sql = $this->bocommon->fm_cache('sql_document_' . $entity_id);
 
@@ -174,7 +174,7 @@
 				$this->cols_extra	= $this->bocommon->fm_cache('cols_extra_document_' . $entity_id);
 			}
 
-			$groupmethod= " GROUP BY fm_document.location_code,fm_document.address,fm_document.document_name";
+			$groupmethod= " GROUP BY fm_document.location_code,fm_document.address";
 
 			if ($entity_id)
 			{
@@ -195,7 +195,7 @@
 
 			$filtermethod = '';
 
-			$GLOBALS['phpgw']->config->read_repository();
+			$GLOBALS['phpgw']->config->read();
 			if(isset($GLOBALS['phpgw']->config->config_data['acl_at_location']) && $GLOBALS['phpgw']->config->config_data['acl_at_location'])
 			{
 				$access_location = $this->bocommon->get_location_list(PHPGW_ACL_READ);
@@ -215,10 +215,10 @@
 				$where= 'AND';
 			}
 
-			if ($doc_type > 0)
+			if ($doc_types && is_array($doc_types))
 			{
-				$filtermethod .= " $where fm_document.category='$doc_type' ";
-				$where= 'AND';
+				$filtermethod .= " $where fm_document.category IN (". implode(',', $doc_types) . ')';
+				$where = 'AND';
 			}
 
 			if ($filter!='all' && $filter)
@@ -237,8 +237,8 @@
 
 //echo $sql;
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			$this->db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 			$this->db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
 
 			$document_list = array();
@@ -270,23 +270,19 @@
 		{
 			if(is_array($data))
 			{
-				if ($data['start'])
-				{
-					$start=$data['start'];
-				}
-				else
-				{
-					$start=0;
-				}
-				$filter	= (isset($data['filter'])?$data['filter']:'');
-				$query = (isset($data['query'])?$data['query']:'');
-				$sort = (isset($data['sort'])?$data['sort']:'DESC');
-				$order = (isset($data['order'])?$data['order']:'');
-				$entity_id = (isset($data['entity_id'])?$data['entity_id']:0);
-				$cat_id = (isset($data['cat_id'])?$data['cat_id']:0);
-				$doc_type = (isset($data['doc_type'])?$data['doc_type']:0);
-				$location_code = (isset($data['location_code'])?$data['location_code']:'');
+				$start			= isset($data['start']) && $data['start'] ? $data['start']:0;
+				$query			= isset($data['query'])?$data['query']:'';
+				$sort			= isset($data['sort']) && $data['sort'] ? $data['sort']:'DESC';
+				$order			= isset($data['order'])?$data['order']:'';
+				$filter			= isset($data['filter']) && $data['filter'] ? (int) $data['filter']: 0;
+				$entity_id		= isset($data['entity_id']) && $data['entity_id'] ? (int)$data['entity_id']:0;
+				$cat_id			= isset($data['cat_id']) && $data['cat_id'] ? (int)$data['cat_id']: 0;
+				$doc_type		= isset($data['doc_type']) && $data['doc_type'] ? $data['doc_type']: 0;
+				$allrows		= isset($data['allrows'])?$data['allrows']:'';
+				$location_code	= isset($data['location_code'])?$data['location_code']:'';
 			}
+
+			$doc_types = $this->get_sub_doc_types($doc_type);
 
 			if ($order)
 			{
@@ -297,38 +293,55 @@
 				$ordermethod = ' order by location_code ASC';
 			}
 
-			$filtermethod = " fm_document.location_code $this->like '$location_code%'";
-
-			if ($doc_type > 0)
+			$where = 'WHERE';
+			$filtermethod = '';
+			if($location_code)
 			{
-				$filtermethod .= " AND fm_document.category='$doc_type' ";
+				$filtermethod = " $where fm_document.location_code $this->like '$location_code%'";
+				$where = 'AND';
+			}
+
+			if ($doc_types && is_array($doc_types))
+			{
+				$filtermethod .= " $where fm_document.category IN (". implode(',', $doc_types) . ')';
+				$where = 'AND';
 			}
 			if ($cat_id > 0)
 			{
-				$filtermethod .= " AND fm_document.p_cat_id=$cat_id AND fm_document.p_entity_id=$entity_id ";
+				$filtermethod .= " $where fm_document.p_cat_id={$cat_id} AND fm_document.p_entity_id={$entity_id} ";
+				$where = 'AND';
 			}
 
-
-			if ($filter)
+			if ($filter > 0)
 			{
-				$filtermethod .= " AND fm_document.user_id='$filter' ";
+				$filtermethod .= "  $where fm_document.user_id='$filter' ";
+				$where = 'AND';
 			}
 
 			if($query)
 			{
 				$query = $this->db->db_addslashes($query);
-				$querymethod = " AND fm_document.title $this->like '%$query%' OR fm_document.document_name"
-				. " $this->like '%$query%' OR fm_document.location_code $this->like '$location_code%'";
+				$querymethod = " $where (fm_document.title $this->like '%$query%' OR fm_document.document_name"
+				. " $this->like '%$query%')";
 			}
 
-			$sql = "SELECT fm_document.*, fm_document_category.descr as category FROM fm_document"
-			. " $this->join fm_document_category on fm_document.category = fm_document_category.id"
-			. " WHERE  $filtermethod $querymethod";
+			$sql = "SELECT fm_document.*, phpgw_categories.cat_name as category FROM fm_document"
+			. " $this->join phpgw_categories on fm_document.category = phpgw_categories.cat_id"
+			. " $filtermethod $querymethod";
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
-			$this->db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
+			$this->db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
+			if(!$allrows)
+			{
+				$this->db->limit_query($sql . $ordermethod,$start,__LINE__,__FILE__);
+			}
+			else
+			{
+				$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
+			}
+
+			$document_list = array();
 			while ($this->db->next_record())
 			{
 				$document_list[] = array
@@ -341,7 +354,7 @@
 					'user_id'			=> $this->db->f('user_id')
 					);
 			}
-//_debug_array($document_list);
+
 			return $document_list;
 		}
 
@@ -439,7 +452,7 @@
 				$document['vendor_id'],
 				$this->account);
 
-			$values	= $this->bocommon->validate_db_insert($values);
+			$values	= $this->db->validate_insert($values);
 
 			$this->db->query("INSERT INTO fm_document (document_name,link,title,access,category,entry_date,document_date,version,coordinator,status,"
 				. "descr,location_code,address,branch_id,vendor_id,user_id $cols) "
@@ -468,6 +481,7 @@
 
 		function edit($document)
 		{
+			$receipt = array();
 			while (is_array($document['location']) && list($input_name,$value) = each($document['location']))
 			{
 				$vals[]	= "$input_name = '$value'";
@@ -495,28 +509,43 @@
 				$address = $this->db->db_addslashes($document['location_name']);
 			}
 
-			$this->db->query("SELECT status,category,coordinator,document_name,loc1,link,p_num FROM fm_document where id='" .$document['document_id']."'",__LINE__,__FILE__);
+			$this->db->query("SELECT status,category,coordinator,document_name,location_code,link,p_entity_id,p_cat_id,p_num FROM fm_document where id='" .$document['document_id']."'",__LINE__,__FILE__);
 			$this->db->next_record();
 
-			$old_status = $this->db->f('status');
-			$old_doc_type = $this->db->f('category');
-			$old_coordinator = $this->db->f('coordinator');
-			$old_document_name = $this->db->f('document_name');
-			$old_loc1 = $this->db->f('loc1');
-			$old_link = $this->db->f('link');
-			$old_p_num = $this->db->f('p_num');
+			$old_status			= $this->db->f('status');
+			$old_doc_type		= $this->db->f('category');
+			$old_coordinator	= $this->db->f('coordinator');
+			$old_document_name	= $this->db->f('document_name');
+			$old_link			= $this->db->f('link');
+			$old_location_code	= $this->db->f('location_code');
+			$old_p_entity_id	= $this->db->f('p_entity_id');
+			$old_p_cat_id		= $this->db->f('p_cat_id');
+			$old_p_num			= $this->db->f('p_num');
+
+			$move_file = false;
+
+			if($old_location_code != $document['location_code'])
+			{
+				$move_file = true;			
+			}
+
+			if("{$old_p_entity_id}_{$old_p_cat_id}" != "{$document['extra']['p_entity_id']}_{$document['extra']['p_cat_id']}")
+			{
+				$move_file = true;			
+			}
 
 			if ($old_status != $document['status'])
 			{
-				$this->historylog->add('S',$document['document_id'],$document['status']);
+				$this->historylog->add('S',$document['document_id'],$document['status'],$old_status);
 			}
 			if ($old_doc_type != $document['doc_type'])
 			{
-				$this->historylog->add('T',$document['document_id'],$document['doc_type']);
+				$this->historylog->add('T',$document['document_id'],$document['doc_type'],$old_doc_type);
+				$move_file = true;
 			}
 			if ((int)$old_coordinator != (int)$document['coordinator'])
 			{
-				$this->historylog->add('C',$document['document_id'],$document['coordinator']);
+				$this->historylog->add('C',$document['document_id'],$document['coordinator'],$old_coordinator);
 			}
 
 			if($document['document_name_orig'] && !$document['document_name'] )
@@ -526,32 +555,34 @@
 
 			if($old_link !=$document['link'] )
 			{
-					$this->historylog->add('L',$document['document_id'],$document['link']);
+					$this->historylog->add('L',$document['document_id'],$document['link'],$old_link);
 					$alter_link=true;
 			}
 
-//_debug_array($document);
-			if ($old_document_name && ($old_document_name != $document['document_name']))
+
+			if ($old_document_name && ($old_document_name != $document['document_name'] || $move_file = true))
 			{
 				if($document['link'] && !$alter_link)
 				{
-					$this->historylog->add('L',$document['document_id'],$document['link']);
+					$this->historylog->add('L',$document['document_id'],$document['link'],$old_document_name);
 				}
 				else
 				{
-					$this->historylog->add('F',$document['document_id'],$document['document_name']);
+					$this->historylog->add('F',$document['document_id'],$document['document_name'],$old_document_name);
 				}
 
-				if($old_p_num)
+				// file is already moved
+			/*	if($old_p_entity_id)
 				{
-					$file = $this->fakebase. '/' . 'document' . '/' . $old_loc1 . '/' . $document['entity_name'] . '/' . $document['category_name'] . '/' . $p_num . '/' . $old_document_name;
+					$file = "{$this->fakebase}/document/entity_{$old_p_entity_id}_{$old_p_cat_id}/{$old_p_num}/{$old_doc_type}/$old_document_name";
 				}
 				else
 				{
-					$file = $this->fakebase. '/' . 'document' . '/' . $old_loc1 . '/' . $old_document_name;
+					$file = "{$this->fakebase}/document/{$old_location_code}/{$old_doc_type}/{$old_document_name}";
 				}
 
 				$receipt= $this->delete_file($file);
+			*/
 			}
 
 			if($document['link'])
@@ -579,18 +610,122 @@
 				'address'		=>$address
 				);
 
-			$value_set	= $this->bocommon->validate_db_update($value_set);
+			$value_set	= $this->db->validate_update($value_set);
 
 			$this->db->query("UPDATE fm_document set $value_set $vals WHERE id= '" . $document['document_id'] ."'",__LINE__,__FILE__);
 
 			$receipt['document_id'] = $document['document_id'];
 			$receipt['message'][] = array('msg'=>lang('document %1 has been edited',"'".$document['title']."'"));
 			return $receipt;
+		}
 
+		/**
+		 * Get a list of doc-types , included subtypes
+		 *
+		 * @param int $doc_type the parent doc-type
+		 * @return array parent and children
+		 */
+
+		function get_sub_doc_types($doc_type = 0)
+		{
+			$doc_types = array();
+			if($doc_type)
+			{
+				$doc_types[] = $doc_type;
+				$cat_sub = $this->cats->return_sorted_array($start = 0,$limit = false,$query = '',$sort = '',$order = '',$globals = False, $parent_id = $doc_type);
+				foreach ($cat_sub as $doc_type)
+				{
+					$doc_types[] = $doc_type['id'];
+				}
+			}
+			return $doc_types;
+		}
+
+
+		/**
+		 * Get a hierarchical array of doc-types with number of hits for each level at locatin and link to list.
+		 * Basis for the folder-menu
+		 *
+		 * @param string $location_code location_code in the (physical) location-hierarchy
+		 * @return array parent and children
+		 */
+
+		function get_files_at_location($location_code)
+		{
+			$documents = array();
+			$sql = "SELECT count(*) as hits FROM fm_document WHERE location_code $this->like '$location_code%'";
+			$this->db->query($sql,__LINE__,__FILE__);
+			if($this->db->next_record())
+			{
+				$hits = (int) $this->db->f('hits');
+
+				$x = 0; // within level
+				$y = 0; //level
+				$cache_x_at_y[$y] = $x;
+				$documents[$x] = array
+				(
+					'link'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction' => 'property.uidocument.list_doc','location_code'=> $location_code)),
+					'text'		=> lang('documents') . ' [' . $hits . ']:',
+					'descr'		=> lang('Documentation'),
+					'level'		=> 0
+				);
+			}
+			else
+			{
+				return $documents;
+			}
+
+			$categories = $this->cats->return_sorted_array(0, false);
+
+			foreach ($categories as $category)
+			{			
+				$doc_types = $this->get_sub_doc_types($category['id']);
+
+				$sql = "SELECT count(*) as hits FROM fm_document WHERE location_code $this->like '$location_code%' AND category IN (". implode(',', $doc_types) . ')';
+				$this->db->query($sql,__LINE__,__FILE__);
+				$this->db->next_record();
+				$hits = (int) $this->db->f('hits');
+
+				$level = $category['level']+1;
+				if($level == $y)
+				{
+					$x++;
+				}
+				else if($level < $y )
+				{
+					$x = $cache_x_at_y[$level]+1;
+				}
+				else if($level > $y )
+				{
+					$x = 0;
+				}
+				$y = $level;
+
+					$map = '$documents'; 
+					for ($i = 0; $i < $level ; $i++)
+					{
+						
+						$map .= '[' . $cache_x_at_y[$i] ."]['children']"; 
+					}
+
+					$map .= '[]'; 
+
+					eval($map . ' =array('
+					.	"'link'	=> '" . $GLOBALS['phpgw']->link('/index.php',array('menuaction' => 'property.uidocument.list_doc','location_code'=> $location_code, 'doc_type'=> $category['id'])) . "',\n"
+					.	"'text'			=> '" . $category['name'] . ' [' . $hits . ']' . "',\n"
+					.	"'descr'		=> '" . lang('Documentation') . "',\n"
+					.	"'level'		=> "  . ($category['level']+1) . "\n"
+					 . ');');
+
+				$cache_x_at_y[$y] = $x;
+			}
+
+			return $documents;
 		}
 
 		function delete_file($file)
 		{
+			$receipt = array();
 			if($this->vfs->file_exists(array(
 					'string' => $file,
 					'relatives' => Array(RELATIVE_NONE)
@@ -605,52 +740,51 @@
 				     )
 				)))
 				{
-					$receipt['error'][]=array('msg'=>lang('failed to delete file') . ' :'. $this->fakebase. '/' . 'document'. '/' . $document_name);
+					$receipt['error'][]=array('msg'=>lang('failed to delete file') . ' :'. $file);
 				}
 				else
 				{
-					$receipt['message'][]=array('msg'=>lang('file deleted') . ' :'. $this->fakebase. '/' . 'document'. '/' . $document_name);
+					$receipt['message'][]=array('msg'=>lang('file deleted') . ' :'. $file);
 				}
 				$this->vfs->override_acl = 0;
 			}
-
+			return $receipt;
 		}
 
-		function delete($document_id )
+		function delete($document_id)
 		{
-			$this->db->query("SELECT document_name,location_code,p_num,p_entity_id,p_cat_id FROM fm_document where id='$document_id'",__LINE__,__FILE__);
+			$receipt = array();
+			$document_id = (int) $document_id;
+			$this->db->query("SELECT document_name,location_code,p_num,p_entity_id,p_cat_id,category FROM fm_document where id='$document_id'",__LINE__,__FILE__);
 			$this->db->next_record();
 			$document_name	= $this->db->f('document_name');
 			$location_code	= $this->db->f('location_code');
-			$p_num			= $this->db->f('p_num');
 			$p_entity_id	= $this->db->f('p_entity_id');
 			$p_cat_id		= $this->db->f('p_cat_id');
-
-			$location		= split("-", $location_code);
-			$loc1	= $location[0];
-			if($p_cat_id)
-			{
-				$boadmin_entity		= CreateObject('property.boadmin_entity');
-				$entity = $boadmin_entity->read_single($p_entity_id,false);
-				$category = $boadmin_entity->read_single_category($p_entity_id,$p_cat_id);
-			}
-
+			$p_num		= $this->db->f('p_num');
+			$category	= $this->db->f('category');
+			
 			if($document_name)
 			{
-				if($p_num)
+				if($p_cat_id > 0)
 				{
-					$file = $this->fakebase. '/' . 'document' . '/' . $loc1 . '/' . $entity['name'] . '/' . $category['name'] . '/' . $p_num . '/' . $document_name;
+					$file = "{$this->fakebase}/document/entity_{$p_entity_id}_{$p_cat_id}/{$p_num}/{$category}/$document_name";
 				}
 				else
 				{
-					$file = $this->fakebase. '/' . 'document' . '/' . $loc1 . '/' . $document_name;
+					$file = "{$this->fakebase}/document/{$location_code}/{$category}/{$document_name}";
 				}
 
 				$receipt= $this->delete_file($file);
 			}
-
-			$this->db->query("DELETE FROM fm_document WHERE id='$document_id'",__LINE__,__FILE__);
-			$this->db->query("DELETE FROM fm_document_history  WHERE  history_record_id='$document_id'",__LINE__,__FILE__);
+			if(!isset($receipt['error']))
+			{
+				$this->db->transaction_begin();
+				$this->db->query("DELETE FROM fm_document WHERE id={$document_id}",__LINE__,__FILE__);
+				$this->db->query("DELETE FROM fm_document_history  WHERE  history_record_id={$document_id}",__LINE__,__FILE__);
+				$this->db->transaction_commit();
+			}
+			return $receipt;
 		}
 	}
 

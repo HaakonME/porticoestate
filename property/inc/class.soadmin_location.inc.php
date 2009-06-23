@@ -34,14 +34,12 @@
 
 	class property_soadmin_location
 	{
-		function property_soadmin_location()
+		function __construct()
 		{
 			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
-			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           	= $this->bocommon->new_db();
-
-			$this->join		= $this->bocommon->join;
-			$this->like		= $this->bocommon->like;
+			$this->db           = & $GLOBALS['phpgw']->db;
+			$this->join			= & $this->db->join;
+			$this->like			= & $this->db->like;
 		}
 
 		function reset_fm_cache()
@@ -59,7 +57,6 @@
 			if ($order)
 			{
 				$ordermethod = " order by $order $sort";
-
 			}
 			else
 			{
@@ -169,22 +166,26 @@
 		function read_single($id)
 		{
 
+			$id = (int) $id;
 			$table = 'fm_location_type';
 
-			$sql = "SELECT * FROM $table  where id='$id'";
+			$sql = "SELECT * FROM $table  where id={$id}";
 
 			$this->db->query($sql,__LINE__,__FILE__);
 
+			$standard = array();
 			if ($this->db->next_record())
 			{
-				$standard['id']			= $this->db->f('id');
-				$standard['name']		= $this->db->f('name');
-				$standard['descr']		= $this->db->f('descr');
-				$standard['list_info']	= unserialize($this->db->f('list_info'));
-				$standard['list_address']	= $this->db->f('list_address');
-
-				return $standard;
+				$standard = array
+				(
+					'id'			=> $this->db->f('id'),
+					'name'			=> $this->db->f('name'),
+					'descr'			=> $this->db->f('descr'),
+					'list_info'		=> $this->db->f('list_info',true),
+					'list_address'	=> $this->db->f('list_address')
+				);
 			}
+			return $standard;
 		}
 
 		function add($standard)
@@ -193,7 +194,7 @@
 			$standard['name'] = $this->db->db_addslashes($standard['name']);
 			$standard['descr'] = $this->db->db_addslashes($standard['descr']);
 
-			$standard['id'] = $this->bocommon->next_id('fm_location_type');
+			$standard['id'] = $this->db->next_id('fm_location_type');
 
 			$receipt['id']= $standard['id'];
 
@@ -271,7 +272,7 @@
 			$default_attrib['column_name'][]= 'remark';
 			$default_attrib['type'][]='T';
 			$default_attrib['precision'][] = false;
-			$default_attrib['nullable'][] ='false';
+			$default_attrib['nullable'][] ='True';
 			$default_attrib['input_text'][] ='Remark';
 			$default_attrib['statustext'][] ='Remark';
 			$default_attrib['attrib_sort'][] =2;
@@ -287,6 +288,40 @@
 			$default_attrib['statustext'][] ='dummy';
 			$default_attrib['attrib_sort'][] ='';
 			$default_attrib['custom'][] ='';
+
+			$j++;
+			$default_attrib['id'][]= $j;
+			$default_attrib['column_name'][]= 'area_gross';
+			$default_attrib['type'][]='N';
+			$default_attrib['precision'][] = false;
+			$default_attrib['nullable'][] ='True';
+			$default_attrib['input_text'][] ='gross area';
+			$default_attrib['statustext'][] ='Sum of the areas included within the outside face of the exterior walls of a building.';
+			$default_attrib['attrib_sort'][] =3;
+			$default_attrib['custom'][] =1;
+
+			$j++;
+			$default_attrib['id'][]= $j;
+			$default_attrib['column_name'][]= 'area_net';
+			$default_attrib['type'][]='N';
+			$default_attrib['precision'][] = false;
+			$default_attrib['nullable'][] ='True';
+			$default_attrib['input_text'][] ='Net area';
+			$default_attrib['statustext'][] ='The wall-to-wall floor area of a room.';
+			$default_attrib['attrib_sort'][] =4;
+			$default_attrib['custom'][] =1;
+
+			$j++;
+			$default_attrib['id'][]= $j;
+			$default_attrib['column_name'][]= 'area_usable';
+			$default_attrib['type'][]='N';
+			$default_attrib['precision'][] = false;
+			$default_attrib['nullable'][] ='True';
+			$default_attrib['input_text'][] ='Usable area';
+			$default_attrib['statustext'][] ='Generally measured from "paint to paint" inside the permanent walls and to the middle of partitions separating rooms.';
+			$default_attrib['attrib_sort'][] =5;
+			$default_attrib['custom'][] =1;
+
 
 			$fd=array();
 			$fd['location_code'] = array('type' => 'varchar', 'precision' => 25, 'nullable' => false);
@@ -334,6 +369,9 @@
 			$fd['remark'] = array('type' => 'text', 'nullable' => true);
 			$fd['status'] = array('type' => 'int', 'precision' => 4, 'nullable' => true);
 			$fd['change_type'] = array('type' => 'int', 'precision' => 4, 'nullable' => true);
+			$fd['area_gross'] = array('type' => 'decimal','precision' => '20','scale' => '2','nullable' => True,'default' => '0.00');
+			$fd['area_net'] = array('type' => 'decimal','precision' => '20','scale' => '2','nullable' => True,'default' => '0.00');
+			$fd['area_usable'] = array('type' => 'decimal','precision' => '20','scale' => '2','nullable' => True,'default' => '0.00');
 
 			$ix = array('location_code');
 			$uc = array();
@@ -341,7 +379,7 @@
 			$fd_history = $fd;
 			$fd_history['exp_date'] = array('type' => 'timestamp','nullable' => true,'default' => 'current_timestamp');
 
-			$add_columns_in_tables=array('fm_project','fm_tts_tickets','fm_request','fm_document','fm_investment');
+			$add_columns_in_tables = $this->get_tables_to_alter();
 
 			$this->db->transaction_begin();
 
@@ -364,6 +402,7 @@
 					$this->oProc->AddColumn($add_columns_in_tables[$i],'loc'. $standard['id'], array('type' => 'varchar', 'precision' => 4, 'nullable' => true));
 				}
 
+
 				$values_insert= array(
 					$standard['id'],
 					$standard['name'],
@@ -373,7 +412,7 @@
 				    $this->db->db_addslashes(implode(',',$uc)),
 					);
 
-				$values_insert	= $this->bocommon->validate_db_insert($values_insert);
+				$values_insert	= $this->db->validate_insert($values_insert);
 
 				$this->db->query("INSERT INTO fm_location_type (id,name, descr,pk,ix,uc) "
 					. "VALUES ($values_insert)",__LINE__,__FILE__);
@@ -395,7 +434,7 @@
 						$default_attrib['nullable'][$i]
 						);
 
-					$values_insert	= $this->bocommon->validate_db_insert($values_insert);
+					$values_insert	= $this->db->validate_insert($values_insert);
 
 					$this->db->query("INSERT INTO phpgw_cust_attribute (location_id,id,column_name,datatype,precision_,input_text,statustext,attrib_sort,custom,nullable) "
 						. "VALUES ($values_insert)",__LINE__,__FILE__);
@@ -433,6 +472,22 @@
 			return $receipt;
 		}
 
+		function get_tables_to_alter()
+		{
+			$tables = array('fm_project','fm_tts_tickets','fm_request','fm_document','fm_investment');
+			$entity			= CreateObject('property.soadmin_entity');
+			$entity_list 	= $entity->read(array('allrows' => true));
+			foreach($entity_list as $entry)
+			{
+				$cat_list = $entity->read_category(array('allrows'=>true,'entity_id'=>$entry['id']));
+				foreach($cat_list as $category)
+				{
+					$tables[] = "fm_entity_{$entry['id']}_{$category['id']}";
+				}
+			}
+			return $tables;
+		}
+
 		function edit($values)
 		{
 
@@ -445,7 +500,7 @@
 				'list_address'	=> (isset($values['list_address'])?$values['list_address']:''),
 				);
 
-			$value_set	= $this->bocommon->validate_db_update($value_set);
+			$value_set	= $this->db->validate_update($value_set);
 
 			$this->db->query("UPDATE $table SET $value_set WHERE id='" . $values['id']. "'",__LINE__,__FILE__);
 
@@ -456,9 +511,11 @@
 		}
 
 		function delete($id)
-		{
+		{	
+			$tables_to_drop_from = $this->get_tables_to_alter();
+			
+			$receipt = array();
 			$this->init_process();
-			$this->oProc->m_odb->transaction_begin();
 			$this->db->transaction_begin();
 
 			$table 		= 'fm_location_type';
@@ -467,16 +524,18 @@
 			if($this->db->f('id') > $id)
 			{
 				$this->db->transaction_abort();
-				$this->oProc->m_odb->transaction_abort();
 				$receipt['error'][] = array('msg' => lang('please delete from the bottom'));
-				$GLOBALS['phpgw']->session->appsession('receipt','property',$receipt);
-
-				return;
+				return $receipt;
 			}
 
 			$this->oProc->DropTable('fm_location' . $id);
 			$this->oProc->DropTable('fm_location' . $id . '_category');
 			$this->oProc->DropTable('fm_location' . $id . '_history');
+
+			foreach($tables_to_drop_from as $entry)
+			{
+				$this->oProc->DropColumn($entry ,array(),"loc{$id}");
+			}
 
 			$attrib_table 	= 'phpgw_cust_attribute';
 			$choice_table 	= 'phpgw_cust_choice';
@@ -486,16 +545,22 @@
 			$this->db->query("DELETE FROM {$choice_table} WHERE location_id = {$location_id}",__LINE__,__FILE__);
 			$this->db->query("DELETE FROM {$table} WHERE id=" . (int)$id,__LINE__,__FILE__);
 
-			$this->db->transaction_commit();
-			$this->oProc->m_odb->transaction_commit();
+			if($this->db->transaction_commit())
+			{
+				$receipt['message'][] = array('msg' => lang('location at level %1 has been deleted', $id));
+			}
+			else
+			{
+				$receipt['error'][] = array('msg' => lang('the process failed'));			
+			}
+			return $receipt;
 		}
-
 
 
 		function init_process()
 		{
 			$this->oProc 				= CreateObject('phpgwapi.schema_proc',$GLOBALS['phpgw_info']['server']['db_type']);
-			$this->oProc->m_odb			= $this->db;
+			$this->oProc->m_odb			= & $this->db;
 			$this->oProc->m_odb->Halt_On_Error	= 'yes';
 		}
 
@@ -519,7 +584,7 @@
 //_debug_array($history_table_def);
 			if(!($location_type==$values[$column_name]))
 			{
-				$id = $this->bocommon->next_id('phpgw_cust_attribute',array('location_id' => $location_id));
+				$id = $this->db->next_id('phpgw_cust_attribute',array('location_id' => $location_id));
 
 				$this->init_process();
 
@@ -556,7 +621,7 @@
 						''
 					);
 
-					$values	= $this->bocommon->validate_db_insert($values);
+					$values	= $this->db->validate_insert($values);
 
 					$this->db->query("INSERT INTO phpgw_cust_attribute (location_id,id,column_name, input_text, statustext,datatype,precision_,scale,default_value,nullable,custom) "
 						. "VALUES ($values)",__LINE__,__FILE__);
@@ -584,6 +649,11 @@
 			return $receipt;
 		}
 
+
+		function get_location_type()
+		{
+			return $this->select_location_type();
+		}
 
 		function select_location_type()
 		{

@@ -1000,7 +1000,11 @@
 				$year = $this->year;
 			}
 			$holiday = CreateObject('calendar.boholiday');
-			$holiday->prepare_read_holidays($year,$this->owner);
+			
+			$account = $this->contacts->are_users($this->owner);
+	//		_debug_array($account[0]['account_id']);
+			
+			$holiday->prepare_read_holidays($year,$account[0]['account_id']);
 			$this->cached_holidays = $holiday->read_holiday();
 			unset($holiday);
 		}
@@ -2530,7 +2534,7 @@
 					print_debug('UserID',$userid);
 
 					$preferences = CreateObject('phpgwapi.preferences',$userid);
-					$part_prefs = $preferences->read_repository();
+					$part_prefs = $preferences->read();
 
 					if (!$this->update_requested($userid,$part_prefs,$msg_type,$old_event,$new_event))
 					{

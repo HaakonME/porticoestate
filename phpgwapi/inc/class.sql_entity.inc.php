@@ -38,7 +38,6 @@
 	*/
 	define ('PHPGW_SQL_RETURN_SQL', 2);
 
-
 	/**
 	* SQL Generator ENTITY - helps to construct queries statements
 	*
@@ -78,7 +77,7 @@
 		* Entity, class and general section                           *
 		\*************************************************************/
 
-		function _constructor($table='', $alias='')
+		public function _constructor($table='', $alias='')
 		{
 			$this->table = $table;
 			// Temp alias name, just if not empty
@@ -623,7 +622,7 @@
 			}
 			else
 			{
-				$this->set_criteria(sql_criteria::criteria($criteria));
+				$this->set_criteria(phpgwapi_sql_criteria::criteria($criteria));
 			}
 
 			if(!empty($this->values))
@@ -898,13 +897,12 @@
 
 			$this->ldebug('add_element', array('Element' => $element), 'dump');
 
-			$default = '';//add this to stop E_NOTICE output, no idea wtf it is meant to be
 			if($method == PHPGW_SQL_DEFAULT_METHOD)
 			{
 				$this->ldebug('add_element', array
 											(
 												'Method_Default DEF' => $method_default,
-												'Method DEF' => $default
+												'Method DEF' => $method
 											));
 				$this->$method_default($element);
 			}
@@ -913,7 +911,7 @@
 				$this->ldebug('add_element', array
 											(
 												'Method_Default' => $method_default,
-												'Method' => $default
+												'Method' => $method
 											));
 				$this->$method($element);
 			}
@@ -944,6 +942,7 @@
 				}
 			}
 			// this is an error :/ not $field in map
+			trigger_error("Unknown method for {$field}", E_USER_NOTICE);
 			return;
 		}
 
@@ -962,6 +961,7 @@
 				}
 			}
 			// this is an error :/ not $field in map
+			trigger_error("Unknown real field for {$field}", E_USER_NOTICE);
 			return;
 		}
 
@@ -992,6 +992,7 @@
 				}
 			}
 			// this is an error :/ not $field in map
+			trigger_error("Unknown field {$field}", E_USER_NOTICE);
 			return;
 		}
 
@@ -1007,34 +1008,49 @@
 
 		function add_select($field)
 		{
-			$this->add_element('select',$this->make_pair($field,''));
-			$this->ldebug('add_select', array('Field' => $field));
+			if(array_key_exists($field, $this->map))
+			{
+				$this->add_element('select',$this->make_pair($field,''));
+				$this->ldebug('add_select', array('Field' => $field));
+			}
 		}
 
 		function add_criteria($field, $value)
 		{
-			$this->add_element('criteria',$this->make_pair($field,
+			if(array_key_exists($field, $this->map))
+			{
+				$this->add_element('criteria',$this->make_pair($field,
 									   $value));
-			$this->ldebug('add_criteria', array('Field' => $field));
+				$this->ldebug('add_criteria', array('Field' => $field));
+			}
 
 		}
 		function add_update($value, $field)
 		{
-			$this->add_element('update',$this->make_pair($field,
+			if(array_key_exists($field, $this->map))
+			{
+				$this->add_element('update',$this->make_pair($field,
 									 $value));
+			}
 		}
 
 		function add_delete($field, $value)
 		{
-			$this->add_element('delete',$this->make_pair($field,
+			if(array_key_exists($field, $this->map))
+			{
+				$this->add_element('delete',$this->make_pair($field,
 									 $value));
+			}
 		}
 
 		function add_insert($field, $value, $idx = 0)
 		{
-			$this->insert_index = $idx;
-			$this->add_element('insert',$this->make_pair($field,
-									  $value));
+			if(array_key_exists($field, $this->map))
+			{
+				$this->insert_index = $idx;
+				$this->add_element('insert',$this->make_pair($field, 
+						$value));
+			}
 		}
 
 		/**
@@ -1044,6 +1060,7 @@
 		*/
 		function dont_exist($data)
 		{
+			trigger_error("Sorry, this data doesn't exist {$data}", E_USER_NOTICE);
 		}
 
 		/**

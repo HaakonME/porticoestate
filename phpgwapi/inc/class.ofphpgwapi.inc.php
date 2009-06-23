@@ -8,7 +8,7 @@
 	 * @author milosch
 	 * @author (thanks to jengo and ralf)
 	 * @copyright Copyright (C) 2003-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	 * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	 * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	 * @package phpgroupware
 	 * @subpackage phpgwapi
 	 * @version $Id$
@@ -17,7 +17,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -144,7 +144,7 @@
 					//fall through
 
 				case 'ldap':
-					include_once PHPGW_API_INC . "/aaccounts/class.accounts_ldap.inc.php";
+					include_once PHPGW_API_INC . "/accounts/class.accounts_ldap.inc.php";
 					break;
 
 				default:

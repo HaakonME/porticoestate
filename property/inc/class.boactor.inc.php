@@ -59,10 +59,9 @@
 
 		function property_boactor($session=false)
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
-			$this->so 		= CreateObject('property.soactor');
-			$this->bocommon 	= CreateObject('property.bocommon');
-			$this->custom 		= createObject('property.custom_fields');
+			$this->so 			= CreateObject('property.soactor');
+			$this->bocommon 	= & $this->so->bocommon;
+			$this->custom 		= & $this->so->custom;
 
 			if ($session)
 			{
@@ -155,10 +154,11 @@
 			return (!!($has & $needed) == true);
 		}
 
-		function read()
+		function read($dry_run='')
 		{
 			$actor = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id,'allrows'=>$this->allrows,'member_id'=>$this->member_id));
+											'filter' => $this->filter,'cat_id' => $this->cat_id,'allrows'=>$this->allrows,
+											'member_id'=>$this->member_id, 'dry_run' => $dry_run));
 			$this->total_records = $this->so->total_records;
 
 			$this->uicols	= $this->so->uicols;
@@ -183,6 +183,20 @@
 
 			$values = $this->custom->prepare($values, 'property','.' . $this->role, $data['view']);
 			return $values;
+		}
+
+		/**
+		* Arrange attributes within groups
+		*
+		* @param string  $location    the name of the location of the attribute
+		* @param array   $attributes  the array of the attributes to be grouped
+		*
+		* @return array the grouped attributes
+		*/
+
+		public function get_attribute_groups($location, $attributes = array())
+		{
+			return $this->custom->get_attribute_groups('property', $location, $attributes);
 		}
 
 		function save($actor,$values_attribute='')
@@ -218,7 +232,8 @@
 			{
 				$selected=$GLOBALS['phpgw_info']['user']['preferences']['property']["actor_columns_" . $this->role];
 			}
-			$columns = $this->custom->find('property','.' . $this->role, 0, '','','',true);
+			$filter = array('list' => ''); // translates to "list IS NULL"
+			$columns = $this->custom->find('property','.' . $this->role, 0, '','','',true, false, $filter);
 			$column_list=$this->bocommon->select_multi_list($selected,$columns);
 
 			return $column_list;
@@ -236,4 +251,3 @@
 			return $this->bocommon->preserve_attribute_values($values,$values_attribute);
 		}
 	}
-

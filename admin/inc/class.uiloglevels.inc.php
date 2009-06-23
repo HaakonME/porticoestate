@@ -238,12 +238,14 @@
 				'lang_info'		=> lang('info'),
 				'lang_notice'	=> lang('notice'),
 				'lang_debug'	=> lang('debug'),
+				'lang_strict'	=> 'strict',
 				'F_selected'	=> '',
 				'E_selected'	=> '',
 				'N_selected'	=> '',
 				'W_selected'	=> '',
 				'I_selected'	=> '',
-				'D_selected'	=> ''
+				'D_selected'	=> '',
+				'S_selected'	=> ''
 			);
 			
 			if ( $current_level ) 
@@ -283,7 +285,7 @@
 			// save it...  It would be nice if phpgwapi.config had an method for just saving one setting.
 
 			$c = CreateObject('phpgwapi.config','phpgwapi');
-			$c->read_repository();
+			$c->read();
 			$c->value('log_levels', $GLOBALS['phpgw_info']['server']['log_levels']);
 			$c->save_repository();
 		}

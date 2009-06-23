@@ -103,10 +103,25 @@
 			{
 				$use_svn = true;
 				//so the 's' is kept
+
 				$this->basedir = preg_replace('/^svn/', 'http', $this->basedir);
+
 			}
-			$this->dav_user = isset($GLOBALS['phpgw_info']['user']['userid']) ? (string) $GLOBALS['phpgw_info']['user']['userid'] : '';
-			$this->dav_pwd = isset($GLOBALS['phpgw_info']['user']['passwd']) ? (string) $GLOBALS['phpgw_info']['user']['passwd'] : '';
+			
+			if(!$this->dav_user)
+			{
+				$this->dav_user = isset($GLOBALS['phpgw_info']['user']['userid']) ? (string) $GLOBALS['phpgw_info']['user']['userid'] : '';
+			}
+			//FIXME pwd has to be clear text.
+			if(!$this->dav_pwd)
+			{
+				$this->dav_pwd = isset($GLOBALS['phpgw_info']['user']['passwd']) ? (string) $GLOBALS['phpgw_info']['user']['passwd'] : '';
+			}
+			// For testing purpose:
+//			$this->dav_user = 'www-data';
+//			$this->dav_pwd = 'xxxxxx';
+
+
 			$parsed_url = parse_url($this->basedir);
 			$this->dav_host = $parsed_url['host'];
 			$this->dav_port = isset($parsed_url['port']) ? $parsed_url['port'] : '';
@@ -490,7 +505,7 @@
 				reset ($memberships);
 				while (list ($num, $group_array) = each ($memberships))
 				{
-					if ($owner_id == $group_array['account_id'])
+					if ($owner_id == $group_array->id)
 					{
 						$group_ok = 1;
 						break;
@@ -499,8 +514,7 @@
 			}
 
 			$acl = CreateObject ('phpgwapi.acl', $owner_id);
-			$acl->account_id = $owner_id;
-			$acl->read_repository ();
+			$acl->set_account_id($owner_id);
 
 			$rights = $acl->get_rights ($user_id);
 
@@ -510,7 +524,7 @@
 				reset ($memberships);
 				while (list ($num, $group_array) = each ($memberships))
 				{
-					$rights |= $acl->get_rights ($group_array['account_id']);
+					$rights |= $acl->get_rights ($group_array->id);
 				}
 			}
 
@@ -521,7 +535,7 @@
 			elseif (!$rights && $group_ok)
 			{
 				$conf = CreateObject('phpgwapi.config', 'phpgwapi');
-				$conf->read_repository();
+				$conf->read();
 				if ($conf->config_data['acl_default'] == 'grant')
 				{
 					return True;
@@ -802,7 +816,9 @@
 			{
 				$parsed_url['pwd'] = $this->dav_pwd;
 			}
+
 			$location = $this->glue_url($parsed_url);
+
 			header( 'Location: '.$location, true);
 			$GLOBALS['phpgw']->common->phpgw_exit();
 		}
@@ -1548,7 +1564,7 @@ $this->debug('cp : success '.$result);
 				if ( substr($p->fake_leading_dirs, 0, strlen($homedir)) == $homedir)
 				{ 
 					$conf = CreateObject('phpgwapi.config', 'phpgwapi');
-					$conf->read_repository();
+					$conf->read();
 					if ($conf->config_data['acl_default'] != 'grant')
 					{
 						$htaccess = 'require user '.$GLOBALS['phpgw_info']['user']['account_lid'];

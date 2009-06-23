@@ -5,7 +5,7 @@
 	* @author coreteam <phpgroupware-developers@gnu.org>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/ GNU General Public License v3 or later
+	* @license http://www.gnu.org/licenses/ GNU General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage admin
 	* @version $Id$
@@ -14,7 +14,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -34,7 +34,7 @@
 	* @author coreteam <phpgroupware-developers@gnu.org>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/ GNU General Public License v3 or later
+	* @license http://www.gnu.org/licenses/ GNU General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage admin
 	* @category accounts
@@ -46,13 +46,14 @@
 		 */
 		public $public_functions = array
 		(
-			'list_groups'	=> true,
-			'list_users'	=> true,
-			'delete_group'	=> true,
-			'delete_user'	=> true,
-			'edit_user'		=> true,
-			'edit_group'	=> true,
-			'view_user'		=> true,
+			'list_groups'				=> true,
+			'list_users'				=> true,
+			'delete_group'				=> true,
+			'delete_user'				=> true,
+			'edit_user'					=> true,
+			'edit_group'				=> true,
+			'view_user'					=> true,
+			'sync_accounts_contacts'	=> true
 		);
 
 		/**
@@ -114,7 +115,7 @@
 			$order = phpgw::get_var('order', 'string', 'GET', 'account_lid');
 			$sort = phpgw::get_var('sort', 'string', 'GET', 'ASC');
 			$total = 0;
-			$query = phpgw::get_var('query', 'string', 'POST');
+			$query = phpgw::get_var('query', 'string');
 			$GLOBALS['cd'] = phpgw::get_var('cd', 'int', 'GET');
 			$GLOBALS['phpgw_info']['flags']['app_header'] = lang('administration')
 															. ': ' . lang('list groups');
@@ -135,7 +136,7 @@
 				'sort_name'				=> $this->_nextmatches->show_sort_order(array
 											(
 												'sort'	=> $sort,
-												'var'	=> 'account_lid',
+												'var'	=> 'lid',
 												'order'	=> $order,
 												'extra'	=> $link_data
 											)),
@@ -249,15 +250,21 @@
 						array('menuaction' => 'admin.uiaccounts.edit_user'));
 			}
 
-			$query	= phpgw::get_var('query', 'string', 'POST');
-			$start	= phpgw::get_var('start', 'int');
-			$order	= phpgw::get_var('order', 'string', 'GET', 'account_lid');
-			$sort	= phpgw::get_var('sort', 'string', 'GET', 'ASC');
+			$query		= phpgw::get_var('query', 'string');
+			$start		= phpgw::get_var('start', 'int', 'GET', -1);
+			$order		= phpgw::get_var('order', 'string', 'GET', 'account_lid');
+			$sort		= phpgw::get_var('sort', 'string', 'GET', 'ASC');
+			$allrows	= phpgw::get_var('allrows', 'bool');
 
 			//this is a work around hack for the ugly nextmatch code
 			$GLOBALS['query'] = $query;
 
 			$total = 0;
+			if( $allrows )
+			{
+				$start = -1;
+				$total = -1;
+			}
 
 			$GLOBALS['phpgw_info']['flags']['app_header'] = lang('administration') . ': ' . lang('list users');
 
@@ -320,8 +327,8 @@
 
 			$status_data = array
 			(
-				'img_disabled'	=> $GLOBALS['phpgw']->common->image('phpgwapi', 'disabled', '.png'),
-				'img_enabled'	=> $GLOBALS['phpgw']->common->image('phpgwapi', 'enabled', '.png'),
+//				'img_disabled'	=> $GLOBALS['phpgw']->common->image('phpgwapi', 'disabled', '.png'),
+//				'img_enabled'	=> $GLOBALS['phpgw']->common->image('phpgwapi', 'enabled', '.png'),
 				'lang_disabled'	=> lang('disabled'),
 				'lang_enabled'	=> lang('enabled')
 			);
@@ -396,9 +403,10 @@
 					'lastname'					=> $account->lastname,
 
 					'status'					=> $account->enabled,
-					'status_img'				=> $account->enabled
+/*					'status_img'				=> $account->enabled
 													? $status_data['img_enabled']
 													: $status_data['img_disabled'],
+*/
 					'status_text'				=> $account->enabled
 													? $status_data['lang_enabled']
 													: $status_data['lang_disabled'],
@@ -427,10 +435,12 @@
 
 			$nm = array
 			(
-				'start'			=> $start,
- 				'num_records'	=> count($account_info),
- 				'all_records'	=> $total,
-				'link_data'		=> $link_data
+				'start'				=> $start,
+ 				'num_records'		=> count($account_info),
+ 				'all_records'		=> $total,
+				'link_data'			=> $link_data,
+				'allow_all_rows'	=> true,
+				'allrows'			=> $allrows
 			);
 
 			$data = array
@@ -494,7 +504,7 @@
 				{
 					$GLOBALS['phpgw']->redirect_link('/index.php', array
 					(
-						'menuaction' => 'admin.uiaccounts.view_group',
+						'menuaction' => 'admin.uiaccounts.edit_group',
 						'account_id' => $account_id
 					));
 				}
@@ -750,7 +760,7 @@
 				return;
 			}
 			$GLOBALS['phpgw']->redirect_link('/index.php',
-					array('menuaction' => 'admin.uiaccounts.view_user', 'account_id' => $account_id));
+					array('menuaction' => 'admin.uiaccounts.edit_user', 'account_id' => $account_id));
 		}
 
 		/**
@@ -786,7 +796,7 @@
 			if ( $account_id )
 			{
 				$user_data['anonymous'] = $acl->check('anonymous', 1, 'phpgwapi');
-				$user_data['changepassword'] = $acl->check('changepassword', 0xFFFF, 'preferences');
+				$user_data['changepassword'] = $acl->check('changepassword', 1, 'preferences');
 				$user_data['account_permissions'] = $this->_bo->load_apps($account_id);
 				$user_groups = $account->membership($account_id);
 
@@ -903,7 +913,7 @@
 			unset($group_ids);
 
 			/* create list of available apps */
-			$apps = createObject('phpgwapi.applications', $account_id);
+			$apps = createObject('phpgwapi.applications', $account_id ? $account_id : -1);
 			$db_perms = $apps->read_account_specific();
 
 			$available_apps = $GLOBALS['phpgw_info']['apps'];
@@ -942,6 +952,7 @@
 			$tabs = array
 			(
 				'data'	=> array('label' => lang('user data'), 'link' => '#user'),
+				'groups'	=> array('label' => lang('groups'), 'link' => '#groups'),
 				'apps'	=> array('label' => lang('applications'), 'link' => '#apps')
 			);
 			phpgwapi_yui::tabview_setup('account_edit_tabview');
@@ -1065,8 +1076,8 @@
 			$perms = array_keys($apps->read_account_specific());
 			if ( is_array($available_apps) && count($available_apps) )
 			{
-				$img_disabled = $GLOBALS['phpgw']->common->image('phpgwapi', 'stock_no', '.png', false);
-				$img_enabled = $GLOBALS['phpgw']->common->image('phpgwapi', 'stock_yes', '.png', false);
+	//			$img_disabled = $GLOBALS['phpgw']->common->image('phpgwapi', 'stock_no', '.png', false);
+	//			$img_enabled = $GLOBALS['phpgw']->common->image('phpgwapi', 'stock_yes', '.png', false);
 
 				sort($available_apps);
 				foreach ( $available_apps as $app )
@@ -1079,8 +1090,8 @@
 					$user_data['permissions'][] = array
 					(
 						'name'	=> lang($app['name']),
-						'img'	=> $enabled ? $img_enabled : $img_disabled,
-						'alt'	=> $enabled ? $lang_enabled : $lang_disabled
+				//		'img'	=> $enabled ? $img_enabled : $img_disabled,
+				//		'alt'	=> $enabled ? $lang_enabled : $lang_disabled
 					);
 				}
 			}
@@ -1183,6 +1194,11 @@
 					//TODO Make this nicer
 					echo 'Failed to delete user';
 				}
+				else
+				{
+					$GLOBALS['phpgw']->redirect_link('/index.php',
+						array('menuaction' => 'admin.uiaccounts.list_users'));
+				}
 			}
 			if( phpgw::get_var('cancel', 'bool') )
 			{
@@ -1207,12 +1223,12 @@
 				$account_id = phpgw::get_var('account_id', 'int');
 				foreach ( $accounts_list as $account )
 				{
-					if ( (int) $account['account_id'] != $account_id )
+					if ( (int) $account->id != $account_id )
 					{
 						$alist[] = array
 						(
-						  'account_id'   => $account['account_id'],
-						  'account_name' => $accounts->id2name($account['account_id'])
+						  'account_id'   => $account->id,
+						  'account_name' => $accounts->id2name($account->id)
 						);
 					}
 				}
@@ -1256,4 +1272,17 @@
 
 			return "<a href=\"{$url}\">{$lang_action}</a>";
 		}
+
+		/**
+		* Generates contacts from users
+		*
+		* @return void
+		*/
+
+		function sync_accounts_contacts()
+		{
+			$GLOBALS['phpgw']->accounts->sync_accounts_contacts();
+			$GLOBALS['phpgw']->redirect_link('/admin/index.php');
+		}
+
 	}

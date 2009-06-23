@@ -1,20 +1,20 @@
 <?php
-  /**************************************************************************\
-  * phpGroupWare - Calendar's Sidebox-Menu for idots-template                *
-  * http://www.phpgroupware.org                                              *
-  * Written by Pim Snel <pim@lingewoud.nl>                                   *
-  * --------------------------------------------                             *
-  *  This program is free software; you can redistribute it and/or modify it *
-  *  under the terms of the GNU General Public License as published by the   *
-  *  Free Software Foundation; either version 2 of the License, or (at your  *
-  *  option) any later version.                                              *
-  \**************************************************************************/
-
-  /* $Id$ */
 {
+	/**************************************************************************\
+	* eGroupWare - Calendar's Sidebox-Menu for idots-template                  *
+	* http://www.egroupware.org                                                *
+	* Written by Pim Snel <pim@lingewoud.nl>                                   *
+	* --------------------------------------------                             *
+	*  This program is free software; you can redistribute it and/or modify it *
+	*  under the terms of the GNU General Public License as published by the   *
+	*  Free Software Foundation; either version 2 of the License, or (at your  *
+	*  option) any later version.                                              *
+	\**************************************************************************/
+	
+	/* $Id: hook_sidebox_menu.inc.php 25550 2008-06-04 07:02:41Z leithoff $ */
 
  /*
-	This hookfile is for generating an app-specific side menu used in the idots 
+	This hookfile is for generating an app-specific side menu used in the idots
 	template set.
 
 	$menu_title speaks for itself
@@ -24,42 +24,103 @@
  */
 
 	$menu_title = $GLOBALS['phpgw_info']['apps'][$appname]['title'] . ' '. lang('Menu');
-	$file[] = Array(
-		'text'	=> 'Compose',
-		'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=>'felamimail.uicompose.compose')));
-		#'_NewLine_'=>'', // give a newline
-		#'INBOX'=>$GLOBALS['phpgw']->link('/index.php',array('menuaction'=>'felamimail.uifelamimail.index'))
+	$preferences = ExecMethod('felamimail.bopreferences.getPreferences');
+	$linkData = array
+	(
+		'menuaction'    => 'felamimail.uicompose.compose'
+	);
 
+	$file = array(
+		array(
+			'text' => '<a class="textSidebox" href="'. htmlspecialchars($GLOBALS['phpgw']->link('/index.php', $linkData)).'" target="_blank" onclick="egw_openWindowCentered(\''.$GLOBALS['phpgw']->link('/index.php', $linkData).'\',\''.lang('compose').'\',700,750); return false;">'.lang('compose'),
+                        'no_lang' => true,
+                    ),
+
+	);
+
+	if($preferences->preferences['deleteOptions'] == 'move_to_trash')
+	{
+		$file += Array(
+			'_NewLine_'	=> '', // give a newline
+			'empty trash'	=> "javascript:emptyTrash();",
+		);
+	}
+	
+	if($preferences->preferences['deleteOptions'] == 'mark_as_deleted')
+	{
+		$file += Array(
+			'_NewLine_'		=> '', // give a newline
+			'compress folder'	=> "javascript:compressFolder();",
+		);
+	}
+	
 	display_sidebox($appname,$menu_title,$file);
-	unset($file);
 
 	if ($GLOBALS['phpgw_info']['user']['apps']['preferences'])
 	{
+		#$mailPreferences = ExecMethod('felamimail.bopreferences.getPreferences');
 		$menu_title = lang('Preferences');
-		$sieveLinkData = array
-		(
-			'menuaction'	=> 'felamimail.uisieve.mainScreen',
-			'action'	=> 'updateFilter'
+		$file = array(
+			'Preferences'		=> $GLOBALS['phpgw']->link('/index.php','menuaction=preferences.uisettings.index&appname=felamimail'),
 		);
-                                        
+
+		if($preferences->userDefinedAccounts || $preferences->userDefinedIdentities) {
+			$linkData = array (
+				'menuaction' => 'felamimail.uipreferences.listAccountData',
+			);
+			$file['Manage eMail: Accounts / Identities'] = $GLOBALS['phpgw']->link('/index.php',$linkData);
+		}
+
+		if($preferences->ea_user_defined_signatures) {
+			$linkData = array (
+				'menuaction' => 'felamimail.uipreferences.listSignatures',
+			);
+			$file['Manage Signatures'] = $GLOBALS['phpgw']->link('/index.php',$linkData);
+		}
 		
-		$file[] = array('text'	=> 'Preferences',
-				'url'	=> $GLOBALS['phpgw']->link('/preferences/preferences.php',array('appname'=>'felamimail')));
-		$file[] = array('text'	=> 'Manage Sieve',
-				'url'	=> $GLOBALS['phpgw']->link('/index.php',$sieveLinkData));
-		$file[] = array('text'	=> 'Manage Folders',
-				'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=>'felamimail.uipreferences.listFolder')));
+		$file['Manage Folders']	= $GLOBALS['phpgw']->link('/index.php','menuaction=felamimail.uipreferences.listFolder');
 		
+		$icServer = $preferences->getIncomingServer(0);
+		if(is_a($icServer, 'defaultimap')) {
+			if($icServer->enableSieve) 
+			{
+				$linkData = array
+				(
+					'menuaction'	=> 'felamimail.uisieve.listRules',
+				);
+				$file['filter rules']	= $GLOBALS['phpgw']->link('/index.php',$linkData);
+
+				$linkData = array
+				(
+					'menuaction'	=> 'felamimail.uisieve.editVacation',
+				);
+				$file['vacation notice']	= $GLOBALS['phpgw']->link('/index.php',$linkData);
+				$file['email notification'] = $GLOBALS['phpgw']->link('/index.php','menuaction=felamimail.uisieve.editEmailNotification'); //Added email notifications
+			}
+		}
+
+		$ogServer = $preferences->getOutgoingServer(0);
+		if(is_a($ogServer, 'defaultsmtp')) {
+			if($ogServer->editForwardingAddress)
+			{
+				$linkData = array
+				(
+					'menuaction'	=> 'felamimail.uipreferences.editForwardingAddress',
+				);
+				$file['Forwarding']	= $GLOBALS['phpgw']->link('/index.php',$linkData);
+			}
+		}
+
 		display_sidebox($appname,$menu_title,$file);
-		unset($file);
 	}
 
-	if ($GLOBALS['phpgw_info']['user']['apps']['admin'])
+/*	if ($GLOBALS['phpgw_info']['user']['apps']['admin'])
 	{
 		$menu_title = lang('Administration');
-		$file[] = array('text'	=> 'Configuration',
-				'url'	=> $GLOBALS['phpgw']->link('/index.php',array('menuaction'=>'admin.uiconfig.index','appname'=>'felamimail')));
+		$file = Array(
+			'Configuration' => $GLOBALS['phpgw']->link('/index.php','menuaction=felamimail.uifelamimail.hookAdmin')
+		);
 		display_sidebox($appname,$menu_title,$file);
-	}
+	} */
 }
 ?>
