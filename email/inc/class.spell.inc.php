@@ -7,7 +7,7 @@
 	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
 	* @package email
-	* @version $Id: class.spell.inc.php 15943 2005-05-11 18:06:59Z powerstat $
+	* @version $Id$
 	* @internal Based on AngleMail http://www.anglemail.org/
 	*/
 
@@ -888,8 +888,9 @@
 			unset($GLOBALS['phpgw_info']['flags']['nonavbar']);
 			$GLOBALS['phpgw_info']['flags']['noappheader'] = True;
 			$GLOBALS['phpgw_info']['flags']['noappfooter'] = True;
-			$GLOBALS['phpgw']->common->phpgw_header();
+			$GLOBALS['phpgw']->common->phpgw_header(true);
 			
+			$GLOBALS['phpgw']->template->set_root(PHPGW_APP_TPL);
 			$GLOBALS['phpgw']->template->set_file(array(
 				'T_spell_main' => 'spell_review.tpl'
 			));

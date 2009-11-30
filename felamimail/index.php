@@ -1,7 +1,7 @@
 <?php
 	/**************************************************************************\
-	* phpGroupWare - FeLaMiMail                                              *
-	* http://www.phpgroupware.org                                              *
+	* eGroupWare - FeLaMiMail                                                  *
+	* http://www.egroupware.org                                                *
 	* http://www.phpgw.de                                                      *
 	* http://www.linux-at-work.de                                              *
 	* Written by Lars Kneschke [lkneschke@linux-at-work.de]                    *
@@ -13,13 +13,18 @@
 	\**************************************************************************/
 	/* $Id$ */
 
-	$phpgw_info['flags'] = array
+	// this is to get css inclusion working
+	$_GET['menuaction']	= 'felamimail.uifelamimail.viewMainScreen';
+
+	$GLOBALS['phpgw_info']['flags'] = array
 	(
 		'currentapp' => 'felamimail',
 		'noheader'   => True,
-		'nonavbar'   => True
+		'nonavbar'   => True,
+		'include_xajax' => True,
 	);
+								
 	include('../header.inc.php');
 
-	execMethod('felamimail.uifelamimail.index');
+	execmethod('felamimail.uifelamimail.viewMainScreen');
 ?>

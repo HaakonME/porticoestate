@@ -28,6 +28,7 @@
 			'debug',
 			'info',
 			'notice',
+			'strict',
 			'warn',
 			'error',
 			'fatal',
@@ -45,7 +46,8 @@
 			'W' => 3,
 			'N'	=> 4,
 			'I' => 5,
-			'D' => 6
+			'D' => 6,
+			'S'	=> 7
 		);
 
 		// these are used by the admin appliation when showing the log file.
@@ -57,16 +59,20 @@
 			'W' => 'warn',
 			'N'	=> 'notice',
 			'I' => 'info',
-			'D' => 'debug'
+			'D' => 'debug',
+			'S'	=> 'strict'
 		);
 
 		/**
 		 * Constructor
 		 */
-		/*
+		
 		public function __construct()
-		{}
-		*/
+		{
+//			date_default_timezone_set(date_default_timezone_get());
+			date_default_timezone_set('UTC');
+		}
+
 
 		function checkprefs()
 		{
@@ -174,6 +180,12 @@
 			return $this->log_if_level('N',  $this->make_parms($arg_array));
 		}
 
+		function strict()
+		{
+			$arg_array = func_get_args();
+			return $this->log_if_level('S',  $this->make_parms($arg_array));
+		}
+
 		function warn()
 		{
 			$arg_array = func_get_args();
@@ -215,10 +227,10 @@
 				return;
 			}
 			$db->query("insert into phpgw_log (log_date, log_app, log_account_id, log_account_lid, log_severity, log_file, log_line, log_msg) values "
-				. "('" . $db->to_timestamp(time()) . "'"
+				. "('" . date($db->datetime_format()) . "'"
 				. ",'" . $db->db_addslashes($GLOBALS['phpgw_info']['flags']['currentapp']) . "'"
-				. ","  . ( isset($GLOBALS['phpgw']->session->account_id) ? $GLOBALS['phpgw']->session->account_id : -1)
-				. ",'" . $db->db_addslashes(isset($GLOBALS['phpgw']->session->account_lid) ? $GLOBALS['phpgw']->session->account_lid : 'not authenticated') . "'"
+				. ","  . ( isset($GLOBALS['phpgw_info']['user']['id']) ? $GLOBALS['phpgw_info']['user']['id'] : -1)
+				. ",'" . $db->db_addslashes(isset($GLOBALS['phpgw_info']['user']['lid']) ? $GLOBALS['phpgw_info']['user']['lid'] : 'not authenticated') . "'"
 				. ",'" . $err->severity . "'"
 				. ",'" . $db->db_addslashes($err->fname) . "'"
 				. ","  . intval($err->line)

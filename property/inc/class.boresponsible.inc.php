@@ -9,13 +9,13 @@
 	* @package phpgroupware
 	* @subpackage property
 	* @category core
- 	* @version $Id: class.uiresponsible.inc.php 732 2008-02-10 16:21:14Z sigurd $
+ 	* @version $Id$
 	*/
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -92,9 +92,17 @@
 				$this->cat_id = phpgw::get_var('cat_id');
 			}
 
+			switch ($this->location)
+			{
+				case '.project.workorder':
+					$cats_app_name = 'property.project';
+					break;
+					default:
+					$cats_app_name = "property{$this->location}";
+			}
 
 			$this->cats					= CreateObject('phpgwapi.categories');
-			$this->cats->app_name		= "property{$this->location}";
+			$this->cats->app_name		= $cats_app_name;
 			$this->dateformat 			= $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
 		}
 
@@ -167,14 +175,16 @@
 												'filter' => $filter));
 			$this->total_records = $this->so->total_records;
 			
-			foreach($values as & $value)
+			if($value['cat_id'])
 			{
-				$category = $this->cats->return_single($value['cat_id']);
-				$value['category']		= $category[0]['name'];
-				$value['app_name']		= $category[0]['app_name'];
-				$value['created_by']	= $GLOBALS['phpgw']->accounts->id2name($value['created_by']);
-				$value['created_on']	= $GLOBALS['phpgw']->common->show_date($value['created_on'], $this->dateformat);
-			
+				foreach($values as & $value)
+				{
+					$category = $this->cats->return_single($value['cat_id']);
+					$value['category']		= $category[0]['name'];
+					$value['app_name']		= $category[0]['app_name'];
+					$value['created_by']	= $GLOBALS['phpgw']->accounts->id2name($value['created_by']);
+					$value['created_on']	= $GLOBALS['phpgw']->common->show_date($value['created_on'], $this->dateformat);
+				}
 			}
 
 			return $values;

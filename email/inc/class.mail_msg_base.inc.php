@@ -9,7 +9,7 @@
 	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
 	* @package email
-	* @version $Id: class.mail_msg_base.inc.php 17964 2007-02-20 09:55:53Z sigurdne $
+	* @version $Id$
 	* @internal Based on AngleMail http://www.anglemail.org/
 	* @internal Originally Based on Aeromail http://the.cushman.net/
 	*/
@@ -1433,7 +1433,7 @@
 				//@set_time_limit(60);
 				// login to INBOX because we know that always(?) should exist on an imap server and pop server
 				// after we are logged in we can get additional info that will lead us to the desired folder (if not INBOX)
-				$mailsvr_stream = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->open($mailsvr_callstr."INBOX", $user, $pass, '');
+				$mailsvr_stream = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->open($mailsvr_callstr."INBOX", $user, $pass, 0);
 				$pass = '';
 				
 				if ($this->debug_logins > 1) { $this->dbug->out('mail_msg.begin_request('.__LINE__.'): open returns $mailsvr_stream = ['.serialize($mailsvr_stream).']<br />'); } 
@@ -1482,7 +1482,7 @@
 					if ($this->debug_logins > 1) { $this->dbug->out('mail_msg.begin_request('.__LINE__.'): about to issue: $GLOBALS[phpgw_dcom_'.$acctnum.']->dcom->reopen('.$mailsvr_stream.', '.$mailsvr_callstr.$processed_folder_arg,', )'.'<br />'); } 
 					//$did_reopen = $tmp_a['dcom']->reopen($mailsvr_stream, $mailsvr_callstr.$processed_folder_arg, '');
 					if ($this->debug_logins > 0) { $this->dbug->out('mail_msg: begin_request('.__LINE__.'): <font color="red">MAIL SERVER COMMAND</font>'.'<br />'); } 
-					$did_reopen = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->reopen($mailsvr_stream, $mailsvr_callstr.$processed_folder_arg, '');
+					$did_reopen = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->reopen($mailsvr_stream, $mailsvr_callstr.$processed_folder_arg);
 					if ($this->debug_logins > 1) { $this->dbug->out('mail_msg.begin_request('.__LINE__.'): reopen returns: '.serialize($did_reopen).'<br />'); } 
 					// error check
 					if ($did_reopen == False)
@@ -1743,7 +1743,7 @@
 				//@set_time_limit(60);
 				if ($this->debug_logins > 1) { $this->dbug->out('mail_msg: ensure_stream_and_folder: about to call dcom->open: $GLOBALS[phpgw_dcom_'.$acctnum.']->dcom->open('.$mailsvr_callstr."INBOX".', '.$user.', '.$pass.', )'.'<br />'); }
 				if ($this->debug_logins > 0) { $this->dbug->out('mail_msg: ensure_stream_and_folder('.__LINE__.'): <font color="red">MAIL SERVER COMMAND</font>'.'<br />'); } 
-				$mailsvr_stream = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->open($mailsvr_callstr."INBOX", $user, $pass, '');
+				$mailsvr_stream = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->open($mailsvr_callstr."INBOX", $user, $pass, 0);
 				$pass = '';
 				//@set_time_limit(0);
 				if ($this->debug_logins > 1) { $this->dbug->out('mail_msg: ensure_stream_and_folder: open returns $mailsvr_stream = ['.serialize($mailsvr_stream).']<br />'); } 
@@ -1869,7 +1869,7 @@
 					if ($this->debug_logins > 1) { $this->dbug->out('mail_msg: ensure_stream_and_folder('.__LINE__.'): need to switch folders (reopen) from $preped_current_folder_arg ['.$preped_current_folder_arg.'] to $preped_folder: '.$preped_folder.'<br />'); } 
 					if ($this->debug_logins > 1) { $this->dbug->out('mail_msg: ensure_stream_and_folder('.__LINE__.'): about to issue: $GLOBALS[phpgw_dcom_'.$acctnum.']->dcom->reopen('.$mailsvr_stream.', '.$mailsvr_callstr.$preped_folder,', )'.'<br />'); } 
 					if ($this->debug_logins > 0) { $this->dbug->out('mail_msg: ensure_stream_and_folder('.__LINE__.'): <font color="red">MAIL SERVER COMMAND</font>'.'<br />'); } 
-					$did_reopen = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->reopen($mailsvr_stream, $mailsvr_callstr.$preped_folder, '');
+					$did_reopen = $GLOBALS['phpgw_dcom_'.$acctnum]->dcom->reopen($mailsvr_stream, $mailsvr_callstr.$preped_folder);
 					if ($this->debug_logins > 1) { $this->dbug->out('mail_msg: ensure_stream_and_folder('.__LINE__.'): reopen returns: '.serialize($did_reopen).'<br />'); } 
 					if ($did_reopen == False)
 					{
@@ -4437,7 +4437,7 @@ HTML;
 		*/
 		function ascii2utf($text = '')
 		{	
-			if ($text == utf8_encode($text))
+			if ((function_exists('mb_detect_encoding') && mb_detect_encoding($text) == 'UTF-8'))
 			{
 				return $text;
 			}

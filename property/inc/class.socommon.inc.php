@@ -32,6 +32,8 @@
 	 * @package property
 	 */
 
+	phpgw::import_class('phpgwapi.datetime');
+
 	class property_socommon
 	{
 		/**
@@ -45,12 +47,13 @@
 		 var $like = 'LIKE';
 
 
-		function property_socommon()
+		function __construct()
 		{
 
 			if(is_object($GLOBALS['phpgw']->db))
 			{
-				$this->db = CreateObject('phpgwapi.db');
+				$this->db = & $GLOBALS['phpgw']->db;
+				//$this->db = CreateObject('phpgwapi.db');
 			}
 			else // for setup
 			{
@@ -104,15 +107,45 @@
 			if($name && $value)
 			{
 				$value = serialize($value);
-				$this->db->query("INSERT INTO fm_cache (name,value)VALUES ('$name','$value')",__LINE__,__FILE__);
+
+				if(function_exists('gzcompress'))
+				{
+					$value =  base64_encode(gzcompress($value, 9));
+				}
+				else
+				{
+					$value = $GLOBALS['phpgw']->db->db_addslashes($value);
+				}
+
+				$this->db->query("SELECT value FROM fm_cache WHERE name='{$name}'");
+
+				if($this->db->next_record())
+				{
+					$this->db->query("UPDATE fm_cache SET value = '{$value}' WHERE name='{$name}'",__LINE__,__FILE__);
+				}
+				else
+				{
+					$this->db->query("INSERT INTO fm_cache (name,value)VALUES ('$name','$value')",__LINE__,__FILE__);
+				}
+
 			}
 			else
 			{
 				$this->db->query("SELECT value FROM fm_cache where name='$name'");
 				if($this->db->next_record())
 				{
-					$value= unserialize($this->db->f('value'));
-					return $value;
+					$ret= $this->db->f('value');
+
+					if(function_exists('gzcompress'))
+					{
+						$ret =  gzuncompress(base64_decode($ret));
+					}
+					else
+					{
+						$ret = stripslashes($ret);
+					}
+
+					return unserialize($ret);
 				}
 			}
 		}
@@ -135,7 +168,7 @@
 
 		function reset_fm_cache_userlist()
 		{
-			$this->db->query("DELETE FROM fm_cache WHERE name $this->like 'acl_userlist_%'",__LINE__,__FILE__);
+			$this->db->query("DELETE FROM fm_cache WHERE name $this->like 'acl_userlist_%'",__LINE__,__FILE__, true);
 			return $this->db->affected_rows();
 		}
 
@@ -278,11 +311,15 @@
 
 		function increment_id($name)
 		{
-			$this->db->query("SELECT value FROM fm_idgenerator WHERE name='$name'");
+			if($name == 'order') // FIXME: temporary hack
+			{
+				$name = 'workorder';
+			}
+			$this->db->query("SELECT value FROM fm_idgenerator WHERE name='{$name}'");
 			$this->db->next_record();
-			$next_id=$this->db->f('value') +1;
+			$next_id = $this->db->f('value') +1;
 
-			$this->db->query("update fm_idgenerator set value = $next_id WHERE name = 'workorder'");
+			$this->db->query("UPDATE fm_idgenerator SET value = $next_id WHERE name = '{$name}'");
 			return $next_id;
 		}
 
@@ -291,6 +328,10 @@
 			if(is_object($db))
 			{
 				$db = clone($db);
+			}
+			else if( is_object($GLOBALS['phpgw']->db) )
+			{
+				$db = & $GLOBALS['phpgw']->db;
 			}
 			else
 			{

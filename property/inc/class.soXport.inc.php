@@ -39,19 +39,15 @@
 		var $total_records = 0;
 		var $bilagsnr;
 
-		function property_soXport($useacl=true)
+		function __construct()
 		{
-
 			$GLOBALS['phpgw_info']['flags']['currentapp']	=	'property';
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
-			$this->bocommon		= CreateObject('property.bocommon');
 			$this->soinvoice	= CreateObject('property.soinvoice',true);
-			$this->db           	= $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
-			$this->join		= $this->bocommon->join;
-			$this->left_join	= $this->bocommon->left_join;
-			$this->datetimeformat	= $this->bocommon->datetimeformat;
-			$this->like		= $this->bocommon->like;
+			$this->db 			= & $GLOBALS['phpgw']->db;
+			$this->like 		= & $this->db->like;
+			$this->join 		= & $this->db->join;
+			$this->left_join	= & $this->db->left_join;
+			$this->datetimeformat	= $this->db->datetime_format();
 			$this->account_id 	= $GLOBALS['phpgw_info']['user']['account_id'];
 		}
 
@@ -62,7 +58,7 @@
 			{
 				return;
 			}
-			$sql = "select mva as tax_code from fm_location1 where loc1=" . substr($dima,0,4);
+			$sql = "select mva as tax_code from fm_location1 where loc1='" . substr($dima,0,4) . "'";
 			$this->db->query($sql);
 			$this->db->next_record();
 
@@ -117,7 +113,7 @@
 			{
 				return;
 			}
-			$sql = "select kostra_id from fm_location1 where loc1=" . substr($dima,0,4);
+			$sql = "select kostra_id from fm_location1 where loc1='" . substr($dima,0,4) . "'";
 			$this->db->query($sql);
 			$this->db->next_record();
 
@@ -190,9 +186,12 @@
 
 		function get_project($id)
 		{
-			$this->db->query("select project_id from fm_workorder where id='$id'");
+			$id = (int) $id;
+			$sql = "SELECT project_group FROM fm_workorder"
+			. " $this->join fm_project ON fm_workorder.project_id = fm_project.id WHERE fm_workorder.id={$id}";
+			$this->db->query($sql, __LINE__, __FILE__);
 			$this->db->next_record();
-			return $this->db->f('project_id');
+			return $this->db->f('project_group');
 		}
 
 		function check_spbudact_code($id)
@@ -249,18 +248,19 @@
 						false,
 						false,
 						$fields['item_type'],
-						$fields['item_id']
+						$fields['item_id'],
+						$fields['external_ref']
 						);
 
 					$bilagsnr	= $fields['bilagsnr'];
 
-					$values	= $this->bocommon->validate_db_insert($values);
+					$values	= $this->db->validate_insert($values);
 
 					$sql= "INSERT INTO fm_ecobilag (project_id,kostra_id,pmwrkord_code,bilagsnr,splitt,kildeid,kidnr,typeid,fakturadato,"
 					. " forfallsdato,regtid,artid,spvend_code,dimb,oppsynsmannid,saksbehandlerid,budsjettansvarligid,"
 					. " fakturanr,spbudact_code,loc1,dima,dimd,mvakode,periode,merknad,oppsynsigndato,saksigndato,"
-					. " budsjettsigndato,utbetalingsigndato,item_type,item_id,belop,godkjentbelop)"
-					. " VALUES ($values," . $this->bocommon->moneyformat($fields['belop']) . "," . $this->bocommon->moneyformat($fields['godkjentbelop']) . ")";
+					. " budsjettsigndato,utbetalingsigndato,item_type,item_id,external_ref, belop,godkjentbelop)"
+					. " VALUES ($values," . $this->db->money_format($fields['belop']) . "," . $this->db->money_format($fields['godkjentbelop']) . ")";
 
 					$this->db->query($sql,__LINE__,__FILE__);
 
@@ -310,22 +310,23 @@
 				$data['utbetalingid'],
 				$data['utbetalingsigndato'],
 				$data['filnavn'],
-				date("Y-m-d G:i:s"),
+				date($this->db->datetime_format()),
 				$data['item_type'],
 				$data['item_id'],
+				$data['external_ref']
 				);
 
-			$values	= $this->bocommon->validate_db_insert($values);
+			$values	= $this->db->validate_insert($values);
 
 			$sql="INSERT INTO fm_ecobilagoverf (id,bilagsnr,kidnr,typeid,kildeid,project_id,kostra_id,pmwrkord_code,fakturadato,"
 				. " periode,forfallsdato,fakturanr,spbudact_code,regtid,artid,spvend_code,dima,loc1,"
 				. " dimb,mvakode,dimd,oppsynsmannid,saksbehandlerid,budsjettansvarligid,oppsynsigndato,saksigndato,"
-				. " budsjettsigndato,merknad,splitt,utbetalingid,utbetalingsigndato,filnavn,overftid,item_type,item_id,"
+				. " budsjettsigndato,merknad,splitt,utbetalingid,utbetalingsigndato,filnavn,overftid,item_type,item_id,external_ref,"
 				. " belop,godkjentbelop,ordrebelop)"
 				. "values ($values, "
-				. $this->bocommon->moneyformat($data['belop']) . ","
-				. $this->bocommon->moneyformat($data['godkjentbelop']) . ","
-				. $this->bocommon->moneyformat($data['ordrebelop']) . ")";
+				. $this->db->money_format($data['belop']) . ","
+				. $this->db->money_format($data['godkjentbelop']) . ","
+				. $this->db->money_format($data['ordrebelop']) . ")";
 
 			$this->db->query($sql,__LINE__,__FILE__);
 //echo 'sql ' . $sql.'<br>';

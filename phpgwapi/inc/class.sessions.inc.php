@@ -10,13 +10,13 @@
 	* @license http://www.fsf.org/licenses/lgpl.html GNU Lesser General Public License
 	* @package phpgroupware
 	* @subpackage phpgwapi
-	* @version $Id: class.sessions_php.inc.php 682 2008-02-01 12:19:55Z dave $
+	* @version $Id$
 	*/
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -31,7 +31,14 @@
 	/**
 	* Set the session name to something unique for phpgw
 	*/
-	session_name('phpgwsessid');
+	if ( isset($GLOBALS['phpgw_info']['flags']['session_name']) && $GLOBALS['phpgw_info']['flags']['session_name'] )
+	{
+		session_name($GLOBALS['phpgw_info']['flags']['session_name']);
+	}
+	else
+	{
+		session_name('sessionphpgwsessid');
+	}
 
 	/*
 	 * Include the db session handler if required
@@ -139,16 +146,20 @@
 		public function __construct()
 		{
 			$this->_db			=& $GLOBALS['phpgw']->db;
-			$this->_sessionid	= phpgw::get_var(session_name());
-
-			$this->_phpgw_set_cookie_params();
-
 			$use_cookies = false;
 			if ( isset($GLOBALS['phpgw_info']['server']['usecookies'])
 				&& $GLOBALS['phpgw_info']['server']['usecookies'] == 'True' )
 			{
 				$use_cookies = true;
+				$this->_sessionid	= phpgw::get_var(session_name(), 'string', 'COOKIE');
 			}
+			else
+			{
+				$this->_sessionid	= phpgw::get_var(session_name()); // GET or POST
+			}
+
+			$this->_phpgw_set_cookie_params();
+
 			//respect the config option for cookies
 			ini_set('session.use_cookies', $use_cookies);
 
@@ -236,6 +247,7 @@
 			}
 
 			if ( phpgwapi_globally_denied::user($this->_account_lid)
+				|| !$accounts->name2id($this->_account_lid)
 				|| ( !$skip_auth && !$GLOBALS['phpgw']->auth->authenticate($this->_account_lid, $this->_passwd) )
 				|| get_class($accounts->get($accounts->name2id($this->_account_lid)))
 					== phpgwapi_account::CLASS_TYPE_GROUP )
@@ -265,7 +277,7 @@
 			if ( isset($GLOBALS['phpgw_info']['server']['usecookies'])
 				&& $GLOBALS['phpgw_info']['server']['usecookies'] )
 			{
-				//$this->phpgw_setcookie(session_name(), $this->_sessionid);
+				$this->phpgw_setcookie(session_name(), $this->_sessionid);
 				$this->phpgw_setcookie('domain', $this->_account_domain);
 			}
 
@@ -433,14 +445,18 @@
 				session_destroy();
 				$this->phpgw_setcookie(session_name());
 			}
-			else
+			else if ( $GLOBALS['phpgw_info']['server']['sessions_type'] == 'php' )
 			{
 				$sessions = $this->list_sessions(0, '', '', true);
 
 				if ( isset($sessions[$sessionid]) )
 				{
-					unlink($sessions[$sessionid]['php_session_file']);
+					unlink($sessions[$sessionid]['session_file']);
 				}
+			}
+			else
+			{
+				phpgwapi_session_handler_db::destroy($sessionid);
 			}
 
 			return true;
@@ -653,7 +669,7 @@
 		public function list_sessions($start, $order, $sort, $all_no_sort = false)
 		{
 			// We cache the data for 5mins system wide as this is an expensive operation
-			$last_updated = phpgwapi_cache::system_get('phpgwapi', 'session_list_saved');
+			$last_updated = 0; //phpgwapi_cache::system_get('phpgwapi', 'session_list_saved');
 
 			if ( is_null($last_updated) 
 				|| $last_updated < 60 * 5 )
@@ -790,9 +806,31 @@
 		*/
 		public function phpgw_setcookie($cookiename, $cookievalue='', $cookietime=0)
 		{
-			$secure = phpgw::get_var('HTTPS', 'bool', 'SERVER');
-			setcookie($cookiename, $cookievalue, $cookietime, parse_url($GLOBALS['phpgw_info']['server']['webserver_url'],PHP_URL_PATH),
-					$this->_cookie_domain, $secure, true);
+/*			$secure = phpgw::get_var('HTTPS', 'bool', 'SERVER');
+
+			if( isset( $GLOBALS['phpgw_info']['server']['webserver_url'] ) )
+			{
+				$webserver_url = $GLOBALS['phpgw_info']['server']['webserver_url'] . '/';
+			}
+			else
+			{
+				$webserver_url = '/';
+			}
+*/
+//			setcookie($cookiename, $cookievalue, $cookietime, parse_url($webserver_url, PHP_URL_PATH),
+//					$this->_cookie_domain, $secure, true);
+			setcookie($cookiename, $cookievalue, $cookietime);
+		}
+
+
+		/**
+		* Set the current user id
+		*
+		* @param int $account_id the account id - 0 = current user's id
+		*/
+		public function set_account_id($account_id = 0)
+		{
+			$this->_account_id = get_account_id($account_id);
 		}
 
 		/**
@@ -1019,9 +1057,11 @@
 		{
 			session_id($this->_sessionid);
 
-			if ( isset($GLOBALS['phpgw_info']['menuaction']) )
+			$menuaction = phpgw::get_var('menuaction');
+
+			if ( $menuaction )
 			{
-				$action = $GLOBALS['phpgw_info']['menuaction'];
+				$action = $menuaction;
 			}
 			else
 			{
@@ -1101,7 +1141,8 @@
 			$GLOBALS['phpgw_info']['user']['account_id'] = $this->_account_id;
 
 			/* init the crypto object before appsession call below */
-			$this->_key = md5($this->_sessionid . $GLOBALS['phpgw_info']['server']['encryptkey']);
+			//$this->_key = md5($this->_sessionid . $GLOBALS['phpgw_info']['server']['encryptkey']); //Sigurd: not good for permanent data
+			$this->_key = $GLOBALS['phpgw_info']['server']['encryptkey'];
 			$this->_iv  = $GLOBALS['phpgw_info']['server']['mcrypt_iv'];
 			$GLOBALS['phpgw']->crypto->init(array($this->_key, $this->_iv));
 
@@ -1220,11 +1261,13 @@
 					return false;
 				}
 			}
-
+/*
 			$GLOBALS['phpgw']->acl->set_account_id($this->_account_id);
 			$GLOBALS['phpgw']->accounts->set_account($this->_account_id);
 			$GLOBALS['phpgw']->preferences->set_account_id($this->_account_id);
 			$GLOBALS['phpgw']->applications->set_account_id($this->_account_id);
+*/
+			$GLOBALS['phpgw']->translation->populate_cache();
 
 			if (! $this->_account_lid)
 			{
@@ -1293,20 +1336,37 @@
 				return $values;
 			}
 
-			$dir = new RecursiveDirectoryIterator();
-			foreach ( $dir as $filename )
+			$dir = new RecursiveDirectoryIterator($path);
+			foreach ( $dir as $file )
 			{
+				$filename = $file->getFilename();
 				// only try php session files
 				if ( !preg_match('/^sess_([a-f0-9]+)$/', $filename) )
 				{
 					continue;
 				}
 
-				$data = unserialize(file_get_contents($filename));
+				$rawdata = file_get_contents("{$path}/{$filename}");
+
+				//taken from http://no.php.net/manual/en/function.session-decode.php#79244
+				$vars = preg_split('/([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff^|]*)\|/',
+				$rawdata, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+				$data = array();
+
+		/*		for($i=0; $vars[$i]; $i++)
+				{
+					$data[$vars[$i++]]=unserialize($vars[$i]);
+				}
+		*/
+				if(isset($vars[3]))
+				{
+					$data[$vars[0]]=unserialize($vars[1]);
+					$data[$vars[2]]=unserialize($vars[3]);
+				}
 
 				// skip invalid or anonymous sessions
 				if ( !isset($data['phpgw_session'])
-					|| $data['phpgw_session']['session_install_id'] != $this->_install_id
+					|| $data['phpgw_session']['session_install_id'] != $GLOBALS['phpgw_info']['server']['install_id']
 					|| !isset($data['phpgw_session']['session_flags'])
 					|| $data['phpgw_session']['session_flags'] == 'A' )
 				{
@@ -1315,16 +1375,16 @@
 
 				$values[$data['phpgw_session']['session_id']] = array
 				(
-					'id'		=> $data['phpgw_session']['session_id'],
-					'lid'		=> $data['phpgw_session']['session_lid'],
-					'ip'		=> $data['phpgw_session']['session_ip'],
-					'action'	=> $data['phpgw_session']['session_action'],
-					'dla'		=> $data['phpgw_session']['session_dla'],
-					'logints'	=> $data['phpgw_session']['session_logintime']
+					'id'				=> $data['phpgw_session']['session_id'],
+					'lid'				=> $data['phpgw_session']['session_lid'],
+					'ip'				=> $data['phpgw_session']['session_ip'],
+					'action'			=> $data['phpgw_session']['session_action'],
+					'dla'				=> $data['phpgw_session']['session_dla'],
+					'logints'			=> $data['phpgw_session']['session_logintime'],
+					'session_file'		=> "{$path}/{$filename}"
 				);
 			}
 			return $values;
-
 		}
 
 		/**
@@ -1439,11 +1499,26 @@
 			}
 			else
 			{
-				$this->_cookie_domain = phpgw::get_var('HTTP_HOST', 'string', 'SERVER');
+				$parts = explode(':', phpgw::get_var('HTTP_HOST', 'string', 'SERVER')); // strip portnumber if it exists in url (as in 'http://127.0.0.1:8080/')
+				$this->_cookie_domain = $parts[0];
 			}
 
+			if($this->_cookie_domain == 'localhost')
+			{
+				$this->_cookie_domain = ''; // Sigurd august 08: somehow setcookie does not accept localhost as a valid domain.
+			}
 			$secure = phpgw::get_var('HTTPS', 'bool', 'SERVER');
-			session_set_cookie_params(0, parse_url($GLOBALS['phpgw_info']['server']['webserver_url'],PHP_URL_PATH), $this->_cookie_domain, $secure, true);
+
+			if( isset( $GLOBALS['phpgw_info']['server']['webserver_url'] ) )
+			{
+				$webserver_url = $GLOBALS['phpgw_info']['server']['webserver_url'] . '/';
+			}
+			else
+			{
+				$webserver_url = '/';
+			}
+
+			session_set_cookie_params(0, parse_url($webserver_url, PHP_URL_PATH), $this->_cookie_domain, $secure, true);
 			return $this->_cookie_domain;
 		}
 
@@ -1456,10 +1531,11 @@
 		 */
 		protected function _setup_cache($write_cache = true)
 		{
-			$this->_data                = $GLOBALS['phpgw']->accounts->read_repository()->toArray();
-			$this->_data['acl']         = $GLOBALS['phpgw']->acl->read();
-			$this->_data['preferences'] = $GLOBALS['phpgw']->preferences->read_repository();
-			$this->_data['apps']        = $GLOBALS['phpgw']->applications->read_repository();
+			$this->_data                = $GLOBALS['phpgw']->accounts->read()->toArray();
+			$this->_data['fullname']	= $GLOBALS['phpgw']->accounts->read()->__toString();
+//			$this->_data['acl']         = $GLOBALS['phpgw']->acl->read(); // This one is never used
+			$this->_data['preferences'] = $GLOBALS['phpgw']->preferences->read();
+			$this->_data['apps']        = $GLOBALS['phpgw']->applications->read();
 
 			$this->_data['domain']      = $this->_account_domain;
 			$this->_data['sessionid']   = $this->_sessionid;
@@ -1495,5 +1571,16 @@
 
 			$this->_account_lid = $login;
 			$this->_account_domain = $GLOBALS['phpgw_info']['server']['default_domain'];
+		}
+
+		/**
+		* commit the sessiondata to the session handler
+		*
+		* @return bool
+		*/
+		function commit_session()
+		{
+			session_write_close();
+			return true;
 		}
 	}

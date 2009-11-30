@@ -38,11 +38,9 @@
 
 	$_GET['domain'] = isset($_SERVER['argv'][1]) ? $_SERVER['argv'][1] : 'default';
 
-
 	if(!$function = $_SERVER['argv'][2])
-
 	{
-		echo date('Y/m/d H:i:s ') . " Nothing to execute\n";
+		echo "Nothing to execute\n";
 		return;
 	}
 
@@ -55,9 +53,21 @@
 	include($path_to_phpgroupware.'/header.inc.php');
 	unset($GLOBALS['phpgw_info']['flags']['noapi']);
 
-	$db_type = $GLOBALS['phpgw_domain'][$_GET['domain']]['db_type'];
+//	$db_type = $GLOBALS['phpgw_domain'][$_GET['domain']]['db_type'];
 
 	$GLOBALS['phpgw_info']['server']['sessions_type'] = 'db';
+
+	$_domain_info = isset($GLOBALS['phpgw_domain'][$_GET['domain']]) ? $GLOBALS['phpgw_domain'][$_GET['domain']] : '';
+	if(!$_domain_info)
+	{
+		echo "not a valid domain\n";
+		die();
+	}
+	else
+	{
+		$GLOBALS['phpgw_domain'] = array();
+		$GLOBALS['phpgw_domain'][$_GET['domain']] = $_domain_info;
+	}
 
 	include(PHPGW_API_INC.'/functions.inc.php');
 
@@ -78,6 +88,8 @@
 	}
 
 	$GLOBALS['phpgw_info']['user']['apps']['admin'] = true;
+	$GLOBALS['phpgw_info']['user']['domain'] = $_GET['domain'];
+
 	$num = ExecMethod('property.custom_functions.index',$data);
 	// echo date('Y/m/d H:i:s ').$_GET['domain'].': '.($num ? "$num job(s) executed" : 'Nothing to execute')."\n";
 

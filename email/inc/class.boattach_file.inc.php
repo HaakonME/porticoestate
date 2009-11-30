@@ -8,7 +8,7 @@
 	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/gpl.html GNU General Public License
 	* @package email
-	* @version $Id: class.boattach_file.inc.php 17716 2006-12-18 11:02:13Z sigurdne $
+	* @version $Id$
 	* @internal Based on AngleMail http://www.anglemail.org/
 	* @internal Squirrelmail circa 2000-2001 http://www.squirrelmail.org
 	*/
@@ -116,8 +116,8 @@
 		{
 			if ($this->debug > 2) { echo 'emai.boattach_file.attach ('.__LINE__.'): $GLOBALS[phpgw]->msg->ref_POST data DUMP<pre>'; print_r($GLOBALS['phpgw']->msg->ref_POST);  echo '</pre>'; }
 			
-			$this->control_data['action'] = htmlentities(get_var('action', array('POST') ) );
-			$this->control_data['delete'] = get_var('delete', array('POST') );
+			$this->control_data['action'] = htmlentities(phpgw::get_var('action', 'string', 'POST' ) );
+			$this->control_data['delete'] = phpgw::get_var('delete', 'array', 'POST' );
 			
 			if ($this->debug > 2) { echo 'emai.boattach_file.attach ('.__LINE__.'): $this->control_data DUMP<pre>'; print_r($this->control_data);  echo '</pre>'; }
 		}
@@ -297,19 +297,20 @@
 					. '<br />';
 			}
 
-			$dh = dir($uploaddir);
-			while ( false !== ($file = $dh->dir() ) )
+			$dh = dir($this->uploaddir);
+
+			while ( false !== ($file = $dh->read() ) )
 			{
 				if (($file != '.')
 					&& ($file != '..')
 					&& (preg_match('/\.info/', $file)))
 				{
-					$file_info = file("{$uploaddir}/{$file}");
+					$file_info = file("{$this->uploaddir}/{$file}");
 
 					//get filesize in kb, but do not tell user a file is 0kb, because it is probably closer to 1kb
 					$real_file = str_replace('.info','',$file);
 
-					$real_file_size = (int) filesize("{$uploaddir}/{$real_file}");
+					$real_file_size = (int) filesize("{$this->uploaddir}/{$real_file}");
 					if ( $real_file_size / 1024 > 1 )
 					{
 						$real_file_size = ($real_file_size / 1024) . 'kb';
@@ -319,7 +320,7 @@
 						$real_file_size .= 'b';
 					}
 
-					if ($fup_debug > 2) { echo 'FILE contents DUMP: <pre>'; print_r(file("{$uploaddir}/{$real_file}")); echo '</pre>'; } 
+					if ($fup_debug > 2) { echo 'FILE contents DUMP: <pre>'; print_r(file("{$this->uploaddir}/{$real_file}")); echo '</pre>'; } 
 					// for every file, fill the file list template with it
 					$GLOBALS['phpgw']->template->set_var('ckbox_delete_name', 'delete[]');
 					$GLOBALS['phpgw']->template->set_var('ckbox_delete_value', substr($file,0,-5));
@@ -438,4 +439,3 @@
 	
 	
 	}
-?>

@@ -1289,7 +1289,7 @@
 			//
 			if (! $this->bo->prefs['calendar']['planner_intervals_per_day'])
 			{
-				$GLOBALS['phpgw']->preferences->read_repository();
+				$GLOBALS['phpgw']->preferences->read();
 				$GLOBALS['phpgw']->preferences->add('calendar','planner_intervals_per_day',3);
 				$GLOBALS['phpgw']->preferences->save_repository();
 				$this->bo->prefs['calendar']['planner_intervals_per_day'] = 3;
@@ -3413,7 +3413,7 @@ HTML;
 					
 					$last_slot = $slot;
 					$last_slot_end = $slot_end;
-					$user_timezone = phpgwapi_datetime::user_timezone;
+					$user_timezone = phpgwapi_datetime::user_timezone();
 					print_debug('Time',$GLOBALS['phpgw']->common->show_date($this->bo->maketime($event['start']) - $user_timezone).' - '.$GLOBALS['phpgw']->common->show_date($this->bo->maketime($event['end']) - $user_timezone));
 					print_debug('Slot',$slot);
 				}

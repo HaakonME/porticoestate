@@ -21,29 +21,42 @@
 
 	include('../header.inc.php');
 
-	if ($HTTP_POST_VARS['stateno'] != '')
+	phpgw::import_class('phpgwapi.xmlrpc_client');
+	if ($_POST['stateno'] != '')
 	{
-		$f = CreateObject('phpgwapi.xmlrpcmsg','examples.getStateName',array(CreateObject('phpgwapi.xmlrpcval',$HTTP_POST_VARS['stateno'], 'int')));
-		print "<pre>" . htmlentities($f->serialize()) . "</pre>\n";
-		$c = CreateObject('phpgwapi.xmlrpc_client',"/phpgroupware/xmlrpc.php", $HTTP_SERVER_VARS['HTTP_HOST'], 80);
-		$c->setDebug(1);
-		$r = $c->send($f);
-		if (!$r)
+		$username = 'anonymous';
+		$password = 'anonymous1';
+		$phpgw_domain = 'default';
+
+		$stateno = phpgw::get_var('stateno', 'int', 'POST', 0);
+		$c = new xmlrpc_client("{$GLOBALS['phpgw_info']['server']['webserver_url']}/xmlrpc.php?domain={$phpgw_domain}", $_SERVER['HTTP_HOST'], 80);
+		$c->setCredentials($username, $password);	 
+		$f=new xmlrpcmsg('xmlrpc.examples.findstate',array(php_xmlrpc_encode($stateno))	);
+
+//		print "<pre>" . htmlentities($f->serialize('UTF-8')) . "</pre>\n";
+//		$c->setDebug(1);
+		$r=&$c->send($f);
+
+//		$cookies = $r->cookies();
+
+		if(!$r->faultCode())
 		{
-			die('send failed');
-		}
-		$v = $r->value();
-		if (!$r->faultCode())
-		{
-			print 'State number ' . $HTTP_POST_VARS['stateno'] . ' is ' . $v->scalarval() . '<br>';
+			$v=$r->value();
+			print "</pre><br/>State number " . $stateno . " is "
+				. htmlspecialchars($v->scalarval()) . "<br/>";
 			// print "<HR>I got this value back<BR><PRE>" .
 			//  htmlentities($r->serialize()). "</PRE><HR>\n";
 		}
 		else
 		{
-			print 'Fault: ';
-			print 'Code: ' . $r->faultCode() . " Reason '" .$r->faultString()."'<br>";
+			print "An error occurred: ";
+			print "Code: " . htmlspecialchars($r->faultCode())
+				. " Reason: '" . htmlspecialchars($r->faultString()) . "'</pre><br/>";
 		}
+	}
+	else
+	{
+		$stateno = "";
 	}
 
 	echo '

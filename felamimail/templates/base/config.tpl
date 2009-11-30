@@ -1,17 +1,13 @@
 <!-- BEGIN header -->
 <form method="POST" action="{action_url}">
 <table border="0" align="center">
-   <tr class="th">
+   <tr bgcolor="{th_bg}">
     <td colspan="2"><font color="{th_text}">&nbsp;<b>{title}</b></font></td>
    </tr>
 <!-- END header -->
 <!-- BEGIN body -->
    <tr>
     <td colspan="2">&nbsp;</td>
-   </tr>
- 
-    <tr bgcolor="{row_off}">
-    <td colspan="2">&nbsp;<b>{lang_system_settings}</b></td>
    </tr>
 
    <tr bgcolor="{row_off}">
@@ -28,7 +24,6 @@
     <td>
      <select name="newsettings[imapServerMode]">
       <option value="imap" {selected_imapServerMode_imap}>IMAP</option>
-      <option value="imaptls" {selected_imapServerMode_imaptls}>IMAP-TLS</option>
       <option value="imaps-encr-only" {selected_imapServerMode_imaps-encr-only}>IMAPS Encryption only</option>
       <option value="imaps-encr-auth" {selected_imapServerMode_imaps-encr-auth}>IMAPS Authentication</option>
      </select>
@@ -104,14 +99,6 @@
      </select>
     </td>
    </tr>
-   <tr bgcolor="{row_off}">
-    <td>{lang_Enter_your_SMTP_server_user}:</td>
-    <td><input name="newsettings[smtpUser]" value="{value_smtpUser}"></td>
-   </tr>
-   <tr bgcolor="{row_on}">
-    <td>{lang_Enter_your_SMTP_server_password}:</td>
-    <td><input type= "password" name="newsettings[smtpPassword]" value="{value_smtpPassword}"></td>
-   </tr>
 
    <tr>
    	<td colspan="2">&nbsp;</td>
@@ -133,7 +120,7 @@
 
 <!-- END body -->
 <!-- BEGIN footer -->
-  <tr class="th">
+  <tr bgcolor="{th_bg}">
     <td colspan="2">
 &nbsp;
     </td>

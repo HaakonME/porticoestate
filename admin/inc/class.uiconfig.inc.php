@@ -73,7 +73,7 @@
 			$t->set_block('config','body','body');
 
 			$c = CreateObject('phpgwapi.config',$config_appname);
-			$c->read_repository();
+			$c->read();
 
 			if ($c->config_data)
 			{
@@ -172,7 +172,9 @@
 				'title'			=> lang('Site Configuration'),
 			));
 
+	//		$t->unknown_regexp = 'loose';
 			$vars = $t->get_undefined('body');
+	//		$t->unknown_regexp = '';
 
 			$GLOBALS['phpgw']->hooks->single('config',$appname);
 
@@ -193,7 +195,7 @@
 					switch($type)
 					{
 						case 'lang':
-							$t->set_var($value,lang($newval));
+							$t->set_var($value,$GLOBALS['phpgw']->translation->translate($newval, array(),false, $appname));
 							break;
 						case 'value':
 							$newval = ereg_replace(' ','_',$newval);

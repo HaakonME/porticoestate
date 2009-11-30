@@ -1,4 +1,4 @@
-<!-- $Id: workorder.xsl,v 1.13 2007/03/25 10:28:21 sigurdne Exp $ -->
+<!-- $Id$ -->
 
 	<xsl:template name="app_data">
 		<xsl:choose>
@@ -304,7 +304,7 @@
 
 <!-- add / edit -->
 
-	<xsl:template match="edit">
+	<xsl:template match="edit" xmlns:php="http://php.net/xsl">
 		<table cellpadding="2" cellspacing="2" align="center">
 			<xsl:choose>
 				<xsl:when test="msgbox_data != ''">
@@ -358,8 +358,8 @@
 					<xsl:value-of disable-output-escaping="yes" select="tabs" />
 					<div class="yui-content">
 
-<div id="project">
-<table class="contenttab" align="left">
+<div id="general">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="value_project_id!=''">
 					<tr>
@@ -398,22 +398,8 @@
 					<xsl:value-of select="value_project_name"/>
 				</td>
 			</tr>
-			<tr>
-				<td>
-					<xsl:value-of select="lang_category"/>
-				</td>
-				<xsl:for-each select="cat_list" >
-					<xsl:choose>
-						<xsl:when test="selected='selected'">
-							<td>
-								<xsl:value-of select="name"/>
-							</td>
-						</xsl:when>
-					</xsl:choose>
-				</xsl:for-each>
-			</tr>
 			<xsl:choose>
-				<xsl:when test="location_type='form'">
+				<xsl:when test="location_template_type='form'">
 					<xsl:call-template name="location_form"/>
 				</xsl:when>
 				<xsl:otherwise>
@@ -434,14 +420,18 @@
 
 				</xsl:otherwise>
 			</xsl:choose>
-			<tr>
-				<td valign="top">
-					<xsl:value-of select="lang_power_meter"/>
-				</td>
-				<td>
-					<xsl:value-of select="value_power_meter"/>
-				</td>
-			</tr>
+			<xsl:choose>
+				<xsl:when test="suppressmeter =''">
+					<tr>
+						<td valign="top">
+							<xsl:value-of select="lang_power_meter"/>
+						</td>
+						<td>
+							<xsl:value-of select="value_power_meter"/>
+						</td>
+					</tr>
+				</xsl:when>
+			</xsl:choose>
 			<tr>
 				<td>
 					<xsl:value-of select="lang_coordinator"/>
@@ -475,11 +465,25 @@
 					<xsl:value-of select="value_other_branch"/>
 				</td>
 			</tr>
-</table>
-</div>
-
-<div id="general">
-<table class="contenttab" align="left">
+			<xsl:for-each select="value_origin" >
+				<tr>
+					<td valign ="top">
+						<xsl:value-of select="descr"/>
+					</td>
+					<td>
+						<table>
+							<xsl:for-each select="data">
+								<tr>
+									<td class="th_text"  align="left" >
+										<a href="{link}"  title="{statustext}"><xsl:value-of select="id"/></a>
+										<xsl:text> </xsl:text>
+									</td>
+								</tr>
+							</xsl:for-each>
+						</table>
+					</td>
+				</tr>
+			</xsl:for-each>
 			<xsl:choose>
 				<xsl:when test="value_workorder_id!=''">
 					<tr>
@@ -511,6 +515,9 @@
 					<xsl:value-of select="lang_title"/>
 				</td>
 				<td>
+					<input type="hidden" name="values[origin]" value="{value_origin_type}"></input>
+					<input type="hidden" name="values[origin_id]" value="{value_origin_id}"></input>
+
 					<input type="text" name="values[title]" value="{value_title}" onMouseout="window.status='';return true;">
 						<xsl:attribute name="onMouseover">
 							<xsl:text>window.status='</xsl:text>
@@ -561,12 +568,60 @@
 				</tr>
 				</xsl:when>
 			</xsl:choose>
+			<xsl:choose>
+				<xsl:when test="need_approval='1'">
+				<tr>
+				<td valign="top">
+					<xsl:value-of select="lang_ask_approval"/>
+				</td>
+				<td>
+					<table>
+						<xsl:for-each select="value_approval_mail_address" >
+							<tr>
+								<td>
+									<input type="checkbox" name="values[approval][{id}]" value="True">
+										<xsl:attribute name="title">
+											<xsl:value-of select="//lang_ask_approval_statustext"/>
+										</xsl:attribute>
+									</input>
+								</td>
+								<td>
+									<input type="text" name="values[mail_address][{id}]" value="{address}">
+										<xsl:attribute name="title">
+											<xsl:value-of select="//lang_ask_approval_statustext"/>
+										</xsl:attribute>
+									</input>
+								</td>
+							</tr>
+						</xsl:for-each>
+					</table>
+				</td>
+			</tr>
+				</xsl:when>
+			</xsl:choose>
 
+			<tr>
+				<td valign="top">
+					<xsl:value-of select="lang_remark"/>
+				</td>
+				<td>
+					<textarea cols="60" rows="6" name="values[remark]" wrap="virtual" onMouseout="window.status='';return true;">
+						<xsl:attribute name="onMouseover">
+							<xsl:text>window.status='</xsl:text>
+								<xsl:value-of select="lang_remark_statustext"/>
+							<xsl:text>'; return true;</xsl:text>
+						</xsl:attribute>
+						<xsl:value-of select="value_remark"/>
+					</textarea>
+				</td>
+			</tr>
 </table>
 </div>
 
+
+
 <div id="budget">
-<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td valign="top">
 					<xsl:value-of select="lang_start_date"/>
@@ -599,9 +654,36 @@
 				</td>
 			</tr>
 
-
+				<xsl:call-template name="event_form"/>
 				<xsl:call-template name="vendor_form"/>
+				<xsl:call-template name="ecodimb_form"/>
 				<xsl:call-template name="b_account_form"/>
+
+<!--
+			<tr>
+				<td>
+					<xsl:value-of select="lang_category"/>
+				</td>
+				<xsl:for-each select="cat_list" >
+					<xsl:choose>
+						<xsl:when test="selected='selected'">
+							<td>
+								<xsl:value-of select="name"/>
+							</td>
+						</xsl:when>
+					</xsl:choose>
+				</xsl:for-each>
+			</tr>
+-->
+			<tr>
+				<td>
+					<xsl:value-of select="lang_cat_sub"/>
+				</td>
+				<td>
+					<xsl:call-template name="cat_sub_select"/>
+				</td>
+			</tr>
+	
 
 			<tr>
 				<td valign="top">
@@ -650,7 +732,14 @@
 			</tr>
 			<tr>
 				<td>
-					<xsl:value-of select="lang_charge_tenant"/>
+				<xsl:choose>
+					<xsl:when test="link_claim !=''">
+						<a href="{link_claim}"><xsl:value-of select="lang_charge_tenant"/></a>
+					</xsl:when>
+					<xsl:otherwise>
+						<xsl:value-of select="lang_charge_tenant"/>
+					</xsl:otherwise>
+				</xsl:choose>
 				</td>
 				<td>
 				<xsl:choose>
@@ -687,6 +776,16 @@
 			</tr>
 			<tr>
 				<td valign="top">
+					<xsl:value-of select="php:function('lang', 'sum estimated cost')" />
+				</td>
+				<td>
+					<xsl:value-of select="value_sum_estimated_cost"/>
+					<xsl:text> </xsl:text> [ <xsl:value-of select="currency"/> ]
+				</td>
+			</tr>
+
+			<tr>
+				<td valign="top">
 					<xsl:value-of select="lang_actual_cost"/>
 				</td>
 				<td>
@@ -698,8 +797,11 @@
 </table>
 </div>
 
+<xsl:choose>
+<xsl:when test="suppresscoordination =''">
+
 <div id="coordination">
-<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td>
 					<xsl:value-of select="lang_key_fetch"/>
@@ -740,79 +842,35 @@
 			</tr>
 </table>
 </div>
-
-<div id="extra">
-<table class="contenttab" align="left">
-			<tr>
-			<xsl:choose>
-				<xsl:when test="need_approval='yes'">
-				<td valign="top">
-					<xsl:value-of select="lang_ask_approval"/>
-				</td>
-				<td>
-				<table>
-				<tr>
-				<td>
-
-					<input type="checkbox" name="values[approval]" value="True"  onMouseout="window.status='';return true;">
-						<xsl:attribute name="onMouseover">
-							<xsl:text>window.status='</xsl:text>
-								<xsl:value-of select="lang_ask_approval_statustext"/>
-							<xsl:text>'; return true;</xsl:text>
-						</xsl:attribute>
-					</input>
-				</td>
-				<td>
-
-					<input type="text" name="values[mail_address]" value="{value_approval_mail_address}" onMouseout="window.status='';return true;">
-						<xsl:attribute name="onMouseover">
-							<xsl:text>window.status='</xsl:text>
-								<xsl:value-of select="lang_ask_approval_statustext"/>
-							<xsl:text>'; return true;</xsl:text>
-						</xsl:attribute>
-					</input>
-				</td>
-				</tr>
-				</table>
-				</td>
-				</xsl:when>
-			</xsl:choose>
-			</tr>
-
-			<tr>
-				<td valign="top">
-					<xsl:value-of select="lang_remark"/>
-				</td>
-				<td>
-					<textarea cols="60" rows="6" name="values[remark]" wrap="virtual" onMouseout="window.status='';return true;">
-						<xsl:attribute name="onMouseover">
-							<xsl:text>window.status='</xsl:text>
-								<xsl:value-of select="lang_remark_statustext"/>
-							<xsl:text>'; return true;</xsl:text>
-						</xsl:attribute>
-						<xsl:value-of select="value_remark"/>
-					</textarea>
-				</td>
-			</tr>
-</table>
-</div>
+</xsl:when>
+</xsl:choose>
 
 <div id="documents">
-<table class="contenttab" align="left">
+<table cellpadding="2" cellspacing="2" width="80%" align="center">
+ 
 	<xsl:choose>
 		<xsl:when test="files!=''">
-			<xsl:call-template name="file_list"/>
+			<!-- <xsl:call-template name="file_list"/> -->
+			<tr>
+				<td align="left" valign="top">
+					<xsl:value-of select="//lang_files"/>
+				</td>
+				<td>
+					<div id="datatable-container_1"></div>
+				</td>
+			</tr>				
 		</xsl:when>
 	</xsl:choose>
-
+									
 	<xsl:call-template name="file_upload"/>
 </table>
 
 </div>
 <div id="history">
 
+		<!--  
 		<hr noshade="noshade" width="100%" align="center" size="1"/>
-		<table width="80%" cellpadding="2" cellspacing="2" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="record_history=''">
 					<tr>
@@ -832,6 +890,32 @@
 				</xsl:otherwise>
 			</xsl:choose>
 		</table>
+		-->
+		<div id="paging_0"> </div>
+		<div id="datatable-container_0"></div>	
+
+		<script>
+			var property_js = <xsl:value-of select="property_js" />;
+			var datatable = new Array();
+			var myColumnDefs = new Array();
+
+			<xsl:for-each select="datatable">
+				datatable[<xsl:value-of select="name"/>] = [
+				{
+					values			:	<xsl:value-of select="values"/>,
+					total_records	: 	<xsl:value-of select="total_records"/>,
+					edit_action		:  	<xsl:value-of select="edit_action"/>,
+					is_paginator	:  	<xsl:value-of select="is_paginator"/>,
+					footer			:	<xsl:value-of select="footer"/>
+				}
+				]
+			</xsl:for-each>
+
+			<xsl:for-each select="myColumnDefs">
+				myColumnDefs[<xsl:value-of select="name"/>] = <xsl:value-of select="values"/>
+			</xsl:for-each>
+		</script>
+							
 </div>
 </div>
 </div>
@@ -962,8 +1046,8 @@
 		<div class="yui-navset" id="workorder_tabview">
 			<xsl:value-of disable-output-escaping="yes" select="tabs" />
 			<div class="yui-content">
-<div id="project">
-	<table align="left">
+<div id="general">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td width="25%" >
 					<xsl:value-of select="lang_project_id"/>
@@ -1010,15 +1094,18 @@
 					</tr>
 				</xsl:when>
 			</xsl:choose>
-
-			<tr>
-				<td valign="top">
-					<xsl:value-of select="lang_power_meter"/>
-				</td>
-				<td>
-					<xsl:value-of select="value_power_meter"/>
-				</td>
-			</tr>
+			<xsl:choose>
+				<xsl:when test="suppressmeter =''">
+					<tr>
+						<td valign="top">
+							<xsl:value-of select="lang_power_meter"/>
+						</td>
+						<td>
+							<xsl:value-of select="value_power_meter"/>
+						</td>
+					</tr>
+				</xsl:when>
+			</xsl:choose>
 			<tr>
 				<td>
 					<xsl:value-of select="lang_coordinator"/>
@@ -1052,10 +1139,25 @@
 					<xsl:value-of select="value_other_branch"/>
 				</td>
 			</tr>
-</table>
-</div>
-<div id="general">
-<table class="contenttab" align="left">
+			<xsl:for-each select="value_origin" >
+				<tr>
+					<td valign ="top">
+						<xsl:value-of select="descr"/>
+					</td>
+					<td>
+						<table>
+							<xsl:for-each select="data">
+								<tr>
+									<td class="th_text"  align="left" >
+										<a href="{link}"  title="{statustext}"><xsl:value-of select="id"/></a>
+										<xsl:text> </xsl:text>
+									</td>
+								</tr>
+							</xsl:for-each>
+						</table>
+					</td>
+				</tr>
+			</xsl:for-each>
 
 			<tr>
 				<td>
@@ -1090,15 +1192,33 @@
 					<xsl:value-of select="lang_descr"/>
 				</td>
 				<td>
-					<xsl:value-of select="value_descr"/>
+					<textarea cols="60" rows="6" name="values[remark]" wrap="virtual" onMouseout="window.status='';return true;">
+						<xsl:attribute name="readonly">
+							<xsl:text>readonly</xsl:text>
+						</xsl:attribute>
+						<xsl:value-of select="value_descr"/>
+					</textarea>
+
 				</td>
 			</tr>
-</table>
+			<tr>
+				<td valign="top">
+					<xsl:value-of select="lang_remark"/>
+				</td>
+				<td>
+					<textarea cols="60" rows="6" name="values[remark]" wrap="virtual" onMouseout="window.status='';return true;">
+						<xsl:attribute name="readonly">
+							<xsl:text>readonly</xsl:text>
+						</xsl:attribute>
+						<xsl:value-of select="value_remark"/>
+					</textarea>
+				</td>
+			</tr>
+		</table>
 </div>
 
 <div id="budget">
-<table class="contenttab" align="left">
-
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td valign="top">
 					<xsl:value-of select="lang_vendor"/>
@@ -1109,6 +1229,12 @@
 					<xsl:value-of select="value_vendor_name"/>
 				</td>
 			</tr>
+			<xsl:choose>
+				<xsl:when test="ecodimb_data!=''">
+					<xsl:call-template name="ecodimb_view"/>
+				</xsl:when>
+			</xsl:choose>
+
 			<tr>
 				<td valign="top">
 					<xsl:value-of select="lang_b_account"/>
@@ -1196,9 +1322,11 @@
 </table>
 </div>
 
-<div id="coordination">
-<table class="contenttab" align="left">
+<xsl:choose>
+<xsl:when test="suppresscoordination =''">
 
+<div id="coordination">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<tr>
 				<td>
 					<xsl:value-of select="lang_key_fetch"/>
@@ -1243,28 +1371,11 @@
 			</tr>
 </table>
 </div>
-
-<div id="extra">
-<table class="contenttab" align="left">
-			<tr>
-				<td valign="top">
-					<xsl:value-of select="lang_remark"/>
-				</td>
-				<td>
-					<textarea cols="60" rows="6" name="values[remark]" wrap="virtual" onMouseout="window.status='';return true;">
-						<xsl:attribute name="readonly">
-							<xsl:text>readonly</xsl:text>
-						</xsl:attribute>
-						<xsl:value-of select="value_remark"/>
-					</textarea>
-				</td>
-			</tr>
-</table>
-</div>
-
+</xsl:when>
+</xsl:choose>
 
 <div id="documents">
-<table class="contenttab" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="files!=''">
 					<xsl:call-template name="file_list_view"/>
@@ -1276,7 +1387,7 @@
 <div id="history">
 
 		<hr noshade="noshade" width="100%" align="center" size="1"/>
-		<table width="80%" cellpadding="2" cellspacing="2" align="left">
+		<table cellpadding="2" cellspacing="2" width="80%" align="center">
 			<xsl:choose>
 				<xsl:when test="record_history=''">
 					<tr>

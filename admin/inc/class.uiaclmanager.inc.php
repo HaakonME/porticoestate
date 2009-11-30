@@ -14,7 +14,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -194,7 +194,7 @@
 			);
 
 			$acl    = createobject('phpgwapi.acl', $account_id);
-			$acl->read_repository();
+			$acl->read();
 
 			$this->_template->set_var('form_action', $GLOBALS['phpgw']->link('/index.php', $link_values));
 			$this->_template->set_var('lang_title', lang('ACL Manager'));
@@ -264,6 +264,18 @@ HTML;
 			$GLOBALS['phpgw_info']['flags']['app_header'] = lang('admin') . ': ' . lang('list addressmasters');
 			$GLOBALS['phpgw']->xslttpl->add_file('addressmaster');
 
+			try
+			{
+				if($GLOBALS['phpgw']->locations->get_id('addressbook', 'addressmaster') == 0)
+				{
+					$GLOBALS['phpgw']->locations->add('addressmaster', 'Address Master', 'addressbook');
+				}
+			}
+			catch(Exception $e)
+			{
+				$GLOBALS['phpgw']->locations->add('addressmaster', 'Address Master', 'addressbook');
+			}
+
 			$admins = $this->_boacl->list_addressmasters();
 
 			//_debug_array($admins);
@@ -326,7 +338,7 @@ HTML;
 		 */
 		public function accounts_popup()
 		{
-			return $GLOBALS['phpgw']->accounts_popup->accounts_popup('admin_acl');
+			return $GLOBALS['phpgw']->accounts_popup->render('admin_acl');
 		}
 
 		/**
@@ -346,10 +358,10 @@ HTML;
 
 			if ( phpgw::get_var('save', 'bool', 'POST') )
 			{
-				$account_addressmaster = phpgw::get_var('account_addressmaster', 'int', 'POST', array());
+				$account_addressmaster = phpgw::get_var('account_addressmaster', 'string', 'POST', array());
 				$group_addressmaster = phpgw::get_var('group_addressmaster', 'int', 'POST', array());
 
-				$error = $this->_boacl->check_values($account_addressmaster, $group_addressmaster);
+				$error = array();//$this->_boacl->check_values($account_addressmaster, $group_addressmaster);
 				if ( count($error) )
 				{
 					$error_message = $GLOBALS['phpgw']->common->error_list($error);
@@ -372,7 +384,7 @@ HTML;
 			$popwin_user = array();
 			$select_user = array();
 			if ( isset($GLOBALS['phpgw_info']['user']['preferences']['common']['account_selection'])
-				&& $GLOBALS['phpgw_info']['user']['preferences']['common']['account_selection'] == 'popup')
+				&& $GLOBALS['phpgw_info']['user']['preferences']['common']['account_selection'] == 'popup_xxxx') // FIXME 'popup is broken'
 			{
 				$usel = $this->_boacl->list_addressmasters();
 				foreach ( $usel as $acc )

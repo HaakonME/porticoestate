@@ -1,4 +1,4 @@
-<!-- $Id: admin.xsl,v 1.2 2006/10/05 11:33:54 sigurdne Exp $ -->
+<!-- $Id$ -->
 
 	<xsl:template name="app_data">
 		<xsl:choose>
@@ -53,6 +53,13 @@
 		<table width="100%" cellpadding="2" cellspacing="2" align="center">
 		<xsl:variable name="form_action"><xsl:value-of select="form_action"/></xsl:variable>
 		<form method="post" action="{$form_action}">
+			<tr height="30">
+				<td valign="top" align="left">
+					<xsl:value-of select="lang_enable_inheritance"/>
+					<xsl:text>: </xsl:text>
+					<input type="checkbox" name="enable_inheritance" value="true" title="{lang_enable_inheritance_statustext}"></input>
+				</td>
+			</tr>
 			<tr class="th">
 				<xsl:choose>
 					<xsl:when test="values_groups!=''">
@@ -766,7 +773,8 @@
 				</xsl:attribute>
 
 				<td align="right">
-					<INPUT type="checkbox" name="values[select][{$key_id}]" value="true"></INPUT>				</td>
+					<INPUT type="checkbox" name="values[select][{$key_id}]" value="true"></INPUT>
+				</td>
 				<td align="right">
 					<xsl:value-of select="descr"/>
 				</td>
@@ -872,7 +880,7 @@
 					<xsl:value-of select="lang_email"/>
 				</td>
 				<td>
-					<input type="hidden" name="filter" value="{value_user_id}"></input>
+					<input type="hidden" name="user_id" value="{value_user_id}"></input>
 					<input type="hidden" name="values[old_email]" value="{value_old_email}"></input>
 					<input type="text" size = "30" name="values[email]" value="{value_email}" onMouseout="window.status='';return true;">
 						<xsl:attribute name="onMouseover">
@@ -930,7 +938,7 @@
 				</td>
 				<td align="left">
 					<input type="hidden" name="values[old_default_tts_category]" value="{value_old_default_tts_category}"></input>
-					<select name="values[default_tts_category]" class="forms" title="{lang_default_tts_category_statustext}" style="cursor:help">
+					<select name="values[default_tts_category]" class="forms" title="{lang_default_tts_category_statustext}">
 						<option value=""><xsl:value-of select="lang_no_cat"/></option>
 						<xsl:apply-templates select="tts_category"/>
 					</select>

@@ -41,7 +41,7 @@
 		$setup_tpl->set_file(array(
 			'sqlarr'   => 'arraydl.tpl'
 		));
-		$setup_tpl->set_var('idstring',"/* \$Id" . ": tables_current.inc.php" . ",v 1.0" . " 2001/05/28 08:42:04 username " . "Exp \$ */");
+		$setup_tpl->set_var('idstring',"/* \$Id" . ": tables_current.inc.php" . ",v 1.0 " . @date('Y/m/d',time()) .  " username " . "Exp \$ */");
 		$setup_tpl->set_block('sqlarr','sqlheader','sqlheader');
 		$setup_tpl->set_block('sqlarr','sqlbody','sqlbody');
 		$setup_tpl->set_block('sqlarr','sqlfooter','sqlfooter');
@@ -101,24 +101,34 @@
 
 		if (count($fk) > 1)
 		{
-			$GLOBALS['setup_tpl']->set_var('fks', "\n\t\t\t\t'" . implode(",\n\t\t\t\t'",$fk) );
+			$GLOBALS['setup_tpl']->set_var('fks', "\n\t\t\t\t" . implode(",\n\t\t\t\t",$fk) );
 		}
 		elseif($fk && !empty($fk))
 		{
-			$GLOBALS['setup_tpl']->set_var('fks', "'" . $fk[0]);
+			$GLOBALS['setup_tpl']->set_var('fks', $fk[0]);
 		}
 		else
 		{
 			$GLOBALS['setup_tpl']->set_var('fks','');
 		}
-
 		if (count($ix) > 1)
 		{
-			$GLOBALS['setup_tpl']->set_var('ixs', implode(",",$ix));
+			foreach($ix as $entry)
+			{
+				if(count($entry) > 1)
+				{
+					$ix_temp[] = "array('" . implode("','",$entry) . "')";
+				}
+				else
+				{
+					$ix_temp[] = "array('{$entry}')";
+				}
+			}
+			$GLOBALS['setup_tpl']->set_var('ixs', implode(",",$ix_temp));
 		}
 		elseif($ix && !empty($ix))
 		{
-			$GLOBALS['setup_tpl']->set_var('ixs', $ix[0]);
+			$GLOBALS['setup_tpl']->set_var('ixs', "'{$ix[0]}'");
 		}
 		else
 		{

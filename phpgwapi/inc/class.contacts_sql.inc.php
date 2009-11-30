@@ -65,6 +65,7 @@
 		var $account_id = 0;
 		var $total_records = 0;
 		var $grants;
+		protected $global_lock = false;
 		/**
 		* All exporteds fields
 		*
@@ -796,45 +797,46 @@
 				'n_family'			=> $person_data['last_name'],
 				'n_suffix'			=> $person_data['suffix'],
 				'label'				=> '',
-				'adr_one_street'	=> $person_data['locations'][1]['add1'],
-				'adr_one_locality'	=> $person_data['locations'][1]['city'],
-				'adr_one_region'	=> $person_data['locations'][1]['state'],
-				'adr_one_postalcode'=> $person_data['locations'][1]['postal_code'],
-				'adr_one_countryname'=> $person_data['locations'][1]['country'],
-				'adr_one_type'		=> $person_data['locations'][1]['type'],
-				'adr_two_street'	=> $person_data['locations'][2]['add1'],
-				'adr_two_locality'	=> $person_data['locations'][2]['city'],
-				'adr_two_region'	=> $person_data['locations'][2]['state'],
-				'adr_two_postalcode'=> $person_data['locations'][2]['postal_code'],
-				'adr_two_countryname'=> $person_data['locations'][2]['country'],
-				'adr_two_type'		=> $person_data['locations'][2]['type'],
-				'tz'				=> $person_data['locations'][1]['tz'],
+				'adr_one_street'	=> isset($person_data['locations'][1]['add1']) ? $person_data['locations'][1]['add1'] : '',
+				'adr_one_locality'	=> isset($person_data['locations'][1]['city']) ? $person_data['locations'][1]['city'] : '',
+				'adr_one_region'	=> isset($person_data['locations'][1]['state']) ? $person_data['locations'][1]['state'] : '',
+				'adr_one_postalcode'=> isset($person_data['locations'][1]['postal_code']) ? $person_data['locations'][1]['postal_code'] : '',
+				'adr_one_countryname'=> isset($person_data['locations'][1]['country']) ? $person_data['locations'][1]['country'] : '',
+				'adr_one_type'		=> isset($person_data['locations'][1]['type']) ? $person_data['locations'][1]['type'] : '',
+				'adr_two_street'	=> isset($person_data['locations'][2]['add1']) ? $person_data['locations'][2]['add1'] : '',
+				'adr_two_locality'	=> isset($person_data['locations'][2]['city']) ? $person_data['locations'][2]['city'] : '',
+				'adr_two_region'	=> isset($person_data['locations'][2]['state']) ? $person_data['locations'][2]['state'] : '',
+				'adr_two_postalcode'=> isset($person_data['locations'][2]['postal_code']) ? $person_data['locations'][2]['postal_code'] : '',
+				'adr_two_countryname'=> isset($person_data['locations'][2]['country']) ? $person_data['locations'][2]['country'] : '',
+				'adr_two_type'		=> isset($person_data['locations'][2]['type']) ? $person_data['locations'][2]['type'] : '',
+				'tz'				=> isset($person_data['locations'][1]['tz']) ? $person_data['locations'][1]['tz'] : '',
 				'geo'				=> '',
-				'tel_work'			=> $person_data['work phone'],
-				'tel_home'			=> $person_data['home phone'],
-				'tel_voice'			=> $person_data['voice phone'],
-				'tel_msg'			=> $person_data['msg phone'],
-				'tel_fax'			=> $person_data['work fax'],
-				'tel_pager'			=> $person_data['pager'],
-				'tel_cell'			=> $person_data['mobile (cell) phone'],
-				'tel_bbs'			=> $person_data['bbs'],
-				'tel_modem'			=> $person_data['modem'],
-				'tel_isdn'			=> $person_data['isdn'],
-				'tel_car'			=> $person_data['car phone'],
-				'tel_video'			=> $person_data['video'],
+				'tel_work'			=> isset($person_data['comm_media']['work phone'])? $person_data['comm_media']['work phone'] : '',
+				'tel_home'			=> isset($person_data['comm_media']['home phone'])? $person_data['comm_media']['home phone'] : '',
+				'tel_voice'			=> isset($person_data['comm_media']['voice phone']) ? $person_data['comm_media']['voice phone'] : '',
+				'tel_msg'			=> isset($person_data['comm_media']['msg phone']) ? $person_data['comm_media']['msg phone'] : '',
+				'tel_fax'			=> isset($person_data['comm_media']['work fax']) ? $person_data['comm_media']['work fax'] : '',
+				'tel_pager'			=> isset($person_data['comm_media']['pager']) ? $person_data['comm_media']['pager'] : '',
+				'tel_cell'			=> isset($person_data['comm_media']['mobile (cell) phone']) ? $person_data['comm_media']['mobile (cell) phone'] : '',
+				'tel_bbs'			=> isset($person_data['comm_media']['bbs']) ? $person_data['comm_media']['bbs'] : '',
+				'tel_modem'			=> isset($person_data['comm_media']['modem']) ? $person_data['comm_media']['modem'] : '',
+				'tel_isdn'			=> isset($person_data['comm_media']['isdn']) ? $person_data['comm_media']['isdn'] : '',
+				'tel_car'			=> isset($person_data['comm_media']['car phone']) ? $person_data['comm_media']['car phone'] : '',
+				'tel_video'			=> isset($person_data['comm_media']['video']) ? $person_data['comm_media']['video'] : '',
 				'tel_prefer'		=> '',
-				'email'				=> $person_data['work email'],
-				'email_type'		=> $person_data['comm_type']['work email'],
-				'email_home'		=> $person_data['home email'],
-				'email_home_type'	=> $person_data['comm_type']['home email'],
-				'address2'			=> $person_data['locations'][1]['add2'],
-				'address3'			=> $person_data['locations'][1]['add3'],
+				'email'				=> isset($person_data['comm_media']['work email'])? $person_data['comm_media']['work email'] : '',
+				'email_type'		=> isset($person_data['comm_type']['work email']) ? $person_data['comm_type']['work email'] : '',
+				'email_home'		=> isset($person_data['comm_media']['home email']) ? $person_data['comm_media']['home email'] : '',
+				'email_home_type'	=> isset($person_data['comm_type']['home email']) ? $person_data['comm_type']['home email'] : '',
+				'address2'			=> isset($person_data['locations'][1]['add2']) ? $person_data['locations'][1]['add2'] : '',
+				'address3'			=> isset($person_data['locations'][1]['add3']) ? $person_data['locations'][1]['add3'] : '',
 				'ophone'			=> '',
-				'bday'				=> $person_data['birthday'],
-				'url'				=> $person_data['website'],
-				'pubkey'			=> $person_data['per_pubkey'],
-				'note'				=> $person_data['notes'][1]['text']
+				'bday'				=> isset($person_data['birthday']) ? $person_data['birthday'] : '',
+				'url'				=> isset($person_data['comm_media']['website']) ?  $person_data['comm_media']['website'] : '',
+				'pubkey'			=> isset($person_data['pubkey']) ? $person_data['pubkey'] : '',
+				'note'				=> isset($person_data['notes'][1]['text']) ? $person_data['notes'][1]['text'] : ''
 			);
+
 			if(is_array($fields))
 			{
 				foreach($fields as $field)
@@ -1031,7 +1033,8 @@
 		* @deprecated
 		* @access private
 		*/
-		function update($id,$owner,$fields,$access='',$cat_id='',$tid='n')
+		//FIXME Sigurd: This function used to be named "update" - but that conflicts with the parent class - is it used?
+		function update_contact($id,$owner,$fields,$access='',$cat_id='',$tid='n')
 		{
 			$this->update($fields);
 			$this->criteria('contact_id', $id);
@@ -1103,7 +1106,7 @@
 		* @param mixed $criteria_token same like $criteria but builded<br>with phpgwapi_sql_criteria class, more powerfull
 		* @return array Array person with records
 		*/
-		function get_persons($fields, $limit='', $ofset='', $orderby='', $sort='', $criteria='', $criteria_token='')
+		function get_persons($fields, $start='', $limit='', $orderby='', $sort='', $criteria='', $criteria_token='')
 		{
 			$this->request($fields);
 			if(in_array('org_name', $fields))
@@ -1136,7 +1139,7 @@
 			$sql = $this->get_sql();
 			if ($limit)
 			{
-				$this->db->limit_query($sql, $ofset, __LINE__, __FILE__, $limit);
+				$this->db->limit_query($sql, $start, __LINE__, __FILE__, $limit);
 			}
 			else
 			{
@@ -1144,19 +1147,12 @@
 			}
 
 			$this->total_records = $this->db->num_rows();
-			$persons = false;
+			$persons = array();
 
-		/*	while ($this->db->next_record())
+			while ($this->db->next_record())
 			{
-				$persons[] = $this->db->resultSet->fetchRow();
+				$persons[] = $this->db->Record;
 			}
-		*/
-
-			while (!$this->db->resultSet->EOF)
-			{
-				$persons[] = $this->db->resultSet->fetchRow();
-			}
-
 			return $persons;
 		}
 
@@ -1281,7 +1277,7 @@
 			$this->total_records = $this->db->num_rows();
 			while ($this->db->next_record())
 			{
-				$orgs[] = $this->db->resultSet->fetchRow();
+				$orgs[] = $this->db->Record;
 			}
 
 			return $orgs;
@@ -1643,9 +1639,9 @@
 			$accounts = $GLOBALS['phpgw']->accounts->get_list();
 			foreach($accounts as $account_data)
 			{
-				if($account_data['person_id'])
+				if($account_data->person_id)
 				{
-					$people[] = $account_data['person_id'];
+					$people[] = $account_data->person_id;
 				}
 			}
 
@@ -1914,7 +1910,7 @@
 
 			while ($this->db->next_record())
 			{
-				$record = $this->db->resultSet->fetchRow();
+				$record = $this->db->Record;
 				$contact['contact_id']		= $record['contact_id'];
 				$contact['access']		= $record['access'];
 				$contact['owner']		= $record['owner'];
@@ -1931,11 +1927,11 @@
 				$contact['initials']		= $record['per_initials'];
 				$contact['sound']		= $record['per_sound'];
 				$contact['active']		= $record['per_active'];
-				$contact['createon']		= $record['per_createon'];
-				$contact['createby']		= $record['per_createby'];
+				$contact['createon']		= isset($record['per_createon']) ? $record['per_createon'] : ''; //Sigurd sept 08: not included in sql - but who knows - it might?
+				$contact['createby']		= isset($record['per_createby']) ? $record['per_createby'] : ''; // not in sql
 				$contact['modby']		= $record['per_modby'];
 				$contact['modon']		= $record['per_modon'];
-				$contact['account_id']		= $record['account_id'];
+				$contact['account_id']		= isset($record['account_id']) ? $record['account_id'] : ''; // not in sql
 				$contact['org_name']		= $record['org_name'];
 				// Locations info
 				$loc_id				= $record['key_addr_id'];
@@ -2392,7 +2388,14 @@
 				$principal['preferred_address'] = '';
 			}
 
-			$this->lock_table($this->contact->table);
+			if ( $this->db->Transaction )
+			{
+				$this->global_lock = true;
+			}
+			else
+			{
+				$this->lock_table($this->contact->table);
+			}
 
 			$this->contact->insert(array
 			(
@@ -2471,9 +2474,16 @@
 			$this->org = createObject('phpgwapi.contact_org');
 			if ($action == PHPGW_SQL_RUN_SQL)
 			{
-				$this->lock_table($this->org->table);
+				if ( $this->db->Transaction )
+				{
+					$this->global_lock = true;
+				}
+				else
+				{
+					$this->lock_table($this->org->table);
+				}
 			}
-			$this->lock_table($this->org->table);
+
 			$principal['org_creaton'] = $this->get_mkdate();
 			$principal['org_creatby'] = $this->get_user_id();
 			$principal['org_modon'] = $this->get_mkdate();
@@ -2497,9 +2507,16 @@
 			$this->person = createObject('phpgwapi.contact_person');
 			if ($action == PHPGW_SQL_RUN_SQL)
 			{
-				$this->lock_table($this->person->table);
+				if ( $this->db->Transaction )
+				{
+					$this->global_lock = true;
+				}
+				else
+				{
+					$this->lock_table($this->person->table);
+				}
 			}
-			$this->lock_table($this->person->table);
+
 			$principal['per_creaton'] = $this->get_mkdate();
 			$principal['per_creatby'] = $this->get_user_id();
 			$principal['per_modon'] = $this->get_mkdate();
@@ -2548,7 +2565,14 @@
 
 				if ($action == PHPGW_SQL_RUN_SQL)
 				{
-					$this->lock_table($this->relations->table);
+					if ( $this->db->Transaction )
+					{
+						$this->global_lock = true;
+					}
+					else
+					{
+						$this->lock_table($this->relations->table);
+					}
 				}
 				$sql[] = $this->_add($data,'relations', 'my_org_id', $cid, $action);
 				$this->unlock_table();
@@ -2588,7 +2612,14 @@
 					$data['my_creatby'] = $this->get_user_id();
 					if ($action == PHPGW_SQL_RUN_SQL)
 					{
-						$this->lock_table($this->relations->table);
+						if ( $this->db->Transaction )
+						{
+							$this->global_lock = true;
+						}
+						else
+						{
+							$this->lock_table($this->relations->table);
+						}
 					}
 					$sql[] = $this->_add($data,'relations', 'my_person_id', $cid, $action);
 					$this->unlock_table();
@@ -2611,7 +2642,14 @@
 			$this->location = createObject('phpgwapi.contact_addr');
 			if ($action == PHPGW_SQL_RUN_SQL)
 			{
-				$this->lock_table($this->location->table);
+				if ( $this->db->Transaction )
+				{
+					$this->global_lock = true;
+				}
+				else
+				{
+					$this->lock_table($this->location->table);
+				}
 			}
 			if(count($addr[0]) == 0)
 			{
@@ -2644,7 +2682,14 @@
 			$this->comm = createObject('phpgwapi.contact_comm');
 			if ($action == PHPGW_SQL_RUN_SQL)
 			{
-				$this->lock_table($this->comm->table);
+				if ( $this->db->Transaction )
+				{
+					$this->global_lock = true;
+				}
+				else
+				{
+					$this->lock_table($this->comm->table);
+				}
 			}
 
 			$comm['comm_creatby'] = $this->get_user_id();
@@ -2670,7 +2715,14 @@
 			$this->note = createObject('phpgwapi.contact_note');
 			if ($action == PHPGW_SQL_RUN_SQL)
 			{
-				$this->lock_table($this->note->table);
+				if ( $this->db->Transaction )
+				{
+					$this->global_lock = true;
+				}
+				else
+				{
+					$this->lock_table($this->note->table);
+				}
 			}
 
 			$note['note_creatby'] = $this->get_user_id();
@@ -2696,7 +2748,14 @@
 			$this->others = createObject('phpgwapi.contact_others');
 			if ($action == PHPGW_SQL_RUN_SQL)
 			{
-				$this->lock_table($this->others->table);
+				if ( $this->db->Transaction )
+				{
+					$this->global_lock = true;
+				}
+				else
+				{
+					$this->lock_table($this->others->table);
+				}
 			}
 
 			unset($others['key_other_id']);
@@ -2864,7 +2923,15 @@
 		function delete_org_person_relation($org_id, $person_id, $action=PHPGW_SQL_RUN_SQL)
 		{
 			$relations = createObject('phpgwapi.contact_org_person');
-			$this->lock_table($relations->table);
+			if ( $this->db->Transaction )
+			{
+				$this->global_lock = true;
+			}
+			else
+			{
+				$this->lock_table($relations->table);
+			}
+
 			$criteria = $relations->entity_criteria(phpgwapi_sql_criteria::token_and(phpgwapi_sql_criteria::_equal('my_org_id', $org_id),
 											phpgwapi_sql_criteria::_equal('my_person_id', $person_id)));
 			$sql = $relations->delete($criteria, $action);
@@ -3112,7 +3179,7 @@
 			$this->db->query($sql, __LINE__, __FILE__);
 			while ($this->db->next_record())
 			{
-				$orgs = &$this->db->resultSet->fetchRow();
+				$orgs = $this->db->Record;
 			}
 			return $orgs;
 		}
@@ -3157,7 +3224,7 @@
 			$this->db->query($this->get_sql(), __LINE__, __FILE__);
 			while ($this->db->next_record())
 			{
-				$cats[] = $this->db->resultSet->fetchRow();
+				$cats[] = $this->db->Record;
 			}
 
 			return $cats;
@@ -3354,9 +3421,9 @@
 			$accounts = $GLOBALS['phpgw']->accounts->get_list();
 			foreach($accounts as $account_data)
 			{
-				if($account_data['person_id'] == $contact_id)
+				if($account_data->id == $contact_id)
 				{
-					$account_id = $account_data['account_id'];
+					$account_id = $account_data->id;
 					break;
 				}
 			}
@@ -3457,7 +3524,7 @@
 			$this->db->query($query,__LINE__, __FILE__);
 			while($this->db->next_record())
 			{
-				$contact = $this->db->resultSet->fetchRow();
+				$contact = $this->db->Record;
 				$contact['account_id'] = $GLOBALS['phpgw']->accounts->search_person($contact['contact_id']);
 				$contacts[] = $contact;
 			}
@@ -3862,7 +3929,15 @@
 				foreach($records as $data)
 				{
 					$this->relations = createObject('phpgwapi.contact_org_person');
-					$this->lock_table($this->relations->table);
+					if ( $this->db->Transaction )
+					{
+						$this->global_lock = true;
+					}
+					else
+					{
+						$this->lock_table($this->relations->table);
+					}
+
 					$data['my_creaton'] = $this->get_mkdate();
 					$data['my_creatby'] = $this->get_user_id();
 					$sql[] = $this->_add($data, 'relations', 'my_person_id', $new_person_id, PHPGW_SQL_RUN_SQL);
@@ -3888,7 +3963,15 @@
 					if(!$this->exist_org_person_relation($new_organization_id, $data['my_person_id']))
 					{
 						$this->relations = createObject('phpgwapi.contact_org_person');
-						$this->lock_table($this->relations->table);
+						if ( $this->db->Transaction )
+						{
+							$this->global_lock = true;
+						}
+						else
+						{
+							$this->lock_table($this->relations->table);
+						}
+
 						$data['my_creaton'] = $this->get_mkdate();
 						$data['my_creatby'] = $this->get_user_id();
 						$sql[] = $this->_add($data,'relations', 'my_org_id', $new_organization_id, PHPGW_SQL_RUN_SQL);
@@ -4013,7 +4096,10 @@
 			if(count($this->locked))
 			{
 				$this->ldebug('unlock_table', array('count' => count($this->locked)));
-				$this->db->unlock();
+				if ( !$this->global_lock )
+				{
+					$this->db->unlock();
+				}
 				$this->locked = NULL;
 			}
 		}

@@ -7,7 +7,7 @@
 	* @author Dan Kuykendall <seek3r@phpgroupware.org>
 	* @author Bettina Gille <ceb@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage phpgwapi
 	* @version $Id$
@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -37,6 +37,7 @@
 	*/
 	class phpgwapi_accounts_sql extends phpgwapi_accounts_
 	{
+		protected $global_lock = false;
 		/**
 		* Constructor
 		*
@@ -99,6 +100,15 @@
 		 */
 		public function create_group_account($account)
 		{
+			if ( $this->db->Transaction )
+			{
+				$this->global_lock = true;
+			}
+			else
+			{
+				$this->db->transaction_begin();
+			}
+
 			$id = (int) $account->id;
 			if ( !$id || $this->exists($id) )
 			{
@@ -114,11 +124,17 @@
 				'account_lastname'	=> "'" . $this->db->db_addslashes($account->lastname) . "'",
 				'account_expires'	=> -1,
 				'account_type'		=> "'" . phpgwapi_account::TYPE_GROUP . "'",
+				'account_status'	=> "'A'",
 				'person_id'			=> (int) $account->person_id
 			);
 
 			$this->db->query('INSERT INTO phpgw_accounts (' . implode(', ', array_keys($data)) . ') '.
 							'VALUES (' . implode(', ', $data) . ')', __LINE__, __FILE__);
+
+			if ( !$this->global_lock )
+			{
+				$this->db->transaction_commit();
+			}
 
 			$account->id = $id;
 			return $account->id;
@@ -138,47 +154,44 @@
 		 */
 		public function create_user_account($account)
 		{
-			$fields = array
-			(
-				'account_lid',
-				'account_type',
-				'account_firstname',
-				'account_lastname',
-				'account_pwd',
-				'account_status',
-				'account_expires',
-				'person_id',
-				'account_quota',
-				'account_id'
-			);
-
-			$data = array
-			(
-				'lid'		=> "'" . $this->db->db_addslashes($account->lid) . "'",
-				'type'		=> "'" . phpgwapi_account::TYPE_USER . "'",
-				'firstname'	=> "'" . $this->db->db_addslashes($account->firstname) ."'",
-				'lastname'	=> "'" . $this->db->db_addslashes($account->lastname) . "'",
-				'password'	=> "'" . $this->db->db_addslashes($account->passwd_hash) . "'",
-				'status'	=> "'" . $account->enabled ? "'A'" : "'I'", // FIXME this really has to become a bool
-				'expires'	=> (int) $account->expires,
-				'person_id'	=> (int) $account->person_id,
-				'quota'		=> (int) $account->quota,
-			);
-
-			if ( (int) $account->id 
-				&& !$this->exists($account->id) )
+			if ( $this->db->Transaction )
 			{
-				$data['id'] = (int) $account->id;
+				$this->global_lock = true;
 			}
 			else
 			{
-				$data['id'] = $this->_get_nextid();
+				$this->db->transaction_begin();
 			}
 
-			$this->db->query('INSERT INTO phpgw_accounts (' . implode(', ', $fields) . ') '.
+			$id = (int) $account->id;
+			if ( !$id || $this->exists($id) )
+			{
+				$id = $this->_get_nextid('u');
+			}
+
+			$data = array
+			(
+				'account_id'=> $id,
+				'account_lid'		=> "'" . $this->db->db_addslashes($account->lid) . "'",
+				'account_type'		=> "'" . phpgwapi_account::TYPE_USER . "'",
+				'account_firstname'	=> "'" . $this->db->db_addslashes($account->firstname) ."'",
+				'account_lastname'	=> "'" . $this->db->db_addslashes($account->lastname) . "'",
+				'account_pwd'		=> "'" . $this->db->db_addslashes($account->passwd_hash) . "'",
+				'account_status'	=> $account->enabled ? "'A'" : "'I'", // FIXME this really has to become a bool
+				'account_expires'	=> (int) $account->expires,
+				'person_id'			=> (int) $account->person_id,
+				'account_quota'		=> (int) $account->quota,
+			);
+
+			$this->db->query('INSERT INTO phpgw_accounts (' . implode(', ', array_keys($data)) . ') '.
 							'VALUES (' . implode(', ', $data) . ')', __LINE__, __FILE__);
 
-			$account->id = $data['id'];
+			if ( !$this->global_lock )
+			{
+				$this->db->transaction_commit();
+			}
+
+			$account->id = $id;
 
 			$this->account = $account;
 
@@ -346,7 +359,8 @@
 					'enabled'			=> $this->db->f('account_status') == 'A',
 					'expires'			=> $this->db->f('account_expires'),
 					'person_id'			=> $this->db->f('person_id'),
-					'quota'				=> $this->db->f('account_quota')
+					'quota'				=> $this->db->f('account_quota'),
+					'type'				=> $this->db->f('account_type'),
 				);
 
 				if ( $this->db->f('account_type') == 'g' )
@@ -456,18 +470,26 @@
 
 			if ($query)
 			{
-				$query = $this->db->db_addslashes($query);
 				if ($whereclause)
 				{
-					$whereclause .= ' AND ( ';
+					$whereclause .= ' AND (';
 				}
 				else
 				{
-					$whereclause = ' WHERE ( ';
+					$whereclause = ' WHERE (';
 				}
 
-				$whereclause .= " account_firstname $this->like '%$query%' OR account_lastname $this->like "
-					. "'%$query%' OR account_lid $this->like '%$query%' OR person_id =" . (int)$query . ')';
+				if(ctype_digit($query))
+				{
+					$whereclause .= 'person_id =' . (int)$query . ')';
+				}
+				else
+				{
+					$query = $this->db->db_addslashes($query);
+
+					$whereclause .= "account_firstname $this->like '%$query%' OR account_lastname $this->like "
+						. "'%$query%' OR account_lid $this->like '%$query%')";
+				}
 			}
 
 			$sql = "SELECT * FROM phpgw_accounts $whereclause $orderclause";
@@ -704,7 +726,7 @@
 		*
 		* @return object phpgwapi_account derived object containing account data
 		*/
-		public function read_repository()
+		protected function read_repository()
 		{
 			$this->account = $this->get($this->account_id, false);
 			return $this->account;

@@ -55,7 +55,7 @@
 		<xsl:variable name="sort_project" select="sort_project"/>
 		<xsl:variable name="sort_name" select="sort_name"/>
 		<xsl:variable name="sort_category" select="sort_category"/>
-		
+
 			<tr class="th">
 				<td width="10%" align="right">
 					<a href="{$sort_claim_id}" class="th_text"><xsl:value-of select="lang_claim_id"/></a>
@@ -160,17 +160,19 @@
 <!-- add / edit -->
 
 	<xsl:template match="edit">
-
 		<script language="JavaScript">
 			self.name="first_Window";
 			function tenant_lookup()
 			{
 				Window1=window.open('<xsl:value-of select="tenant_link"/>',"Search","width=800,height=700,toolbar=no,scrollbars=yes,resizable=yes");
-			}		
+			}
 		</script>
 
+		<div class="yui-navset" id="edit_tabview">
+			<div class="yui-content">
+
+
 		<xsl:variable name="edit_url"><xsl:value-of select="edit_url"/></xsl:variable>
-		<div align="left">
 		<form name="form" method="post" action="{$edit_url}">
 		<table cellpadding="2" cellspacing="2" width="79%" align="left">
 			<xsl:choose>
@@ -206,14 +208,13 @@
 			</tr>
 
 			<xsl:for-each select="value_origin" >
-				<xsl:variable name="link_origin_type"><xsl:value-of select="link"/></xsl:variable>
 				<tr>
 					<td valign ="top">
 						<xsl:value-of select="descr"/>
 					</td>
 						<td class="th_text"  align="left" >
 						<xsl:for-each select="data">
-							<a href="{$link_origin_type}&amp;id={id}"  onMouseover="window.status='{//lang_origin_statustext}';return true;" onMouseout="window.status='';return true;"><xsl:value-of select="id"/></a>
+							<a href="{link}"  title="{//lang_origin_statustext}" style ="cursor:help"><xsl:value-of select="id"/></a>
 							<xsl:text> </xsl:text>
 						</xsl:for-each>
 					</td>
@@ -233,7 +234,7 @@
 					<xsl:value-of select="lang_descr"/>
 				</td>
 				<td>
-					<xsl:value-of select="value_descr"/>		
+					<xsl:value-of select="value_descr"/>
 				</td>
 			</tr>
 			<tr>
@@ -251,7 +252,7 @@
 				</xsl:for-each>
 			</tr>
 			<xsl:call-template name="location_view"/>
-			
+
 			<xsl:choose>
 				<xsl:when test="contact_phone !=''">
 					<tr>
@@ -259,7 +260,7 @@
 							<xsl:value-of select="lang_contact_phone"/>
 						</td>
 						<td  align="left">
-							<xsl:value-of select="contact_phone"/>					
+							<xsl:value-of select="contact_phone"/>
 						</td>
 					</tr>
 				</xsl:when>
@@ -326,38 +327,9 @@
 			</tr>
 
 			<tr>
-				<xsl:choose>
-					<xsl:when test="sum_workorder_budget=''">
-						<td class="th_text">
-							<xsl:value-of select="lang_no_workorders"/>
-						</td>
-					</xsl:when>
-					<xsl:otherwise>
-					<td colspan="2">
-					<table width="80%" cellpadding="2" cellspacing="2" align="left">
-						<xsl:apply-templates select="table_header_workorder"/>
-						<xsl:apply-templates select="workorder_budget"/>
-						<tr class="th">
-							<td class="th_text" align="right">
-								<xsl:value-of select="lang_sum"/>
-							</td>
-							<td class="th_text"  align="right">
-								<xsl:value-of select="sum_workorder_budget"/>
-							</td>
-							<td class="th_text"  align="right">
-								<xsl:value-of select="sum_workorder_calculation"/>
-							</td>
-							<td>
-							</td>
-							<td>
-							</td>
-							<td>
-							</td>
-						</tr>
-					</table>
-					</td>
-					</xsl:otherwise>
-				</xsl:choose>
+			<td colspan ='2'>
+			   <div id="datatable-container_0"></div>
+			</td>
 			</tr>
 
 			<tr>
@@ -392,8 +364,8 @@
 				<td valign="top">
 					<xsl:value-of select="lang_start_date"/>
 				</td>
-				<td>			
-					<xsl:value-of select="value_start_date"/>			
+				<td>
+					<xsl:value-of select="value_start_date"/>
 				</td>
 			</tr>
 			<tr>
@@ -401,7 +373,7 @@
 					<xsl:value-of select="lang_end_date"/>
 				</td>
 				<td>
-					<xsl:value-of select="value_end_date"/>			
+					<xsl:value-of select="value_end_date"/>
 				</td>
 			</tr>
 
@@ -475,7 +447,7 @@
 								<xsl:value-of select="lang_remark_statustext"/>
 							<xsl:text>'; return true;</xsl:text>
 						</xsl:attribute>
-						<xsl:value-of select="value_remark"/>		
+						<xsl:value-of select="value_remark"/>
 					</textarea>
 				</td>
 			</tr>
@@ -513,6 +485,30 @@
 			</tr>
 		</table>
 		</form>
+
+				<script>
+					var property_js = <xsl:value-of select="property_js" />;
+					var base_java_url = <xsl:value-of select="base_java_url" />;
+					var datatable = new Array();
+					var myColumnDefs = new Array();
+
+					<xsl:for-each select="datatable">
+						datatable[<xsl:value-of select="name"/>] = [
+						{
+							values			:	<xsl:value-of select="values"/>,
+							total_records	: 	<xsl:value-of select="total_records"/>,
+							is_paginator	:  	<xsl:value-of select="is_paginator"/>,
+							footer			:	<xsl:value-of select="footer"/>,
+							edit_action		:	<xsl:value-of select="edit_action"/>
+						}
+						]
+					</xsl:for-each>
+
+					<xsl:for-each select="myColumnDefs">
+						myColumnDefs[<xsl:value-of select="name"/>] = <xsl:value-of select="values"/>
+					</xsl:for-each>
+				</script>
+			</div>
 		</div>
 	</xsl:template>
 
@@ -552,7 +548,7 @@
 					<xsl:value-of select="lang_descr"/>
 				</td>
 				<td>
-					<xsl:value-of select="value_descr"/>		
+					<xsl:value-of select="value_descr"/>
 				</td>
 			</tr>
 			<tr>
@@ -570,7 +566,7 @@
 				</xsl:for-each>
 			</tr>
 			<xsl:call-template name="location_view"/>
-			
+
 			<xsl:choose>
 				<xsl:when test="contact_phone !=''">
 					<tr>
@@ -578,7 +574,7 @@
 							<xsl:value-of select="lang_contact_phone"/>
 						</td>
 						<td  align="left">
-							<xsl:value-of select="contact_phone"/>					
+							<xsl:value-of select="contact_phone"/>
 						</td>
 					</tr>
 				</xsl:when>
@@ -711,8 +707,8 @@
 				<td valign="top">
 					<xsl:value-of select="lang_start_date"/>
 				</td>
-				<td>			
-					<xsl:value-of select="value_start_date"/>			
+				<td>
+					<xsl:value-of select="value_start_date"/>
 				</td>
 			</tr>
 			<tr>
@@ -720,7 +716,7 @@
 					<xsl:value-of select="lang_end_date"/>
 				</td>
 				<td>
-					<xsl:value-of select="value_end_date"/>			
+					<xsl:value-of select="value_end_date"/>
 				</td>
 			</tr>
 
@@ -790,7 +786,7 @@
 								<xsl:value-of select="lang_remark_statustext"/>
 							<xsl:text>'; return true;</xsl:text>
 						</xsl:attribute>
-						<xsl:value-of select="value_remark"/>		
+						<xsl:value-of select="value_remark"/>
 					</textarea>
 				</td>
 			</tr>
@@ -903,3 +899,4 @@
 
 			</tr>
 	</xsl:template>
+

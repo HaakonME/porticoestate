@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: install.apache.sh,v 1.11 2007/09/09 19:30:52 sigurdne Exp $ 
+# $Id$ 
 
 #/**
 #  * installscript for APACHE with PHP, IMAP, POSTGRESQL, MYSQL, LIBXML, XSLT, FREEDTS(MSSQL) and EACCELERATOR
@@ -21,18 +21,21 @@
 #  * Name of the freetds package e.g freetds-stable.tgz
 #  * 
 #  * @var               string FREETDS, FREETDSTAR
+#  * Download: http://www.freetds.org/software.html
 #  */
 FREETDSTAR="freetds-stable.tgz"
-FREETDS="freetds-0.64"
+FREETDS="freetds-0.82"
 
-LIBXMLTAR="libxml2-2.6.30.tar.gz"
-LIBXML="libxml2-2.6.30"
+# Download: http://xmlsoft.org/downloads.html
+LIBXMLTAR="libxml2-2.7.6.tar.gz"
+LIBXML="libxml2-2.7.6"
 
-LIBXSLTAR="libxslt-1.1.22.tar.gz"
-LIBXSL="libxslt-1.1.22"
+LIBXSLTAR="libxslt-1.1.26.tar.gz"
+LIBXSL="libxslt-1.1.26"
 
-IMAPTAR="imap-2006k.tar.Z"
-IMAP="imap-2006k"
+# Download: ftp://ftp.cac.washington.edu/imap/
+IMAPTAR="imap-2007e.tar.Z"
+IMAP="imap-2007e"
 
 PHP_PREFIX="/usr/local"
 
@@ -40,25 +43,35 @@ PHP_PREFIX="/usr/local"
 #  * Name of the APACHE tarball e.g httpd-2.2.6.tar.gz
 #  * 
 #  * @var               string APACHE, APACHETAR
+#  * Download: http://php.net/
 #  */
-APACHETAR="httpd-2.2.8.tar.gz"
-APACHE="httpd-2.2.8"
+APACHETAR="httpd-2.2.14.tar.gz"
+APACHE="httpd-2.2.14"
 
 #/**
 #  * Name of the PHP tarball e.g php-5.2.tar.gz
 #  * 
 #  * @var               string PHP, PHPTAR
+#  * Download: http://httpd.apache.org/
 #  */
-PHPTAR="php-5.2.5.tar.bz2"
-PHP="php-5.2.5"
+PHPTAR="php-5.3.1.tar.bz2"
+PHP="php-5.3.1"
 
 #/**
 #  * Name of the EACCELERATOR tarball e.g eaccelerator-0.9.5.tar.bz2
 #  * 
 #  * @var               string EACCELERATOR, EACCELERATORTAR
+#  * Download: http://eaccelerator.net/
 #  */
-EACCELERATORTAR="eaccelerator-0.9.5.2.tar.bz2"
-EACCELERATOR="eaccelerator-0.9.5.2"
+EACCELERATORTAR="eaccelerator-0.9.6-rc1.tar.bz2"
+EACCELERATOR="eaccelerator-0.9.6-rc1"
+$PHP_PREFIX = "/usr/local"
+
+# APC as Alternative:
+# Download: http://pecl.php.net/package/APC
+# APCTAR="APC-3.1.2.tgz"
+# APC="APC-3.1.2"
+
 
 # clean up from previous
 
@@ -80,10 +93,12 @@ tar -xzf $APACHETAR &&\
 bunzip2 -c $PHPTAR | tar xvf -&&\
 bunzip2 -c $EACCELERATORTAR | tar xvf -&&\
 cd $FREETDS &&\
-./configure --prefix=/usr/local/freetds --with-tdsver=7.0 --enable-msdblib\
+./configure --prefix=/usr/local/freetds --with-tdsver=8.0 --enable-msdblib\
 --enable-dbmfix --with-gnu-ld --enable-shared --enable-static &&\
-gmake &&\
-gmake install &&\
+make &&\
+make install &&\
+touch /usr/local/freetds/include/tds.h &&\
+touch /usr/local/freetds/lib/libtds.a &&\
 cd ../$IMAP &&\
 make lmd SSLTYPE=unix.nopwd IP6=4 &&\
 ln -s c-client include &&\
@@ -124,8 +139,6 @@ export LDFLAGS=-lstdc++ &&\
  --with-imap-ssl\
  --with-sybase-ct=/usr/local/freetds\
  --with-apxs2=/usr/local/apache2/bin/apxs\
- --enable-mail\
- --with-xml\
  --with-xsl\
  --with-zlib\
  --with-pspell\
@@ -139,7 +152,17 @@ export LDFLAGS=-lstdc++ &&\
  --enable-shmop\
  --enable-sysvsem\
  --enable-sysvshm\
- --enable-calendar &&\
+ --enable-calendar\
+ --enable-pdo\
+ --with-pdo-sqlite\
+ --with-sqlite\
+ --with-pdo-pgsql\
+ --with-pdo-mysql\
+ --with-openssl\
+ --enable-mbstring\
+ --with-mcrypt\
+ --enable-soap\
+ --with-xmlrpc &&\
 make &&\
 make install &&\
 cd ../$EACCELERATOR &&\
@@ -149,5 +172,12 @@ make &&\
 make install &&\
 mkdir /tmp/eaccelerator &&\
 chmod 0777 /tmp/eaccelerator
+
+
+#cd ../$APC &&\
+#$PHP_PREFIX/bin/phpize &&\
+#./configure --enable-apc-mmap --with-apxs --with-php-config=$PHP_PREFIX/bin/php-config &&\
+#make &&\
+#make install
 
 # vim: set expandtab :

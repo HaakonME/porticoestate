@@ -63,6 +63,8 @@
 			$status	= phpgw::get_var('status');
 			$cat_id	= phpgw::get_var('cat_id', 'int');
 			$allrows= phpgw::get_var('allrows', 'bool');
+			$project_id	= phpgw::get_var('project_id', 'int');
+			$this->project_id = $project_id;
 
 			if ($start)
 			{
@@ -147,17 +149,19 @@
 
 			$GLOBALS['phpgw']->xslttpl->add_file(array('status_' . $format));
 
-			$status[0][id]='closed';
-			$status[0][name]=lang('Closed');
+			$status[0][id]='ready';
+			$status[0][name]=lang('ready for processing claim');
+			$status[1][id]='closed';
+			$status[1][name]=lang('Closed');
 			if($format == "filter")
 			{
-				$status[1][id]='all';
-				$status[1][name]=lang('All');
+				$status[2][id]='all';
+				$status[2][name]=lang('All');
 			}
 			else
 			{
-				$status[1][id]='open';
-				$status[1][name]=lang('Open');
+				$status[2][id]='open';
+				$status[2][name]=lang('Open');
 			}
 
 			return $this->bocommon->select_list($selected,$status);
@@ -168,16 +172,19 @@
 			return $this->so->read_category_name($cat_id);
 		}
 
-		function read($data=0)
+		function read($data = array())
 		{
+			$project_id	= isset($data['project_id']) && $data['project_id'] ? $data['project_id'] : phpgw::get_var('project_id');
+
 			$claim = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'filter' => $this->filter,'status' => $this->status,'cat_id' => $this->cat_id,
-											'allrows'=>$this->allrows,'project_id' => $data['project_id']));
+											'allrows'=>$this->allrows,'project_id' => $project_id));
 			$this->total_records = $this->so->total_records;
 
-			for ($i=0; $i<count($claim); $i++)
+			foreach ($claim as &$entry)
 			{
-				$claim[$i]['entry_date']  = $GLOBALS['phpgw']->common->show_date($claim[$i]['entry_date'],$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
+				$entry['entry_date']  = $GLOBALS['phpgw']->common->show_date($entry['entry_date'],$GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat']);
+				$entry['status'] = lang($entry['status']);
 			}
 			return $claim;
 		}
@@ -221,7 +228,7 @@
 
 
 			$this->config = CreateObject('phpgwapi.config','property');
-			$this->config->read_repository();
+			$this->config->read();
 			$claim_notify_mails = $this->config->config_data['tenant_claim_notify_mails'];
 			if ($claim_notify_mails)
 			{

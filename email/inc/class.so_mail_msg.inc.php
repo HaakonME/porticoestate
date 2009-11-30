@@ -7,7 +7,7 @@
 	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
 	* @package email
-	* @version $Id: class.so_mail_msg.inc.php 17706 2006-12-17 11:21:02Z sigurdne $
+	* @version $Id$
 	* @internal Based on AngleMail http://www.anglemail.org/
 	*/
 
@@ -645,7 +645,7 @@
 		*/
 		function so_delete_data($data_key)
 		{
-			$account_id = get_account_id((isset($accountid)?$accountid:''),$GLOBALS['phpgw']->session->account_id);
+			$account_id = get_account_id((isset($accountid)?$accountid:''));
 			$data_key = $GLOBALS['phpgw']->db->db_addslashes($data_key);
 			$GLOBALS['phpgw']->db->query("DELETE FROM phpgw_anglemail "
 				. " WHERE account_id='" . $account_id . "' AND data_key='" . $data_key . "'",__LINE__,__FILE__);
@@ -658,7 +658,7 @@
 		*/
 		function so_clear_all_data_this_user()
 		{
-			$account_id = get_account_id((isset($accountid)?$accountid:''),$GLOBALS['phpgw']->session->account_id);
+			$account_id = get_account_id((isset($accountid)?$accountid:''));
 			$GLOBALS['phpgw']->db->query("DELETE FROM phpgw_anglemail "
 				. " WHERE account_id='" . $account_id . "'",__LINE__,__FILE__);
 			$this->so_clear_data_group();
@@ -814,7 +814,7 @@
 				$data_key_mailsvr_namespace = '';
 			}
 
-			$account_id = get_account_id((isset($accountid)?$accountid:''),$GLOBALS['phpgw']->session->account_id);
+			$account_id = get_account_id((isset($accountid)?$accountid:''));
 			//if (($data_key)
 			//&& ($data_key_msgball)
 			//&& ($data_key_folder_status_info))

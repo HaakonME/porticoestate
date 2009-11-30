@@ -298,6 +298,8 @@
 				'select_group_name'				=> 'granting_group',
 				'lang_no_group'					=> lang('No granting group'),
 				'group_list'					=> $this->bocommon->get_group_list('filter',$this->granting_group,$start=-1,$sort='ASC',$order='account_firstname',$query='',$offset=-1),
+				'lang_enable_inheritance'       => lang('enable inheritance'), 
+                'lang_enable_inheritance_statustext'        => lang('rights are inherited down the hierarchy')
 			);
 
 			$appname	= lang('preferences');
@@ -335,6 +337,7 @@
 				$receipt	= $this->bo->set_permission($values,$r_processed,false,$initials);
 			}
 
+			$num_records = 0;
 			if ($this->location)
 			{
 				if($this->cat_id=='accounts')
@@ -344,6 +347,7 @@
 
 				if (isSet($user_list) AND is_array($user_list))
 				{
+					$num_records = count($user_list);
 					foreach($user_list as $user)
 					{
 						$processed[] = $user['account_id'];
@@ -401,6 +405,7 @@
 
 				if (isSet($group_list) AND is_array($group_list))
 				{
+					$num_records = count($group_list);
 					foreach($group_list as $group)
 					{
 						$processed[] = $group['account_id'];
@@ -539,8 +544,8 @@
 				'processed'						=> (isset($processed)?$processed:''),
 				'location'						=> $this->location,
 
-				'num_records'					=> (isset($user_list)?count($user_list):''),
-				'all_records'					=> (isset($this->bo->total_records)?$this->bo->total_records:''),
+				'num_records'					=> $num_records,
+				'all_records'					=> isset($this->bo->total_records) && $this->bo->total_records ? $this->bo->total_records : 0,
 				'link_url'						=> $GLOBALS['phpgw']->link('/index.php',$link_data),
 				'img_path'						=> $GLOBALS['phpgw']->common->get_image_path('phpgwapi','default'),
 
@@ -567,7 +572,9 @@
 				'lang_no_location'				=> lang('No location'),
 				'lang_location_statustext'		=> lang('Select submodule'),
 				'select_name_location'			=> 'module',
-				'location_list'					=> $this->bopreferences->select_location('filter',$this->location,false)
+				'location_list'					=> $this->bopreferences->select_location('filter',$this->location,false),
+				'lang_enable_inheritance'       => lang('enable inheritance'), 
+                'lang_enable_inheritance_statustext'        => lang('rights are inherited down the hierarchy')
 			);
 
 			$appname	= lang('permission');
@@ -659,15 +666,15 @@
 				return;
 			}
 
+			$user_id	= phpgw::get_var('user_id', 'int');
+
 			$GLOBALS['phpgw']->xslttpl->add_file(array('admin'));
 
 			$values		= phpgw::get_var('values');
 
 			if ($values['save'])
 			{
-				// this should use the contacts backend in the API - each account is already linked to a contact
-				$GLOBALS['phpgw']->preferences->account_id=$this->filter;
-				$GLOBALS['phpgw']->preferences->read_repository();
+				$GLOBALS['phpgw']->preferences->set_account_id($user_id, true);
 
 				if ($values['old_email'] != $values['email'])
 				{
@@ -707,9 +714,9 @@
 				$GLOBALS['phpgw']->preferences->save_repository();
 			}
 
-			if($this->filter)
+			if($user_id)
 			{
-				$prefs = $this->bocommon->create_preferences('property',$this->filter);
+				$prefs = $this->bocommon->create_preferences('property',$user_id);
 			}
 
 			$cats		= CreateObject('phpgwapi.categories');
@@ -793,10 +800,10 @@
 
 
 				'lang_user_statustext'			=> lang('Select the user to edit email'),
-				'select_user_name'				=> 'filter',
+				'select_user_name'				=> 'user_id',
 				'lang_no_user'					=> lang('No user'),
-				'value_user_id'					=> $this->filter,
-				'user_list'						=> $this->bocommon->get_user_list('filter',$this->filter,$extra=false,$default=false,$start=-1,$sort='ASC',$order='account_lastname',$query='',$offset=-1),
+				'value_user_id'					=> $user_id,
+				'user_list'						=> $this->bocommon->get_user_list('filter',$user_id,$extra=false,$default=false,$start=-1,$sort='ASC',$order='account_lastname',$query='',$offset=-1, true),
 				'group_list_tts'				=> $groups_tts,
 				'account_list_tts'				=> $accounts_tts,
 				'lang_group_select'				=> lang('Default group TTS'),

@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -776,7 +776,7 @@
 		 * @param string $formatTarget Target date format
 		 * @return string Date in target format representation
 		 */
-		function convertDate($date, $formatSource, $formatTarget)
+		public static function convertDate($date, $formatSource, $formatTarget)
 		{
 			// get format separator character
 			$formatSourceSepChar = substr($formatSource,1,1);
@@ -809,10 +809,10 @@
 		}
 
 		/**
-		* Convert a date string to a unix timestamp
+		* Convert a date string to an array containing date parts
 		*
 		* @param string $datestr the date string to convert - must match user's preferred date format
-		* @return int unix timestamp
+		* @return array date parts: year,month and day
 		*/
 		public static function date_array($datestr)
 		{
@@ -846,7 +846,7 @@
 		*/
 		public static function date_to_timestamp($date = array())
 		{
-			if ( !count($date) )
+			if ( !$date )
 			{
 				return 0;
 			}
@@ -924,7 +924,7 @@
 		* @param int $dow ISO 8601 day of week number
 		* @return string local say of week name
 		*/
-		public static function nr2weekday($selected = 0)
+		public static function nr2weekday($dow = 0)
 		{
 			$dow_list = self::get_dow_fullnames();
 			if ( isset($dow_list[$dow]) )

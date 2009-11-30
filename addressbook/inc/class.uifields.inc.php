@@ -406,7 +406,7 @@
 			$i = 0;
 			$fields = array();
 
-			$this->config->read_repository();
+			$this->config->read();
 
 			$all_custom_fields = array();
 			if($apply=='person')
@@ -469,16 +469,16 @@
 
 		function get_apply($key)
 		{
-			if((is_array($this->per_custom_fields) && is_array($this->org_custom_fields)) && 
+			if(isset($this->per_custom_fields) && (is_array($this->per_custom_fields) && isset($this->org_custom_fields) && is_array($this->org_custom_fields)) && 
 					array_key_exists($key, $this->per_custom_fields) && array_key_exists($key, $this->org_custom_fields))
 			{
 				return 'both';
 			}
-			elseif(is_array($this->per_custom_fields) && array_key_exists($key, $this->per_custom_fields))
+			elseif(isset($this->per_custom_fields) && is_array($this->per_custom_fields) && array_key_exists($key, $this->per_custom_fields))
 			{
 				return 'person';
 			}
-			elseif(is_array($this->org_custom_fields) && array_key_exists($key, $this->org_custom_fields))
+			elseif(isset($this->org_custom_fields) && is_array($this->org_custom_fields) && array_key_exists($key, $this->org_custom_fields))
 			{
 				return 'org';
 			}
@@ -487,7 +487,7 @@
 		function save_custom_field($old='',$new='',$apply_for='')
 		{
 			$edit_contacts = False;
-			$this->config->read_repository();
+			$this->config->read();
 
 			switch($apply_for)
 			{

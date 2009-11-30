@@ -42,6 +42,7 @@
 		var $cat_id;
 		var $allrows;
 		var $part_of_town_id;
+		var $location_code;
 
 		/**
 		* @var object $custom reference to custom fields object
@@ -76,11 +77,16 @@
 			)
 		);
 
+		var $type_app = array
+		(
+			'entity'	=> 'property',
+			'catch'		=> 'catch'
+		);
+
 		function property_boentity($session=false)
 		{
 			$this->solocation 	= CreateObject('property.solocation');
 			$this->bocommon 	= CreateObject('property.bocommon');
-			$this->custom 		= createObject('property.custom_fields');
 
 			if ($session)
 			{
@@ -100,20 +106,23 @@
 			$start_date	= phpgw::get_var('start_date');
 			$end_date	= phpgw::get_var('end_date');
 			$allrows	= phpgw::get_var('allrows', 'bool');
+			$type		= phpgw::get_var('type');
+			$location_code		= phpgw::get_var('location_code');
+			$this->type	= isset($type)  && $type && $this->type_app[$type] ? $type : 'entity';
+			$this->location_code	= isset($location_code)  && $location_code ? $location_code : '';
+			
+			$this->soadmin_entity 			= CreateObject('property.soadmin_entity',$entity_id,$cat_id);
+			$this->so 						= CreateObject('property.soentity',$entity_id,$cat_id);
+			$this->custom 					= & $this->so->custom;
+			$this->soadmin_entity->type		= $this->type;
+			$this->soadmin_entity->type_app	= $this->type_app;
+			$this->so->type					= $this->type;
+			$this->so->type_app				= $this->type_app;
 
+			$this->category_dir = "{$this->type}_{$entity_id}_{$cat_id}";
 
-			$this->soadmin_entity 	= CreateObject('property.soadmin_entity',$entity_id,$cat_id);
-			$this->so 		= CreateObject('property.soentity',$entity_id,$cat_id);
-			$this->category_dir = 'entity_' . $entity_id . '_' . $cat_id;
+			$this->start			= $start ? $start : 0;
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
 			if(isset($_POST['query']) || isset($_GET['query']))
 			{
 				$this->query = $query;
@@ -164,13 +173,13 @@
 		{
 			if ($this->use_session)
 			{
-				$GLOBALS['phpgw']->session->appsession('session_data','entity',$data);
+				$GLOBALS['phpgw']->session->appsession('session_data',$this->type,$data);
 			}
 		}
 
 		function read_sessiondata()
 		{
-			$data = $GLOBALS['phpgw']->session->appsession('session_data','entity');
+			$data = $GLOBALS['phpgw']->session->appsession('session_data',$this->type);
 			//_debug_array($data);
 			$this->start		= isset($data['start'])?$data['start']:'';
 			$this->query		= isset($data['query'])?$data['query']:'';
@@ -188,9 +197,10 @@
 		{
 			if(!$selected)
 			{
-				$selected=$GLOBALS['phpgw_info']['user']['preferences']['property']["entity_columns_" . $this->entity_id . '_' . $this->cat_id];
+				$selected=$GLOBALS['phpgw_info']['user']['preferences'][$this->type_app[$this->type]]["{$this->type}_columns_{$this->entity_id}_{$this->cat_id}"];
 			}
-			$columns = $this->custom->find('property','.entity.' . $entity_id . '.' . $cat_id, 0, '','','',true);
+			$filter = array('list' => ''); // translates to "list IS NULL"
+			$columns = $this->custom->find($this->type_app[$this->type],".{$this->type}.{$entity_id}.{$cat_id}", 0, '','','',true, false, $filter);
 			$column_list=$this->bocommon->select_multi_list($selected,$columns);
 			return $column_list;
 		}
@@ -230,7 +240,7 @@
 			return $this->bocommon->select_list($selected,$status_entries);
 		}
 
-		function read($data='')
+		function read($data= array())
 		{
 			if(isset($this->allrows))
 			{
@@ -239,8 +249,11 @@
 
 			$entity = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
 											'filter' => $this->filter,'cat_id' => $this->cat_id,'district_id' => $this->district_id,
-											'lookup'=>isset($data['lookup'])?$data['lookup']:'','allrows'=>isset($data['allrows'])?$data['allrows']:'','entity_id'=>$this->entity_id,'cat_id'=>$this->cat_id,'status'=>$this->status,
-											'start_date'=>$this->bocommon->date_to_timestamp($data['start_date']),'end_date'=>$this->bocommon->date_to_timestamp($data['end_date'])));
+											'lookup'=>isset($data['lookup'])?$data['lookup']:'','allrows'=>isset($data['allrows'])?$data['allrows']:'',
+											'entity_id'=>$this->entity_id,'cat_id'=>$this->cat_id,'status'=>$this->status,
+											'start_date'=>$this->bocommon->date_to_timestamp($data['start_date']),
+											'end_date'=>$this->bocommon->date_to_timestamp($data['end_date']),
+											'dry_run'=>$data['dry_run'], 'type'=>$data['type'], 'location_code' => $this->location_code));
 
 			$this->total_records = $this->so->total_records;
 			$this->uicols	= $this->so->uicols;
@@ -273,16 +286,16 @@
 			return $entity;
 		}
 
-		function read_single($data)
+		function read_single($data, $values = array())
 		{
-			$values['attributes'] = $this->custom->find('property','.entity.' . $data['entity_id'] .'.' . $data['cat_id'], 0, '', 'ASC', 'attrib_sort', true, true);
+			$values['attributes'] = $this->custom->find($this->type_app[$this->type],".{$this->type}.{$data['entity_id']}.{$data['cat_id']}", 0, '', 'ASC', 'attrib_sort', true, true);
 			if(isset($data['id']) && $data['id'])
 			{
 				$values = $this->so->read_single($data, $values);
 			}
-			$values = $this->custom->prepare($values, 'property','.entity.' . $data['entity_id'] .'.' . $data['cat_id'], $data['view']);
+			$values = $this->custom->prepare($values, $this->type_app[$this->type],".{$this->type}.{$data['entity_id']}.{$data['cat_id']}", $data['view']);
 
-			$soadmin_entity	= CreateObject('property.soadmin_entity');
+	//		$soadmin_entity	= CreateObject('property.soadmin_entity');
 
 			if($values['location_code'])
 			{
@@ -299,7 +312,7 @@
 
 			if($values['p_num'])
 			{
-				$category = $soadmin_entity->read_single_category($values['p_entity_id'],$values['p_cat_id']);
+				$category = $this->soadmin_entity->read_single_category($values['p_entity_id'],$values['p_cat_id']);
 				$values['p'][$values['p_entity_id']]['p_num']=$values['p_num'];
 				$values['p'][$values['p_entity_id']]['p_entity_id']=$values['p_entity_id'];
 				$values['p'][$values['p_entity_id']]['p_cat_id']=$values['p_cat_id'];
@@ -308,18 +321,58 @@
 
 			$vfs = CreateObject('phpgwapi.vfs');
 			$vfs->override_acl = 1;
-			$values['files'] = $vfs->ls (array(
-			     'string' => "/property/{$this->category_dir}/{$values['location_data']['loc1']}/{$data['id']}",
+			
+			$loc1 = isset($values['location_data']['loc1']) && $values['location_data']['loc1'] ? $values['location_data']['loc1'] : 'dummy';
+
+			if($this->type_app[$this->type] == 'catch')
+			{
+				$loc1 = 'dummy';
+			}
+
+			$files = $vfs->ls (array(
+			     'string' => "/property/{$this->category_dir}/{$loc1}/{$data['id']}",
 			     'relatives' => array(RELATIVE_NONE)));
 
 			$vfs->override_acl = 0;
 
-			if(!isset($values['files'][0]['file_id']) || !$values['files'][0]['file_id'])
+			$values['jasperfiles']	= array();
+			$values['files']		= array();
+			foreach ($files as $file)
 			{
-				unset($values['files']);
+				if (strpos($file['name'], 'jasper::')===0)// check for jasper
+				{
+					$values['jasperfiles'][] = array
+					(
+						'name' 		=> $file['name']
+					);
+				}
+				else
+				{
+					$values['files'][] = array
+					(
+						'name' 		=> $file['name']
+					);
+				}
 			}
-
+			
+			$interlink 	= CreateObject('property.interlink');
+			$values['origin'] = $interlink->get_relation($this->type_app[$this->type], ".{$this->type}.{$data['entity_id']}.{$data['cat_id']}", $data['id'], 'origin');
+			$values['target'] = $interlink->get_relation($this->type_app[$this->type], ".{$this->type}.{$data['entity_id']}.{$data['cat_id']}", $data['id'], 'target');
 			return $values;
+		}
+
+		/**
+		* Arrange attributes within groups
+		*
+		* @param string  $location    the name of the location of the attribute
+		* @param array   $attributes  the array of the attributes to be grouped
+		*
+		* @return array the grouped attributes
+		*/
+
+		public function get_attribute_groups($location, $attributes = array())
+		{
+			return $this->custom->get_attribute_groups($this->type_app[$this->type], $location, $attributes);
 		}
 
 		function save($values,$values_attribute,$action='',$entity_id,$cat_id)
@@ -352,30 +405,29 @@
 
 			$criteria = array
 			(
-				'appname'	=> 'property',
-				'location'	=> ".entity.{$entity_id}.{$cat_id}",
+				'appname'	=> $this->type_app[$this->type],
+				'location'	=> ".{$this->type}.{$entity_id}.{$cat_id}",
 				'allrows'	=> true
 			);
+
 			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
 
-			if ( isset($custom_functions) 
-				&& is_array($custom_functions) )
+			foreach ( $custom_functions as $entry )
 			{
-				foreach ( $custom_functions as $entry )
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					// prevent path traversal
-					if ( preg_match('/\.\./', $entry['file_name']) )
-					{
-						continue;
-					}
+					continue;
+				}
 
-					$file = PHPGW_APP_INC . "/custom/{$entry['file_name']}";
-					if ( $entry['active'] && is_file($file) )
-					{
-						require_once PHPGW_APP_INC . "/custom/{$entry['file_name']}";
-					}
+				$file = PHPGW_SERVER_ROOT . "/{$this->type_app[$this->type]}/inc/custom/{$GLOBALS['phpgw_info']['user']['domain']}/{$entry['file_name']}";
+
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once $file;
 				}
 			}
+
 			return $receipt;
 		}
 
@@ -392,11 +444,50 @@
 			}
 		}
 
+		function get_history_type_for_location($acl_location)
+		{
+			switch($acl_location)
+			{
+				case '.project.request':
+					$history_type ='request';
+					break;
+				case '.project.workorder':
+					$history_type ='workorder';
+					break;
+				case '.project':
+					$history_type ='project';
+					break;
+				case '.tts':
+					$history_type ='tts';
+					break;
+				case '.document':
+					$history_type ='document';
+					break;
+				case 'entity':
+					$this->table='fm_entity_history';
+					$this->attrib_id_field = ',history_attrib_id';
+					break;
+				case '.s_agreement':
+					$history_type ='s_agreement';
+					break;
+				case '.s_agreement.detail':
+					$history_type ='s_agreement';
+				default:
+					$history_type = str_replace('.','_',substr($acl_location,-strlen($acl_location)+1));
+			}
+			if(!$history_type)
+			{
+					throw new Exception(lang('Unknown history type for acl_location: %1', $acl_location));
+			}
+			return $history_type;
+		}
+		
 		function read_attrib_history($data)
 		{
 		//	_debug_array($data);
-			$historylog = CreateObject('property.historylog','entity_' . $data['entity_id'] .'_' . $data['cat_id']);
-			$history_values = $historylog->return_array(array(),array('SO'),'history_timestamp','ASC',$data['id'],$data['attrib_id']);
+			$history_type = $this->get_history_type_for_location($data['acl_location']);
+			$historylog = CreateObject('property.historylog',$history_type);
+			$history_values = $historylog->return_array(array(),array('SO'),'history_timestamp','ASC',$data['id'],$data['attrib_id'], $data['detail_id']);
 			$this->total_records = count($history_values);
 		//	_debug_array($history_values);
 			return $history_values;
@@ -404,7 +495,8 @@
 
 		function delete_history_item($data)
 		{
-			$historylog = CreateObject('property.historylog','entity_' . $data['entity_id'] .'_' . $data['cat_id']);
+			$history_type = $this->get_history_type_for_location($data['acl_location']);
+			$historylog = CreateObject('property.historylog', $history_type);
 			$historylog->delete_single_record($data['history_id']);
 		}
 

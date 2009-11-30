@@ -8,14 +8,14 @@
  * @author     Dave Hall <dave.hall@skwashd.com>
  * @copyright  2008 Dave Hall
  * @license    http://www.gnu.org/licenses/gpl.html GPLv3 or later
- * @version    SVN: $Id: $
+ * @version    SVN: $Id$
  * @link       http://davehall.com.au
  */
 
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
+   the Free Software Foundation, either version 2 of the License, or
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
@@ -41,7 +41,7 @@ require_once 'PHPUnit/Framework.php';
  * @subpackage PHPGWAPI
  * @author     Dave Hall <dave.hall@skwashd.com>
  * @copyright  2008 Dave Hall
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3 or later
+ * @license    http://www.gnu.org/licenses/gpl.html GPLv2 or later
  * @version    Release: 0.9.18
  * @link       http://davehall.com.au
  */
@@ -55,7 +55,7 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
     /**
      * @var integer $functionID the ID of the function used for testing
      */
-    protected $functionID = 0;
+    protected $functionID = 0; //apparantly seems to be useless - the $this->functionID does not survive into the next test.
 
     /**
      * Setup the environment for the tests
@@ -67,6 +67,15 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
         // enable this for one run if it dies badly and you need to clean up
         // $this->tearDown();
 
+    }
+
+    /**
+     * Test Custom Functions add method
+     *
+     * @return void
+     */
+    public function testAdd()
+    {
         $GLOBALS['phpgw']->locations->add('.test', 'Custom Functions Unit Test',
                                         'phpgwapi', false);
 
@@ -80,31 +89,7 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
         );
 
         $this->functionID = $GLOBALS['phpgw']->custom_functions->add($args);
-    }
 
-    /**
-     * Clean up the environment after running a test
-     *
-     * @return void
-     */
-    protected function tearDown()
-    {
-        $funcs = $GLOBALS['phpgw']->custom_functions->find('phpgwapi', '.test');
-        foreach ( $funcs as $func ) {
-            $GLOBALS['phpgw']->custom_functions->delete('phpgwapi',
-                                                        '.test', $func['id']);
-        }
-
-        $GLOBALS['phpgw']->locations->delete('phpgwapi', '.test', true);
-    }
-
-    /**
-     * Test Custom Functions add method
-     *
-     * @return void
-     */
-    public function testAdd()
-    {
         $this->assertNotEquals(0, $this->functionID);
     }
 
@@ -115,9 +100,9 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
      */
     public function testGet()
     {
+		//apparantly - the $this->functionID does not survive into the next test.
         $func = $GLOBALS['phpgw']->custom_functions->get('phpgwapi',
-                                                        '.test', $this->functionID);
-
+                                                        '.test', 1); //$this->functionID);
         $this->assertNotNull(1, $func);
     }
 
@@ -128,9 +113,8 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
      */
     public function testEdit()
     {
-        $old_func = $GLOBALS['phpgw']->custom_functions->get('phpgwapi', '.test',
-                                                            $this->functionID);
-
+        $old_func = $GLOBALS['phpgw']->custom_functions->get('phpgwapi', '.test',1);
+                                                          // $this->functionID);
         $new_values = array
         (
             'appname'                => 'phpgwapi',
@@ -142,8 +126,8 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
 
         $GLOBALS['phpgw']->custom_functions->edit($new_values);
 
-        $new_func = $GLOBALS['phpgw']->custom_functions->get('phpgwapi', '.test',
-                                                            $this->functionID);
+        $new_func = $GLOBALS['phpgw']->custom_functions->get('phpgwapi', '.test',1);
+                                                          //  $this->functionID);
 
         $this->assertNotEquals($old_func, $new_func);
     }
@@ -159,10 +143,10 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
         (
             'appname'    => 'phpgwapi',
             'location'    => '.test',
-            'start'        => -1,
+            'start'        => 0,
             'sort'        => 'DESC',
             'order'        => 'file_name',
-            'query'        => 'test.php'
+            'query'        => 'crackme.php'
         );
 
         $funcs = $GLOBALS['phpgw']->custom_functions->find($criteria);
@@ -180,6 +164,31 @@ class TestCustomFunctions extends PHPUnit_Framework_TestCase
         $func = $GLOBALS['phpgw']->custom_functions->get('phpgwapi',
                                                         '.test', 2, true);
         
+        $this->clean();
         $this->assertNull($func);
     }
+
+    /**
+     * Clean up the environment after running a test
+     *
+     * @return void
+     */
+    protected function clean()
+    {
+        $args = array
+        (
+        	'appname'	=> 'phpgwapi',
+        	'location'  => '.test'
+        );
+        $funcs = $GLOBALS['phpgw']->custom_functions->find($args);
+
+        foreach ( $funcs as $func )
+        {
+            $GLOBALS['phpgw']->custom_functions->delete('phpgwapi',
+                                                        '.test', $func['id']);
+        }
+
+        $GLOBALS['phpgw']->locations->delete('phpgwapi', '.test', true);
+    }
+
 }

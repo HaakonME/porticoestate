@@ -1,6 +1,6 @@
 	<xsl:template name="file_list">
 			<tr>
-				<td align="left" valign="top">
+				<td width="19%" align="left" valign="top">
 					<xsl:value-of select="//lang_files"/>
 				</td>
 				<td>
@@ -32,11 +32,11 @@
 						<xsl:choose>
 							<xsl:when test="//link_to_files!=''">
 								<xsl:variable name="link_to_file"><xsl:value-of select="//link_to_files"/>/<xsl:value-of select="directory"/>/<xsl:value-of select="file_name"/></xsl:variable>
-								<a href="{$link_to_file}" target="_blank" title="{//lang_view_file_statustext}" style="cursor:help"><xsl:value-of select="name"/></a>
+								<a href="{$link_to_file}" target="_blank" title="{//lang_view_file_statustext}"><xsl:value-of select="name"/></a>
 							</xsl:when>
 							<xsl:otherwise>
 								<xsl:variable name="link_view_file"><xsl:value-of select="//link_view_file"/>&amp;file_name=<xsl:value-of select="file_name"/></xsl:variable>
-								<a href="{$link_view_file}" target="_blank" title="{//lang_view_file_statustext}" style="cursor:help"><xsl:value-of select="name"/></a>
+								<a href="{$link_view_file}" target="_blank" title="{//lang_view_file_statustext}"><xsl:value-of select="name"/></a>
 							</xsl:otherwise>
 						</xsl:choose>
 						<xsl:text> </xsl:text>
@@ -89,11 +89,11 @@
 								<xsl:choose>
 									<xsl:when test="//link_to_files!=''">
 										<xsl:variable name="link_to_file"><xsl:value-of select="//link_to_files"/>/<xsl:value-of select="directory"/>/<xsl:value-of select="file_name"/></xsl:variable>
-										<a href="{$link_to_file}" target="_blank" title="{//lang_view_file_statustext}" style="cursor:help"><xsl:value-of select="name"/></a>
+										<a href="{$link_to_file}" target="_blank" title="{//lang_view_file_statustext}"><xsl:value-of select="name"/></a>
 									</xsl:when>
 									<xsl:otherwise>
 										<xsl:variable name="link_view_file"><xsl:value-of select="//link_view_file"/>&amp;file_name=<xsl:value-of select="file_name"/></xsl:variable>
-										<a href="{$link_view_file}" target="_blank" title="{//lang_view_file_statustext}" style="cursor:help"><xsl:value-of select="name"/></a>
+										<a href="{$link_view_file}" target="_blank" title="{//lang_view_file_statustext}"><xsl:value-of select="name"/></a>
 									</xsl:otherwise>
 								</xsl:choose>
 								<xsl:text> </xsl:text>
@@ -114,6 +114,21 @@
 				<input type="file" name="file" size="40" onMouseout="window.status='';return true;">
 					<xsl:attribute name="title">
 							<xsl:value-of select="//lang_file_statustext"/>
+					</xsl:attribute>
+				</input>
+			</td>
+		</tr>
+	</xsl:template>
+
+	<xsl:template name="jasper_upload" xmlns:php="http://php.net/xsl">
+		<tr>
+			<td valign="top">
+				<xsl:value-of select="php:function('lang', 'jasper upload')"/>
+			</td>
+			<td>
+				<input type="file" name="jasperfile" size="40">
+					<xsl:attribute name="title">
+						<xsl:value-of select="php:function('lang', 'upload a jasper definition file')"/>
 					</xsl:attribute>
 				</input>
 			</td>

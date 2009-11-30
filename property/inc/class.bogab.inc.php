@@ -52,14 +52,8 @@
 
 		function property_bogab($session=false)
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
-			$this->bocommon 	= CreateObject('property.bocommon');
 			$this->solocation 	= CreateObject('property.solocation');
-			$this->config		= CreateObject('phpgwapi.config');
-			$this->config->read_repository();
-			$this->gab_insert_level = (isset($this->config->config_data['gab_insert_level'])?$this->config->config_data['gab_insert_level']:3);
-
-			$this->so 		= CreateObject('property.sogab',$this->gab_insert_level);
+			$this->so 		= CreateObject('property.sogab');
 
 			if ($session)
 			{
@@ -135,7 +129,7 @@
 		}
 
 
-		function read($loc1='',$gaards_nr='',$bruksnr='',$feste_nr='',$seksjons_nr='',$address='',$check_payments = '',$allrows='')
+		function read($location_code='',$gaards_nr='',$bruksnr='',$feste_nr='',$seksjons_nr='',$address='',$check_payments = '',$allrows='')
 		{
 			if($allrows)
 			{
@@ -143,18 +137,19 @@
 			}
 
 			$gab = $this->so->read(array('start' => $this->start,'sort' => $this->sort,'order' => $this->order,'allrows'=>$this->allrows,
-											'cat_id' => $this->cat_id,'loc1' => $loc1,
+											'cat_id' => $this->cat_id,'location_code' => $location_code,
 											'gaards_nr' => $gaards_nr,'bruksnr' => $bruksnr,'feste_nr' => $feste_nr,
 											'seksjons_nr' => $seksjons_nr,'address' => $address,'check_payments' => $check_payments));
 			$this->total_records = $this->so->total_records;
 			$this->payment_date = $this->so->payment_date;
 			return $gab;
 		}
-
-		function read_detail($gab_id='')
+		
+		//nguerra@ccfirst.com $allrows - variable to display all records
+		function read_detail($gab_id='', $allrows=0)
 		{
 			$gab = $this->so->read_detail(array('start' => $this->start,'sort' => $this->sort,'order' => $this->order,
-											'cat_id' => $this->cat_id,'gab_id' => $gab_id,'allrows'=>$this->allrows));
+											'cat_id' => $this->cat_id,'gab_id' => $gab_id,'allrows'=>$allrows));
 			$this->total_records = $this->so->total_records;
 
 			$this->uicols	= $this->so->uicols;

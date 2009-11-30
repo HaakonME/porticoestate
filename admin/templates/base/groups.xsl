@@ -1,4 +1,4 @@
-<!-- $Id: groups.xsl 16932 2006-08-06 10:03:24Z skwashd $ -->
+<!-- $Id$ -->
 
 	<xsl:template name="groups">
 		<xsl:choose>
@@ -41,7 +41,7 @@
 
 	<xsl:template match="group_header">
 		<tr>
-			<th><a href="$sort_name"><xsl:value-of select="lang_name"/></a></th>
+			<th><a href="{sort_name}"><xsl:value-of select="lang_name"/></a></th>
 			<th><xsl:value-of select="lang_edit"/></th>
 			<th><xsl:value-of select="lang_delete"/></th>
 		</tr>

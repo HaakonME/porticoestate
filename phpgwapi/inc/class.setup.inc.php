@@ -57,6 +57,7 @@
 		{
 			$form_domain = phpgw::get_var('FormDomain', 'string', 'POST', '');
 			$ConfigDomain = phpgw::get_var('ConfigDomain', 'string', 'REQUEST', $form_domain);
+			$ConfigDomain   = $ConfigDomain ? $ConfigDomain : phpgw::get_var('ConfigDomain', 'string', 'COOKIE');
 
 			$GLOBALS['phpgw_info']['server']['db_type'] = $GLOBALS['phpgw_domain'][$ConfigDomain]['db_type'];
 			$GLOBALS['phpgw_info']['server']['db_host']	= $GLOBALS['phpgw_domain'][$ConfigDomain]['db_host'];
@@ -89,6 +90,14 @@
 			$HeaderPW     = phpgw::get_var('HeaderPW');
 			$ConfigLang   = phpgw::get_var('ConfigLang');
 
+			// In case the cookies are not included in $_REQUEST
+			$FormLogout   = $FormLogout ? $FormLogout : phpgw::get_var('FormLogout',	'string', 'COOKIE');
+			$ConfigDomain = $ConfigDomain ? $ConfigDomain: phpgw::get_var('ConfigDomain',	'string', 'COOKIE');
+			$ConfigPW     = $ConfigPW ? $ConfigPW : phpgw::get_var('ConfigPW',	'string', 'COOKIE');
+			$HeaderPW     = $HeaderPW ? $HeaderPW : phpgw::get_var('HeaderPW',	'string', 'COOKIE');
+			$ConfigLang   = $ConfigLang ? $ConfigLang : phpgw::get_var('ConfigLang',	'string', 'COOKIE');
+
+
 			/*
 			if(!empty($remoteip) && !$this->checkip($remoteip))
 			{
@@ -110,7 +119,7 @@
 			if(!empty($HeaderLogin) && $auth_type == 'Header')
 			{
 				/* header admin login */
-				if($FormPW == stripslashes($GLOBALS['phpgw_info']['server']['header_admin_password']))
+				if($FormPW == $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw_info']['server']['header_admin_password']))
 				{
 					setcookie('HeaderPW',md5($FormPW),$expire);
 					setcookie('ConfigLang',$ConfigLang,$expire);
@@ -126,7 +135,8 @@
 			elseif(!empty($ConfigLogin) && $auth_type == 'Config')
 			{
 				/* config login */
-				if($FormPW == stripslashes(@$GLOBALS['phpgw_domain'][$FormDomain]['config_passwd']))
+//				if($FormPW == stripslashes(@$GLOBALS['phpgw_domain'][$FormDomain]['config_passwd']))
+				if($FormPW == $GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw_domain'][$FormDomain]['config_passwd']))
 				{
 					setcookie('ConfigPW', md5($FormPW), $expire);
 					setcookie('ConfigDomain', $FormDomain, $expire);
@@ -169,7 +179,7 @@
 			elseif(!empty($ConfigPW) && $auth_type == 'Config')
 			{
 				/* Returning after login to config */
-				if($ConfigPW == md5(stripslashes($GLOBALS['phpgw_domain'][$ConfigDomain]['config_passwd'])))
+				if($ConfigPW == md5($GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw_domain'][$ConfigDomain]['config_passwd'])))
 				{
 					setcookie('ConfigPW', $ConfigPW,  $expire);
 					setcookie('ConfigDomain', $ConfigDomain, $expire);
@@ -186,7 +196,13 @@
 			elseif(!empty($HeaderPW) && $auth_type == 'Header')
 			{
 				/* Returning after login to header admin */
-				if($HeaderPW == md5(stripslashes($GLOBALS['phpgw_info']['server']['header_admin_password'])))
+				if($HeaderPW == md5(@$GLOBALS['phpgw']->crypto->decrypt($GLOBALS['phpgw_info']['server']['header_admin_password'])))
+				{
+					setcookie('HeaderPW', $HeaderPW , $expire);
+					setcookie('ConfigLang', $ConfigLang, $expire);
+					return True;
+				}
+				else if($HeaderPW == md5(stripslashes($GLOBALS['phpgw_info']['server']['header_admin_password'])))
 				{
 					setcookie('HeaderPW', $HeaderPW , $expire);
 					setcookie('ConfigLang', $ConfigLang, $expire);
@@ -359,7 +375,7 @@
 					. intval($setup_info[$appname]['app_order']) . ", "
 					. "'$tables', "
 					. "'{$setup_info[$appname]['version']}')"
-					,__LINE__,__FILE__
+					,__LINE__,__FILE__, true
 				);
 				$this->clear_session_cache();
 			}
@@ -513,6 +529,28 @@
 			}
 			$appname = $this->db->db_addslashes($appname);
 			$setup_info =& $GLOBALS['setup_info'];
+
+			// Clean up locations, custom fields and ACL
+			$this->db->query("SELECT app_id FROM phpgw_applications WHERE app_name = '{$appname}'");
+			$this->db->next_record();
+			$app_id = $this->db->f('app_id');
+
+			$this->db->query("SELECT location_id FROM phpgw_locations WHERE app_id = {$app_id}");
+
+			$locations = array();
+			while ($this->db->next_record())
+			{
+				$locations[] = $this->db->f('location_id');
+			}
+
+			if(count($locations))
+			{
+				$this->db->query('DELETE FROM phpgw_cust_choice WHERE location_id IN ('. implode (',',$locations) . ')');
+				$this->db->query('DELETE FROM phpgw_cust_attribute WHERE location_id IN ('. implode (',',$locations). ')');
+				$this->db->query('DELETE FROM phpgw_acl  WHERE location_id IN ('. implode (',',$locations) . ')');
+			}
+
+			$this->db->query("DELETE FROM phpgw_locations WHERE app_id = {$app_id}");
 
 			//echo 'DELETING application: ' . $appname;
 			$this->db->query("DELETE FROM phpgw_applications WHERE app_name='{$appname}'",__LINE__,__FILE__);

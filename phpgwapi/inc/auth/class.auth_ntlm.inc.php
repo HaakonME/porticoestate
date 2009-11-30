@@ -12,7 +12,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -31,7 +31,7 @@
 	* @subpackage accounts
 	* @ignore
 	*/
-	class phpgwapi_auth_ntlm extends phpgwapi_auth_remote_user
+	class phpgwapi_auth_ntlm extends phpgwapi_auth_
 	{
 
 		public function __construct()
@@ -39,10 +39,35 @@
 			parent::__construct();
 		}
 
-		function change_password($old_passwd, $new_passwd)
+		public function authenticate($username, $passwd)
+		{
+			return isset($_SERVER['REMOTE_USER']) && !!strlen($_SERVER['REMOTE_USER']);
+		}
+
+		public function change_password($old_passwd, $new_passwd, $account_id = 0)
 		{
 			// not yet supported - this script would change the windows domain password
 			return '';
+		}
+
+		/**
+		* Update when the user last logged in
+		*
+		* @param int $account_id the user's account id
+		* @param string $ip the source IP adddress for the request
+		*/
+		public function update_lastlogin($account_id, $ip)
+		{
+			$ip = $GLOBALS['phpgw']->db->db_addslashes($ip);
+			$account_id = (int) $account_id;
+			$now = time();
+
+			$sql = 'UPDATE phpgw_accounts'
+				. " SET account_lastloginfrom = '{$ip}',"
+					. " account_lastlogin = {$now}"
+				. " WHERE account_id = {$account_id}";
+
+			$GLOBALS['phpgw']->db->query($sql, __LINE__, __FILE__);
 		}
 
 	}

@@ -7,7 +7,7 @@
 	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
 	* @package email
-	* @version $Id: class.html_widgets.inc.php 17939 2007-02-11 06:42:17Z skwashd $
+	* @version $Id$
 	* @internal Based on AngleMail http://www.anglemail.org/
 	*/
 
@@ -909,9 +909,9 @@
 			$row2_rowcolor_key = 'row_on';
 			$this->tpl->set_var('row1_rowcolor_key',$row1_rowcolor_key);
 			$this->tpl->set_var('row2_rowcolor_key',$row2_rowcolor_key);
-			$this->tpl->set_var('toolbar_row1_bgcolor',$GLOBALS['phpgw_info']['theme'][$row1_rowcolor_key]);
-			$this->tpl->set_var('toolbar_row2_bgcolor',$GLOBALS['phpgw_info']['theme'][$row2_rowcolor_key]);
-			$this->tpl->set_var('toolbar_font',$GLOBALS['phpgw_info']['theme']['font']);
+			$this->tpl->set_var('toolbar_row1_bgcolor','');
+			$this->tpl->set_var('toolbar_row2_bgcolor','');
+			$this->tpl->set_var('toolbar_font','');
 			$this->tpl->set_var('toolbar_font_size','2');
 			$this->tpl->set_var('report_this_font_size','1');
 			

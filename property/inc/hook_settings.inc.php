@@ -36,20 +36,76 @@
 	create_select_box('Choose property filter','property_filter',$select_property_filter,'Filter by owner or owner type');
 
 	$yes_and_no = array(
-		'true' => 'Yes',
-		''     => 'No'
+		'yes' => 'Yes',
+		'no'     => 'No'
 	);
-	create_select_box('show new/updated tickets on main screen','mainscreen_show_new_updated',$yes_and_no,'Dont think this is working - yet');
 
 	create_select_box('Group filters in single query','group_filters',$yes_and_no,'Group filters - means that one has to hit the search button to apply the filter');
 
-	$tts_status = array(
-		'' 		=> lang('Open'),
-		'closed' 	=> lang('Closed'),
-		'all' 		=> lang('All')
-	);
+	$status_list_tts = execMethod('property.botts._get_status_list');
+	$status_list_workorder = execMethod('property.soworkorder.select_status_list');
+	$status_list_project = execMethod('property.soproject.select_status_list');
 
-	create_select_box('Default ticket status','tts_status',$tts_status,'The default status when entering the helpdesk');
+	if ($status_list_tts)
+	{
+		foreach ( $status_list_tts as $entry )
+		{
+			$_status_tts[$entry['id']] = $entry['name'];
+		}
+	}
+
+	if ($status_list_workorder)
+	{
+		foreach ( $status_list_workorder as $entry )
+		{
+			$_status_workorder[$entry['id']] = $entry['name'];
+		}
+	}
+
+	if ($status_list_project)
+	{
+		foreach ( $status_list_project as $entry )
+		{
+			$_status_project[$entry['id']] = $entry['name'];
+		}
+	}
+
+
+	create_select_box('show new/updated tickets on main screen','mainscreen_show_new_updated_tts',$yes_and_no,'Link to tickets you are assigned to');
+	create_select_box('Default ticket status','tts_status',$_status_tts,'The default status when entering the helpdesk and mainscreen');
+	create_input_box('Custom title on main screen tickets','mainscreen_tts_title');
+
+	create_select_box('show new/updated tickets on main screen 2','mainscreen_show_new_updated_tts_2',$yes_and_no,'Link to tickets you are assigned to');
+	create_select_box('Default ticket status 2','tts_status_2',$_status_tts,'The default status when entering the helpdesk and mainscreen');
+	create_input_box('Custom title on main screen tickets','mainscreen_tts_title_2');
+
+	create_select_box('show new/updated tickets on main screen 3','mainscreen_show_new_updated_tts_3',$yes_and_no,'Link to tickets you are assigned to');
+	create_select_box('Default ticket status 3','tts_status_3',$_status_tts,'The default status when entering the helpdesk and mainscreen');
+	create_input_box('Custom title on main screen tickets','mainscreen_tts_title_3');
+
+	create_select_box('show tickets on main screen initiated by user','mainscreen_show_new_updated_tts_4',$yes_and_no,'Link to tickets you have started');
+	create_select_box('Default ticket status 4','tts_status_4',$_status_tts,'The default status when entering the helpdesk and mainscreen');
+	create_input_box('Custom title on main screen tickets','mainscreen_tts_title_4');
+
+	create_select_box('show pending vendor reminders on main screen','mainscreen_showvendor_reminder',$yes_and_no,'Reminder issued to vendors');
+	create_input_box('Custom title on pending vendor reminders','mainscreen_showvendor_reminder_title');
+
+	create_select_box('show your pending request for approvals on main screen','mainscreen_showapprovals_request',$yes_and_no,'Your requests for Approvals waiting decisions');
+	create_input_box('Custom title on pending request for approvals','mainscreen_showapprovals_request_title');
+
+	create_select_box('show pending approvals on main screen','mainscreen_showapprovals',$yes_and_no,'Approvals waiting for your decisions');
+	create_input_box('Custom title on pending approvals','mainscreen_showapprovals_title');
+
+	create_select_box('Default updated ticket status when creating project','tts_status_create_project',$_status_tts,'The default status when entering the helpdesk and mainscreen');
+	create_select_box('Autocreate project from ticket','auto_create_project_from_ticket',$yes_and_no);
+	
+	create_select_box('your workorders on main screen - list 1','mainscreen_workorder_1',$yes_and_no,'Link to your workorders');
+	create_select_box('Default workorder status 1','workorder_status_mainscreen_1',$_status_workorder,'The default status for list 1 when entering the mainscreen');
+	create_input_box('Custom title on workorders on main screen - list 1','mainscreen_workorders_1_title');
+
+	create_select_box('your workorders on main screen - list 2','mainscreen_workorder_2',$yes_and_no,'Link to your workorders');
+	create_select_box('Default workorder status 2','workorder_status_mainscreen_2',$_status_workorder,'The default status for list 2 when entering the mainscreen');
+	create_input_box('Custom title workorders on main screen - list 2','mainscreen_workorders_2_title');
 
 	create_select_box('show quick link for changing status for tickets','tts_status_link',$yes_and_no,'Enables to set status wihout entering the ticket');
 
@@ -126,6 +182,7 @@
 	create_select_box('Default Degree Request residential environment','default_environment',$degree);
 
 	create_select_box('Send order receipt as email ','order_email_rcpt',$yes_and_no,'Send the order as BCC to the user');
+	create_select_box('Notify owner of project/order on change','notify_project_owner',$yes_and_no,'By email');
 
 	$default_start_page = array(
 		'location'   => lang('Location'),
@@ -136,20 +193,9 @@
 		);
 	create_select_box('Default start page','default_start_page',$default_start_page,'Select your start-submodule');
 
-	$soworkorder= CreateObject('property.soworkorder');
 	$socommon= CreateObject('property.socommon');
 
-	$status_list= $soworkorder->select_status_list();
-
-	$district_list= $socommon->select_district_list();
-
-	if ($status_list)
-	{
-		foreach ( $status_list as $entry )
-		{
-			$_status[$entry['id']] = $entry['name'];
-		}
-	}
+	$district_list= $socommon->select_district_list();	
 
 	$cats->app_name = 'property.project';
 
@@ -174,11 +220,13 @@
 
 	unset($soworkorder);
 	unset($socommon);
-	create_select_box('Default project status','project_status',$_status,'The default status for your projects and workorders');
+	create_select_box('Default project status','project_status',$_status_project,'The default status for your projects');
+	create_select_box('Default workorder status','workorder_status',$_status_workorder,'The default status for your workorders');
 	create_select_box('Default project categories','project_category',$_categories_project,'The default category for your projects and workorders');
 	create_select_box('Default district-filter','default_district',$_districts,'Your default district-filter ');
 
 	create_input_box('Your Cellphone','cellphone');
+	create_input_box('RessursNr','ressursnr');
 
 	create_select_box('Workorder Approval From','approval_from',$_accounts,'If you need approval from your supervisor for projects/workorders');
 
@@ -208,4 +256,29 @@
 	create_input_box('Height of textarea','textarearows','Height of textarea in forms');
 
 	create_select_box('show horisontal menues','horisontal_menus',array('no' => 'No','yes' => 'Yes'),'Horisontal menues are shown in top of page');
-	create_select_box('Tabel export format','export_format',array('excel' => 'Excel','csv' => 'CSV'),'Choose which format to export from the system for tables');
+	create_select_box('remove navbar','nonavbar',array('no' => 'No','yes' => 'Yes'),'Navigation bar is removed');
+	create_select_box('Tabel export format','export_format',array('excel' => 'Excel','csv' => 'CSV', 'ods' => 'ODS'),'Choose which format to export from the system for tables');
+
+	$default = 'Fra: __organisation__';
+	$default .= "\n" . 'Saksbehandler: __user_name__, ressursnr: __ressursnr__';
+	$default .= "\n";
+	$default .= "\n" . '__location__';
+	$default .= "\n";
+	$default .= "\n" . '[b]Beskrivelse av oppdraget:[/b]';
+	$default .= "\n" . '__order_description__';
+	$default .= "\n";
+	$default .= "\n" . '[b]Kontakt på bygget:[/b]';
+	$default .= "\n";
+	$default .= "\n" . '__contact_name__';
+	$default .= "\n" . '__contact_email__';
+	$default .= "\n" . '__contact_phone__';
+	$default .= "\n";
+	$default .= "\n" . '[b]Faktura må merkes med ordrenummer: __order_id__ og ressursnr.: __ressursnr__[/b]';
+	$default .= "\n";	
+	$default .= "\n" . 'Med hilsen';
+	$default .= "\n" . '__user_name__';
+	$default .= "\n" . '__user_phone__';
+	$default .= "\n" . '__user_email__';
+	$default .= "\n" . '__organisation__';
+
+	create_text_area('order email','order_email_template',10,60,'',$default);

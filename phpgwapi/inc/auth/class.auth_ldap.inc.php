@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -121,9 +121,8 @@
 				}
 
 				/* try to bind as the user with user suplied password */
-				$user_bind = @ldap_bind($ldap, $userDN, $passwd);
-				$ok = is_resource($user_bind);
-				@ldap_unbind($user_bind); // we don't need this connection anymore, so avoid a leak.
+				$ok = @ldap_bind($ldap, $userDN, $passwd);
+				@ldap_unbind($ldap); // we don't need this connection anymore, so avoid a leak.
 			}
 			@ldap_unbind($ldap);
 

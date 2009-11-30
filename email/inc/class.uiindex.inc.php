@@ -7,7 +7,7 @@
 	* @copyright Copyright (C) 2003-2005 Free Software Foundation, Inc. http://www.fsf.org/
 	* @license http://www.gnu.org/licenses/gpl.html GNU General Public License
 	* @package email
-	* @version $Id: class.uiindex.inc.php 17720 2006-12-18 14:44:38Z sigurdne $
+	* @version $Id$
 	* @internal Based on AngleMail http://www.anglemail.org/
 	*/
 
@@ -296,7 +296,7 @@
 						}
 						$tpl_vars = Array(
 							// new checkbox value, new fake_uri method of embedding coumpound data in a single HTML element
-							'mlist_embedded_uri' => $this->bo->xi['msg_list_dsp'][$i]['uri'],
+							'mlist_embedded_uri' => http_build_query($this->bo->xi['msg_list_dsp'][$i]['uri']),
 							'mlist_backcolor'	=> $this->bo->xi['msg_list_dsp'][$i]['back_color'],
 							'mlist_backcolor_class'	=> $this->bo->xi['msg_list_dsp'][$i]['back_color_class'],
 							'mlist_subject'		=> $this->bo->xi['msg_list_dsp'][$i]['subject'],

@@ -64,7 +64,7 @@
 			$this->siteconfig	= $this->soprojects->siteconfig;
 
 			$this->account					= $GLOBALS['phpgw_info']['user']['account_id'];
-			$this->grants					= $GLOBALS['phpgw']->acl->get_grants('projects');
+			$this->grants					= $GLOBALS['phpgw']->acl->get_grants('projects', 'project');
 			$this->grants[$this->account]	= PHPGW_ACL_READ + PHPGW_ACL_ADD + PHPGW_ACL_EDIT + PHPGW_ACL_DELETE;
 
 			$this->html_output	= true;
@@ -368,7 +368,7 @@
 		{
 			$this->accounts = CreateObject('phpgwapi.accounts',$account_id);
 
-			$this->accounts->read_repository();
+			$this->accounts->read();
 
 			$cached_data[$this->accounts->data['account_id']]['account_id']		= $this->accounts->data['account_id'];
 			$cached_data[$this->accounts->data['account_id']]['account_lid']	= $this->accounts->data['account_lid'];
@@ -456,7 +456,7 @@
 			{
 				$myproject = $this->soprojects->read_single_project($project_id);
 
-				$empl = $GLOBALS['phpgw']->acl->get_ids_for_location($project_id, 7, 'project_members');
+				$empl = $GLOBALS['phpgw']->acl->get_ids_for_location(".project_members.{$project_id}", 7, 'projects');
 				if(!count($empl) || $empl[0] == '')
 				{
 					$empl = null;
@@ -481,6 +481,7 @@
 
 		function selected_employees( $data = 0 )
 		{
+			$empl = array();
 			$project_id = intval($data['project_id']);
 			$pro_parent = intval($data['pro_parent']);
 
@@ -541,7 +542,7 @@
 					continue;
 
 				//$this->accounts = CreateObject('phpgwapi.accounts',$emps[$i]);
-				//$this->accounts->read_repository();
+				//$this->accounts->read();
 
 				if( $data['roles_included'] == true )
 				{
@@ -2128,7 +2129,8 @@ used_subs=used_sum-used_item
 
 				for( $i=0; $i < count($values['employees']); $i++ )
 				{
-					$GLOBALS['phpgw']->acl->add_repository('project_members',$values['project_id'],$values['employees'][$i],7);
+					$GLOBALS['phpgw']->locations->add(".project_members.{$values['project_id']}", "Project # {$values['project_id']}", 'projects', false);
+					$GLOBALS['phpgw']->acl->add_repository('projects', ".project_members.{$values['project_id']}", $values['employees'][$i], 7);
 				}
 			}
 
@@ -2530,13 +2532,13 @@ used_subs=used_sum-used_item
 					if( $send_alarm )
 					{
 						$prefs_co = CreateObject('phpgwapi.preferences',$co);
-						$prefs_co->read_repository();
+						$prefs_co->read();
 						$sender = $prefs_co->email_address($co);
 
 						unset($prefs_co);
 
 						$prefs = CreateObject('phpgwapi.preferences', $emp_events[$k]['account_id']);
-						$prefs->read_repository();
+						$prefs->read();
 
 						$msgtype = '"projects";';
 
@@ -2813,6 +2815,7 @@ used_subs=used_sum-used_item
 
 		function get_granted_roles( $project_id )
 		{
+			$assigned = array();
 			$emps = $this->selected_employees($project_id);
 			$roles	= $this->get_employee_roles($project_id);
 
@@ -2836,9 +2839,8 @@ used_subs=used_sum-used_item
 						'role_name'	=> $assigned_role
 					);
 				}
-				return $assigned;
 			}
-			return false;
+			return $assigned;
 		}
 
 		function list_events( $type = '' )
@@ -3288,7 +3290,7 @@ used_subs=used_sum-used_item
 				while( list($employee_id, $employee_projects) = each($employees) )
 				{
 					$prefs = CreateObject('phpgwapi.preferences', $employee_id);
-					$prefs->read_repository();
+					$prefs->read();
 
 					if( (isset($prefs->data['projects']['send_status_mail']) ) && ($prefs->data['projects']['send_status_mail'] == false) )
 					{
@@ -3476,7 +3478,7 @@ used_subs=used_sum-used_item
 			foreach ( $acl_prohectmembers as $employee_id => $employee_projects )
 			{
 				$prefs = CreateObject('phpgwapi.preferences', $employee_id);
-				$prefs->read_repository();
+				$prefs->read();
 
 				$employee_lid = $employee_pname = $employee_lname = '';
 				$fullname = (string) $accounts->get($employee_id);

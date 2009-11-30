@@ -36,34 +36,40 @@
 	{
 		function property_sotenant_claim()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->account	= $GLOBALS['phpgw_info']['user']['account_id'];
-			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           	= $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
-
-			$this->join			= $this->bocommon->join;
-			$this->like			= $this->bocommon->like;
+			$this->db           = & $GLOBALS['phpgw']->db;
+			$this->join			= & $this->db->join;
+			$this->like			= & $this->db->like;
+			$this->interlink 	= CreateObject('property.interlink');
 		}
 
 		function read($data)
 		{
 			if(is_array($data))
 			{
-				$start	= (isset($data['start'])?$data['start']:0);
-				$filter	= (isset($data['filter'])?$data['filter']:'none');
-				$status	= (isset($data['status'])?$data['status']:'open');
-				$query = (isset($data['query'])?$data['query']:'');
-				$sort = (isset($data['sort'])?$data['sort']:'DESC');
-				$order = (isset($data['order'])?$data['order']:'');
-				$cat_id = (isset($data['cat_id'])?$data['cat_id']:0);
-				$allrows 	= (isset($data['allrows'])?$data['allrows']:'');
-				$project_id 	= (isset($data['project_id'])?$data['project_id']:'');
+				$start		= isset($data['start']) && $data['start'] ? $data['start'] : 0;
+				$filter		= isset($data['filter']) && $data['filter'] ? $data['filter'] : 'none';
+				$status		= isset($data['status']) && $data['status'] ? $data['status'] : 'open';
+				$query		= isset($data['query']) ? $data['query'] : '';
+				$sort		= isset($data['sort']) && $data['sort'] ? $data['sort'] : 'DESC';
+				$order		= isset($data['order']) ? $data['order'] : '';
+				$cat_id		= isset($data['cat_id']) && $data['cat_id'] ? $data['cat_id'] : 0;
+				$allrows	= isset($data['allrows']) ? $data['allrows'] : '';
+				$project_id	= isset($data['project_id']) ? $data['project_id'] : '';
 
 			}
 
 			if ($order)
 			{
+				switch($order)
+				{
+					case 'claim_id':
+						$order = 'fm_tenant_claim.id';
+						break;
+					case 'name':
+						$order = 'last_name';
+						break;
+				}
 				$ordermethod = " order by $order $sort";
 			}
 			else
@@ -85,33 +91,26 @@
 				$where = 'AND';
 			}
 
-			if ($status == 'closed'):
+			if ($status && $status != 'all')
 			{
-				$filtermethod .= " $where fm_tenant_claim.status='closed'";
+				$filtermethod .= " $where fm_tenant_claim.status='{$status}'";
 				$where = 'AND';
 			}
-			elseif($status == ''):
-			{
-				$filtermethod .= " $where fm_tenant_claim.status='open'";
-				$where = 'AND';
-			}
-			endif;
 
 			if($query)
 			{
-				$query = preg_replace("/'/",'',$query);
-				$query = preg_replace('/"/','',$query);
+				$query = $this->db->db_addslashes($query);
 
 				$querymethod = " $where ( first_name $this->like '%$query%' OR last_name $this->like '%$query%')";
 			}
 
-			$sql = "SELECT fm_tenant_claim.*, descr as category FROM fm_tenant_claim "
+			$sql = "SELECT fm_tenant_claim.*, descr as category, fm_tenant.last_name, fm_tenant.first_name FROM fm_tenant_claim "
 			 . " $this->join fm_tenant_claim_category on fm_tenant_claim.category=fm_tenant_claim_category.id"
 			 . " $this->join fm_tenant ON fm_tenant_claim.tenant_id = fm_tenant.id"
 			 . " $filtermethod $querymethod";
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			$this->db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
 			if(!$allrows)
 			{
@@ -122,6 +121,7 @@
 				$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
 			}
 
+			$claims = array();
 			while ($this->db->next_record())
 			{
 				$claims[] = array
@@ -129,7 +129,8 @@
 					'claim_id'		=> $this->db->f('id'),
 					'project_id'	=> $this->db->f('project_id'),
 					'tenant_id'		=> $this->db->f('tenant_id'),
-					'remark'		=> stripslashes($this->db->f('remark')),
+					'name'			=> $this->db->f('last_name') . ', ' . $this->db->f('first_name'),
+					'remark'		=> $this->db->f('remark',true),
 					'entry_date'	=> $this->db->f('entry_date'),
 					'category'		=> $this->db->f('category'),
 					'status'		=> $this->db->f('status')
@@ -144,8 +145,8 @@
 			 . " $this->join fm_tenant_claim_category on fm_tenant_claim.category=fm_tenant_claim_category.id"
 			 . " WHERE project_id = $project_id";
 
-			$this->db2->query($sql,__LINE__,__FILE__);
-			$this->total_records = $this->db2->num_rows();
+			$this->db->query($sql,__LINE__,__FILE__);
+			$this->total_records = $this->db->num_rows();
 
 			$this->db->query($sql . $ordermethod,__LINE__,__FILE__);
 
@@ -165,19 +166,18 @@
 
 		function check_claim_workorder($workorder_id)
 		{
-			$this->db->query("select * from fm_origin WHERE destination ='tenant_claim' AND origin_id='$workorder_id'",__LINE__,__FILE__);
+			$claim = $this->interlink->get_specific_relation('property', '.project.workorder', '.tenant_claim', $workorder_id, 'origin');
 
-			while ($this->db->next_record())
+			if ( $claim)
 			{
-				$claim[] = $this->db->f('destination_id');
+				return implode(",", $claim);
 			}
-
-			return @implode(",", $claim);
 		}
 
 		function read_single($id)
 		{
-			$this->db->query("select * from fm_tenant_claim where id='$id'",__LINE__,__FILE__);
+			$id = (int) $id;
+			$this->db->query("SELECT * FROM fm_tenant_claim WHERE id={$id}",__LINE__,__FILE__);
 
 			if ($this->db->next_record())
 			{
@@ -194,11 +194,11 @@
 
 			}
 
-			$this->db->query("select * from fm_origin WHERE destination ='tenant_claim' AND destination_id='$id'",__LINE__,__FILE__);
+			$target = $this->interlink->get_specific_relation('property', '.project.workorder', '.tenant_claim', $id, 'origin');
 
-			while ($this->db->next_record())
+			if ( $target)
 			{
-				$claim['workorder'][] = $this->db->f('origin_id');
+				$claim['workorder'] = $target;
 			}
 
 			return $claim;
@@ -223,7 +223,7 @@
 				$claim['status']
 				);
 
-			$values_insert	= $this->bocommon->validate_db_insert($values_insert);
+			$values_insert	= $this->db->validate_insert($values_insert);
 
 
 			$this->db->query("INSERT INTO fm_tenant_claim (project_id,tenant_id,amount,b_account_id,category,remark,user_id,entry_date,status) "
@@ -234,15 +234,18 @@
 
 			foreach ($claim['workorder'] as $workorder_id)
 			{
-				$this->db->query("INSERT INTO fm_origin (origin,origin_id,destination,destination_id,entry_date,user_id) "
-				. "VALUES ('workorder',"
-				. $workorder_id .","
-				. "'tenant_claim',"
-				. $claim_id . ","
-				. time().","
-				. $this->account .")",__LINE__,__FILE__);
+				$interlink_data = array
+				(
+					'location1_id'		=> $GLOBALS['phpgw']->locations->get_id('property', '.project.workorder'),
+					'location1_item_id' => $workorder_id,
+					'location2_id'		=> $GLOBALS['phpgw']->locations->get_id('property', '.tenant_claim'),			
+					'location2_item_id' => $claim_id,
+					'account_id'		=> $this->account
+				);
+					
+				$this->interlink->add($interlink_data,$this->db);
 
-				$this->db->query("UPDATE fm_workorder set claim_issued = 1 WHERE id=" . $workorder_id ,__LINE__,__FILE__);
+				$this->db->query("UPDATE fm_workorder SET claim_issued = 1 WHERE id=" . $workorder_id ,__LINE__,__FILE__);
 			}
 
 			$this->db->transaction_commit();
@@ -269,25 +272,28 @@
 				'remark'			=> $this->db->db_addslashes($claim['remark'])
 				);
 
-			$value_set	= $this->bocommon->validate_db_update($value_set);
+			$value_set	= $this->db->validate_update($value_set);
 
-			$this->db->query("UPDATE fm_tenant_claim set $value_set  WHERE id=" . intval($claim['claim_id']),__LINE__,__FILE__);
+			$this->db->query("UPDATE fm_tenant_claim set $value_set  WHERE id=" . (int)$claim['claim_id'],__LINE__,__FILE__);
 
 			$claim_id = $claim['claim_id'];
 
-			$this->db->query("DELETE FROM fm_origin WHERE destination ='tenant_claim' AND destination_id=$claim_id",__LINE__,__FILE__);
+			$this->interlink->delete_from_target('property', '.tenant_claim', $claim_id, $this->db);
 
-			$this->db->query("UPDATE fm_workorder set claim_issued = NULL WHERE id=" . $claim['project_id'] ,__LINE__,__FILE__);
+			$this->db->query("UPDATE fm_workorder set claim_issued = NULL WHERE project_id = {$claim['project_id']}" ,__LINE__,__FILE__);
 
 			foreach ($claim['workorder'] as $workorder_id)
 			{
-				$this->db->query("INSERT INTO fm_origin (origin,origin_id,destination,destination_id,entry_date,user_id) "
-				. "VALUES ('workorder',"
-				. $workorder_id .","
-				. "'tenant_claim',"
-				. $claim_id . ","
-				. time().","
-				. $this->account .")",__LINE__,__FILE__);
+				$interlink_data = array
+				(
+					'location1_id'		=> $GLOBALS['phpgw']->locations->get_id('property', '.project.workorder'),
+					'location1_item_id' => $workorder_id,
+					'location2_id'		=> $GLOBALS['phpgw']->locations->get_id('property', '.tenant_claim'),			
+					'location2_item_id' => $claim_id,
+					'account_id'		=> $this->account
+				);
+					
+				$this->interlink->add($interlink_data,$this->db);
 
 				$this->db->query("UPDATE fm_workorder set claim_issued = 1 WHERE id=" . $workorder_id ,__LINE__,__FILE__);
 			}
@@ -303,7 +309,7 @@
 		{
 			$this->db->transaction_begin();
 			$this->db->query('DELETE FROM fm_tenant_claim WHERE id=' . intval($id),__LINE__,__FILE__);
-			$this->db->query("DELETE FROM fm_origin WHERE destination ='tenant_claim' AND destination_id=$id",__LINE__,__FILE__);
+			$this->interlink->delete_from_target('property', '.tenant_claim', $id, $this->db);
 			$this->db->transaction_commit();
 
 		}

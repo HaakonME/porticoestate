@@ -5,16 +5,16 @@
 	 * @author Sigurd Nes <sigurdne@online.no>
 	 * @author Dave Hall dave.hall at skwashd.com
 	 * @copyright Copyright (C) 2003-2006 Free Software Foundation http://www.fsf.org/
-	 * @license http://www.gnu.org/licenses/gpl.html GNU General Public License v3 or later
+	 * @license http://www.gnu.org/licenses/gpl.html GNU General Public License v2 or later
 	 * @package phpgroupware
 	 * @subpackage phpgwapi
-	 * @version $Id: class.custom_fields.inc.php 1114 2008-06-02 18:15:22Z sigurd $
+	 * @version $Id$
 	 */
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -98,7 +98,6 @@
 
 			$location_id = $GLOBALS['phpgw']->locations->get_id($custom_function['appname'], $custom_function['location']);
 
-			$custom_function['active'] = false;
 			if ( isset($custom_function['active']) && $custom_function['active'] )
 			{
 				$custom_function['active'] = true;
@@ -130,7 +129,7 @@
 				'id'			=> (int) $custom_function['id'],
 				'file_name'		=> $this->_db->db_addslashes($custom_function['custom_function_file']),
 				'descr'			=> $this->_db->db_addslashes($custom_function['descr']),
-				'active'		=> $custom_function['active'],
+				'active'		=> !!$custom_function['active'],
 				'custom_sort'	=> $custom_sort
 			);
 
@@ -149,7 +148,7 @@
 		}
 
 		/**
-		 * Delete a function
+		 * Delete a custom attribute or custom function
 		 * 
 		 * @param string $appname the application name
 		 * @param string $location the location
@@ -159,7 +158,7 @@
 		 */
 		public function delete($appname, $location, $function_id)
 		{
-			$location_id = $GLOBALS['phpgw']->location->get_id($appname, $location);
+			$location_id = $GLOBALS['phpgw']->locations->get_id($appname, $location);
 			$function_id = (int) $function_id;
 
 			$this->_db->transaction_begin();
@@ -184,7 +183,7 @@
 			if ( $max_sort > $custom_sort )
 			{
 				$sql = 'UPDATE phpgw_cust_function SET custom_sort = (custom_sort - 1)'
-					. " WHERE location_id = {$loc_id} AND custom_sort > {$custom_sort}";
+					. " WHERE location_id = {$location_id} AND custom_sort > {$custom_sort}";
 				$this->_db->query($sql, __LINE__, __FILE__);
 			}
 
@@ -206,7 +205,6 @@
 		{
 			$id = (int) $custom_function['id'];
 
-			$custom_function['active'] = false;
 			if ( isset($custom_function['active']) ) 
 			{
 				$custom_function['active'] = !!$custom_function['active'];
@@ -252,7 +250,7 @@
 
 			$location_id = $GLOBALS['phpgw']->locations->get_id($data['appname'], $data['location']);
 
-			$start = -1;
+			$start = 0;
 			if ( isset($data['start']) )
 			{
 				$start = (int) $data['start'];
@@ -266,7 +264,7 @@
 
 
 			$ordermethod = ' ORDER BY custom_sort ASC';
-			if ( isset($data['order']) )
+			if ( isset($data['order']) && $data['order'] )
 			{
 				$data['sort'] = 'ASC';
 				if ( isset($data['sort']) && $data['sort'] == 'DESC' )
@@ -303,11 +301,11 @@
 
 			if ( true ) //$allrows )
 			{
-				$this->_db->query("SELECT * {$sql} {$ordermethod}");
+				$this->_db->query("SELECT * {$sql} {$ordermethod}", __LINE__, __FILE__);
 			}
 			else
 			{
-				$this->_db->limit_query("SELECT * {$sql} {$ordermethod}", $start);
+				$this->_db->limit_query("SELECT * {$sql} {$ordermethod}", $start, __LINE__, __FILE__);
 			}
 
 			while ( $this->_db->next_record() )
@@ -382,13 +380,17 @@
 			}
 
 			$id		= (int)$id;
-			$resort	= 'up';
+
 			if ( $resort == 'down' )
 			{
 				$resort = 'down';
 			}
+			else
+			{
+				$resort	= 'up';
+			}
 
-			$loccation_id = $GLOBALS['phpgw']->location->get_id($appname, $location);
+			$location_id = $GLOBALS['phpgw']->locations->get_id($appname, $location);
 
 			$this->_db->transaction_begin();
 			

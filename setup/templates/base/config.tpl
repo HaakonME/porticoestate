@@ -1,4 +1,4 @@
-<!-- $Id: config.tpl 17321 2006-10-03 14:05:03Z Caeies $ -->
+<!-- $Id$ -->
 
 <!-- BEGIN header -->
  
@@ -44,12 +44,15 @@
    </tr>
 
    <tr class="row_off">
-     <td>{lang_cookie_domain_for_sessions_-_if_unsure_use_request_fqdn}</td>
+     <td>{lang_cookie_domain_for_sessions_-_if_unsure_leave_empty}</td>
+	 <td><input name="newsettings[cookie_domain]" value="{value_cookie_domain}"></td>
+<!--
 	 <td>
 	   <select name="newsettings[cookie_domain]">
          {hook_cookie_domain}
 	   </select>
 	 </td>
+-->
    </tr>
 
    <tr class="row_on">
@@ -142,6 +145,7 @@
      <select name="newsettings[account_repository]">
       <option value="sql"{selected_account_repository_sql}>SQL</option>
       <option value="ldap"{selected_account_repository_ldap}>LDAP</option>
+      <option value="sqlldap"{selected_account_repository_sqlldap}>SQL - replicate changes to LDAP</option>
       <option value="contacts"{selected_account_repository_contacts} style="text-decoration: line-through;">Contacts - DEPRECATED</option>
      </select>
     </td>

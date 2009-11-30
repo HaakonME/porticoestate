@@ -24,7 +24,7 @@
 		'noheader'               => true
 	);
 
-	$header = basename(realpath(__FILE__) . '/../../../header.inc.php');
+	$header = dirname(realpath(__FILE__)) . '/../../../header.inc.php';
 	if ( !file_exists($header) )
 	{
 		Header('Location: setup/index.php');
@@ -40,7 +40,7 @@
 	$GLOBALS['phpgw_info']['server']['template_dir'] = PHPGW_SERVER_ROOT
 	 		. "/phpgwapi/templates/{$GLOBALS['phpgw_info']['server']['template_set']}";
 
-	$tmpl = CreateObject('phpgwapi.Template', $GLOBALS["phpgw_info"]['server']['template_dir']);
+	$tmpl = CreateObject('phpgwapi.Template', $GLOBALS['phpgw_info']['server']['template_dir']);
 
 	/*
 	 * Generic include for mapping / remoteuser mode
@@ -106,6 +106,7 @@
 		*/
 		function check_logoutcode($code)
 		{
+			$GLOBALS['phpgw']->session->phpgw_setcookie('phpgwsessid');
 			switch($code)
 			{
 				case 1:
@@ -119,18 +120,19 @@
 				case 21:
 					return lang('you had inactive mapping to %1 account', phpgw::get_var('phpgw_account', 'string', 'GET', ''));
 				case 22:
-					return lang('you seem to have an active session elsewhere for the domain "%1", please log out from this one or delete your cookies from your browser', phpgw::get_var('domain', 'string', 'COOKIE'));
+					$GLOBALS['phpgw']->session->phpgw_setcookie('kp3');
+					$GLOBALS['phpgw']->session->phpgw_setcookie('domain');
+					return lang('you seemed to have an active session elsewhere for the domain "%1", now set to expired - please try again', phpgw::get_var('domain', 'string', 'COOKIE'));
 				case 99:
 					return lang('Blocked, too many attempts');
 				case 10:
-					$GLOBALS['phpgw']->session->phpgw_setcookie('sessionid');
 					$GLOBALS['phpgw']->session->phpgw_setcookie('kp3');
 					$GLOBALS['phpgw']->session->phpgw_setcookie('domain');
 
 					// fix for bug php4 expired sessions bug
-					if($GLOBALS['phpgw_info']['server']['sessions_type'] == 'php4')
+					if($GLOBALS['phpgw_info']['server']['sessions_type'] == 'php')
 					{
-						$GLOBALS['phpgw']->session->phpgw_setcookie(PHPGW_PHPSESSID);
+//						$GLOBALS['phpgw']->session->phpgw_setcookie('phpgwsessid');
 					}
 
 					return lang('Your session could not be verified.');
@@ -287,7 +289,7 @@
 				}
 				else
 				{
-					$GLOBALS['phpgw_info']['user']['preferences'] = $prefs->read_repository();
+					$GLOBALS['phpgw_info']['user']['preferences'] = $prefs->read();
 				}
 				#print 'LANG:' . $GLOBALS['phpgw_info']['user']['preferences']['common']['lang'] . '<br>';
 			}
@@ -405,6 +407,10 @@
 			$this->tmpl->set_var('version', $GLOBALS['phpgw_info']['server']['versions']['phpgwapi']);
 			$this->tmpl->set_var('cd', $this->check_logoutcode($cd) );
 			$this->tmpl->set_var('last_loginid', $last_loginid);
+			if(isset($_REQUEST['skip_remote']) && $_REQUEST['skip_remote'])
+			{
+				$this->tmpl->set_var('skip_remote', true);				
+			}
 
 			$this->tmpl->set_var('lang_username', $lang['username']);
 			$this->tmpl->set_var('lang_password', $lang['password']);

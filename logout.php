@@ -25,12 +25,12 @@
 	*/
 	include_once('header.inc.php');
 
-	$sessionid = phpgw::get_var('phpgwsessid');
+	$sessionid = phpgw::get_var('sessionphpgwsessid');
 
 	$verified = $GLOBALS['phpgw']->session->verify();
 	if ($verified)
 	{
-		if ( is_dir("{$GLOBALS['phpgw_info']['server']['temp_dir']}/{$sessionid}") )
+		if ( is_dir("{$GLOBALS['phpgw_info']['server']['temp_dir']}/{$sessionid}") && !empty($session_id) )
 		{
 			$dh = dir("{$GLOBALS['phpgw_info']['server']['temp_dir']}/{$sessionid}");
 			while ( ($file = $dh->read()) !== false )
@@ -44,6 +44,7 @@
 			rmdir("{$GLOBALS['phpgw_info']['server']['temp_dir']}/{$sessionid}");
 			$dh->close();
 		}
+		execMethod('phpgwapi.menu.clear');
 		$GLOBALS['phpgw']->hooks->process('logout');
 		$GLOBALS['phpgw']->session->destroy($sessionid);
 	}
@@ -62,7 +63,7 @@
 	if ( isset($GLOBALS['phpgw_info']['server']['usecookies'])
 		&& $GLOBALS['phpgw_info']['server']['usecookies'] )
 	{
-		$GLOBALS['phpgw']->session->phpgw_setcookie('phpgwsessid');
+		$GLOBALS['phpgw']->session->phpgw_setcookie('sessionphpgwsessid');
 		$GLOBALS['phpgw']->session->phpgw_setcookie('domain');
 	}
 

@@ -35,19 +35,21 @@
 	class property_sogab
 	{
 		var $gab_insert_level;
-		var $payment_date;
+		var $payment_date = array();
 
-		function property_sogab($gab_insert_level)
+		function __construct()
 		{
-		//	$this->currentapp	= $GLOBALS['phpgw_info']['flags']['currentapp'];
 			$this->account		= $GLOBALS['phpgw_info']['user']['account_id'];
 			$this->bocommon		= CreateObject('property.bocommon');
-			$this->db           	= $this->bocommon->new_db();
-			$this->db2           	= $this->bocommon->new_db($this->db);
-			$this->join			= $this->bocommon->join;
-			$this->like			= $this->bocommon->like;
+			$this->db           = & $GLOBALS['phpgw']->db;
+			$this->db2          = clone($this->db);
+			$this->join			= & $this->db->join;
+			$this->left_join	= & $this->db->left_join;
+			$this->like			= & $this->db->like;
 
-			$this->gab_insert_level = $gab_insert_level;
+			$this->config		= CreateObject('phpgwapi.config','property');
+			$this->config->read();
+			$this->gab_insert_level = isset($this->config->config_data['gab_insert_level']) && $this->config->config_data['gab_insert_level'] ? $this->config->config_data['gab_insert_level'] : 3;
 		}
 
 		function read($data)
@@ -59,7 +61,7 @@
 				$sort			= isset($data['sort']) && $data['sort'] ? $data['sort'] : 'DESC';
 				$order			= isset($data['order']) ? $data['order'] : '';
 				$cat_id 		= isset($data['cat_id']) && $data['cat_id'] ? $data['cat_id'] : 0;
-				$loc1 			= isset($data['loc1']) ? $data['loc1'] : '';
+				$location_code 	= isset($data['location_code']) ? $data['location_code'] : '';
 				$gaards_nr		= isset($data['gaards_nr'])? (int)$data['gaards_nr'] : '';
 				$bruksnr		= isset($data['bruksnr']) ? (int)$data['bruksnr'] : '';
 				$feste_nr		= isset($data['feste_nr']) ? (int)$data['feste_nr'] : '';
@@ -92,9 +94,9 @@
 				$filtermethod .= " $where fm_gab_location.address $this->like '%$address%' ";
 				$where = 'AND';
 			}
-			if ($loc1)
+			if ($location_code)
 			{
-				$filtermethod .= " $where fm_gab_location.loc1='$loc1' ";
+				$filtermethod .= " $where fm_gab_location.location_code $this->like '$location_code%' ";
 				$where = 'AND';
 			}
 
@@ -140,11 +142,30 @@
 
 			if($check_payments)
 			{
-				$sql = "SELECT gab_id,count(gab_id) as hits, loc" . $j . "_name as address ,fm_gab_location.loc1 as location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.loc1,loc" . $j . "_name,owner ";
+//				$sql = "SELECT gab_id,count(gab_id) as hits, address ,fm_gab_location.loc1 as location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.loc1,address,owner ";
+//				$sql = "SELECT DISTINCT gab_id, fm_gab_location.loc1 as location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.loc1,address,owner ";
+//				$sql = "SELECT gab_id, fm_gab_location.loc1 as location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.loc1,address,owner ";
+
+				$spvend_code = 9901;
+				$spbudact_code = '11954111';
+				switch($GLOBALS['phpgw_info']['server']['db_type'])
+				{
+					case 'postgres':
+						$due_date 		= "to_char(forfallsdato,'MM/YYYY') as due_date";
+						break;
+					default:
+						$due_date 		= "to_char(forfallsdato,'MM/YYYY') as due_date";
+				}
+
+				$sql = "SELECT sum(belop) as paid, count(fm_ecobilagoverf.loc1) as hits, {$due_date}, fm_ecobilagoverf.loc1, owner"
+					. " FROM fm_ecobilagoverf {$this->left_join} fm_gab_location ON fm_ecobilagoverf.loc1 = fm_gab_location.loc1"
+					. " WHERE spvend_code = '{$spvend_code}' AND spbudact_code = '{$spbudact_code}'"
+					. " GROUP BY owner, forfallsdato,spbudact_code, fm_ecobilagoverf.loc1 ORDER BY forfallsdato ASC";
+
 			}
 			else
 			{
-				$sql = "SELECT gab_id,count(gab_id) as hits, loc" . $j . "_name as address ,fm_gab_location.location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.location_code,loc" . $j . "_name,owner ";
+				$sql = "SELECT gab_id,count(gab_id) as hits, address ,fm_gab_location.location_code, fm_gab_location.owner as owner FROM fm_gab_location $joinmethod $filtermethod GROUP BY gab_id,fm_gab_location.location_code,address,owner ";
 			}
 
 			$this->db->query($sql,__LINE__,__FILE__);
@@ -160,19 +181,21 @@
 			}
 
 			$gab_list = array();
-			while ($this->db->next_record())
+			if(!$check_payments)
 			{
-				$gab_list[] = array
-				(
-					'gab_id'		=> $this->db->f('gab_id'),
-					'location_code'	=> $this->db->f('location_code'),
-					'address'		=> stripslashes($this->db->f('address')),
-					'hits'			=> $this->db->f('hits'),
-					'owner'			=> $this->db->f('owner')
+				while ($this->db->next_record())
+				{
+					$gab_list[] = array
+					(
+						'gab_id'		=> $this->db->f('gab_id'),
+						'location_code'	=> $this->db->f('location_code'),
+						'address'		=> $this->db->f('address',true),
+						'hits'			=> $this->db->f('hits'),
+						'owner'			=> $this->db->f('owner')
 					);
+				}
 			}
-
-			if($check_payments)
+			else
 			{
 				if($GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'])
 				{
@@ -183,26 +206,75 @@
 					$dateformat = 'd-m-Y';
 				}
 
-				for ($i=0;$i<count($gab_list);$i++)
+				$gross_list = array();
+				$dates = array();
+				while ($this->db->next_record())
 				{
-					$sql = "SELECT * FROM fm_ecobilagoverf WHERE item_id = '" . $gab_list[$i]['gab_id'] . "'";
+					$gross_list[] = array
+					(
+						'gab_id'		=> '00000000000000000000',//$this->db->f('gab_id'),
+						'location_code'	=> $this->db->f('loc1'),
+						'address'		=> $this->db->f('address',true),
+						'hits'			=> $this->db->f('hits'),
+						'owner'			=> $this->db->f('owner'),
+						'paid'			=> $this->db->f('paid'),
+						'due_date'		=> $this->db->f('due_date'),
+					);
+					$dates[$this->db->f('due_date')] = true;
+				}
+
+				$dates = array_keys($dates);
+				$payment_date = array();
+				$location_buffer = array();
+				$i=0;
+				foreach ($gross_list as $entry)
+				{
+					if(!isset($location_buffer[$entry['location_code']]))
+					{
+						$gab_list[$i] = array
+						(
+							'location_code'	=> $entry['location_code'],
+							'gab_id'		=> $entry['gab_id'],
+							'address'		=> $entry['address'],
+							'hits'			=> $entry['hits'],
+							'owner'			=> $entry['owner']
+						);
+						$location_buffer[$entry['location_code']] = true;
+						$j = $i;
+						$i++;
+					}
+					foreach ( $dates as $date )
+					{
+						$gab_list[$i]['payment'][$date] = $entry['paid'];
+					}
+				}
+
+				reset($dates);
+				foreach ( $dates as $date )
+				{
+					$payment_date[$date] = $date;
+				}
+
+/*				foreach ($gab_list as &$entry)
+				{
+					$sql = "SELECT forfallsdato, belop FROM fm_ecobilagoverf WHERE item_id = '{$entry['gab_id']}' ORDER BY forfallsdato ASC";
 					$this->db->query($sql,__LINE__,__FILE__);
 					while ($this->db->next_record())
 					{
-						$gab_list[$i]['payment'][date($dateformat,strtotime($this->db->f('forfallsdato')))] = $this->db->f('belop');
+						$entry['payment'][date($dateformat,strtotime($this->db->f('forfallsdato')))] = $this->db->f('belop');
 						$payment_date[strtotime($this->db->f('forfallsdato'))] = date($dateformat,strtotime($this->db->f('forfallsdato')));
 					}
 
-					$sql = "SELECT * FROM fm_ecobilag WHERE item_id = '" . $gab_list[$i]['gab_id'] . "'";
+					$sql = "SELECT forfallsdato, belop FROM fm_ecobilag WHERE item_id = '{$entry['gab_id']}'";
 					$this->db->query($sql,__LINE__,__FILE__);
 					while ($this->db->next_record())
 					{
-						$gab_list[$i]['payment'][date($dateformat,strtotime($this->db->f('forfallsdato')))] = $this->db->f('belop');
+						$entry['payment'][date($dateformat,strtotime($this->db->f('forfallsdato')))] = $this->db->f('belop');
 						$payment_date[strtotime($this->db->f('forfallsdato'))] = date($dateformat,strtotime($this->db->f('forfallsdato')));
 					}
 
 				}
-
+*/
 				$this->payment_date=$payment_date;
 			}
 

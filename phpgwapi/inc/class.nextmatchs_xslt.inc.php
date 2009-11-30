@@ -106,12 +106,14 @@
 		{
 			$GLOBALS['phpgw']->xslttpl->add_file('nextmatchs', PHPGW_TEMPLATE_DIR);
 
-			$start = isset($values['start']) ? (int) $values['start'] : 0;
+			$start = isset($values['start']) && $values['start'] ? (int) $values['start'] : 0;
+
 			$nm_data = array
 			(
 				'img_width'			=> $GLOBALS['phpgw_info']['user']['preferences']['common']['template_set'] == 'funkwerk' ? '' : '12',
 				'img_height'		=> $GLOBALS['phpgw_info']['user']['preferences']['common']['template_set'] == 'funkwerk' ? '' : '12',
-				'allow_all_rows'	=> isset($values['allow_all_rows']) ? false : 'yes',
+				'allow_all_rows'	=> isset($values['allow_all_rows']) ? true : false,
+				'allrows'			=> isset($values['allrows']) ? true : false,
 				'start_record'		=> $start,
 				'record_limit'		=> $this->maxmatches,
 				'num_records'		=> (int) $values['num_records'],

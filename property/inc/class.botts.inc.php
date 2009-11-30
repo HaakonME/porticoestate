@@ -41,6 +41,10 @@
 		var $order;
 		var $cat_id;
 		var $acl_location;
+		var $uicols_related = array();
+		var $start_date;
+		var $end_date;
+		var $fields_updated = false;
 
 		var $public_functions = array
 		(
@@ -72,15 +76,17 @@
 
 		function property_botts($session=false)
 		{
-			$this->so 			= CreateObject('property.sotts');
-			$this->bocommon 	= & $this->so->bocommon;
-			$this->historylog	= & $this->so->historylog;
-			$this->config		= CreateObject('phpgwapi.config');
-			$this->config->read_repository();
-			$this->dateformat = $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
+			$this->so 					= CreateObject('property.sotts');
+			$this->bocommon 			= CreateObject('property.bocommon');
+			$this->historylog			= & $this->so->historylog;
+			$this->config				= CreateObject('phpgwapi.config','property');
+			$this->dateformat			= $GLOBALS['phpgw_info']['user']['preferences']['common']['dateformat'];
 			$this->cats					= CreateObject('phpgwapi.categories');
 			$this->cats->app_name		= 'property.ticket';
 			$this->cats->supress_info	= true;
+			$this->acl_location			= $this->so->acl_location;
+
+			$this->config->read();
 
 			if ($session)
 			{
@@ -88,67 +94,31 @@
 				$this->use_session = true;
 			}
 
-			$start	= phpgw::get_var('start', 'int', 'REQUEST', 0);
-			$query	= phpgw::get_var('query');
-			$sort	= phpgw::get_var('sort');
-			$order	= phpgw::get_var('order');
-			$filter	= phpgw::get_var('filter');
-			$user_filter	= phpgw::get_var('user_filter');
-			$cat_id	= phpgw::get_var('cat_id', 'int');
-			$district_id	= phpgw::get_var('district_id', 'int');
-			$allrows	= phpgw::get_var('allrows', 'bool');
-			$start_date	= phpgw::get_var('start_date');
-			$end_date	= phpgw::get_var('end_date');
+			$start					= phpgw::get_var('start', 'int', 'REQUEST', 0);
+			$query					= phpgw::get_var('query');
+			$sort					= phpgw::get_var('sort');
+			$order					= phpgw::get_var('order');
+			$status_id				= phpgw::get_var('status_id', 'string');
+			$user_id				= phpgw::get_var('user_id', 'int');
+			$cat_id					= phpgw::get_var('cat_id', 'int');
+			$part_of_town_id		= phpgw::get_var('part_of_town_id', 'int');
+			$district_id			= phpgw::get_var('district_id', 'int');
+			$allrows				= phpgw::get_var('allrows', 'bool');
+			$start_date				= phpgw::get_var('start_date', 'string');
+			$end_date				= phpgw::get_var('end_date', 'string');
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(array_key_exists('query',$_POST) || array_key_exists('query',$_GET))
-			{
-				$this->query = $query;
-			}
-			if(array_key_exists('filter',$_POST))
-			{
-				$this->filter = $filter;
-			}
-			if(array_key_exists('user_filter',$_POST))
-			{
-				$this->user_filter = $user_filter;
-			}
-			if(array_key_exists('sort',$_POST) || array_key_exists('sort',$_GET))
-			{
-				$this->sort = $sort;
-			}
-			if(array_key_exists('order',$_POST) || array_key_exists('order',$_GET))
-			{
-				$this->order = $order;
-			}
-			if(array_key_exists('cat_id',$_POST))
-			{
-				$this->cat_id = $cat_id;
-			}
-			if(array_key_exists('district_id',$_POST))
-			{
-				$this->district_id = $district_id;
-			}
-			if(array_key_exists('allrows',$_POST) || array_key_exists('allrows',$_GET))
-			{
-				$this->allrows = $allrows;
-			}
-			if(array_key_exists('start_date',$_POST))
-			{
-				$this->start_date = $start_date;
-			}
-			if(array_key_exists('end_date',$_POST))
-			{
-				$this->end_date = $end_date;
-			}
+			$this->start			= $start 							? $start 			: 0;
+			$this->query			= isset($_REQUEST['query']) 		? $query			: $this->query;
+			$this->sort				= isset($_REQUEST['sort']) 			? $sort				: $this->sort;
+			$this->order			= isset($_REQUEST['order']) 		? $order			: $this->order;
+			$this->cat_id			= isset($_REQUEST['cat_id']) 		? $cat_id			:  $this->cat_id;
+			$this->status_id		= isset($_REQUEST['status_id'])		? $status_id		: $this->status_id;
+			$this->user_id			= isset($_REQUEST['user_id']) 		? $user_id			: $this->user_id;;
+			$this->part_of_town_id	= isset($_REQUEST['part_of_town_id'])? $part_of_town_id : $this->part_of_town_id;
+			$this->district_id		= isset($_REQUEST['district_id']) 	? $district_id		: $this->district_id;
+			$this->allrows			= isset($allrows) && $allrows 		? $allrows			: '';
+			$this->start_date		= isset($_REQUEST['start_date']) 	? $start_date		: $this->start_date;
+			$this->end_date			= isset($_REQUEST['end_date'])		? $end_date			: $this->end_date;
 		}
 
 
@@ -166,10 +136,10 @@
 
 			$this->start		= isset($data['start'])?$data['start']:'';
 			$this->query		= isset($data['query'])?$data['query']:'';
-			$this->filter		= isset($data['filter'])?$data['filter']:'';
-			$this->user_filter	= isset($data['user_filter'])?$data['user_filter']:'';
+			$this->user_id		= isset($data['user_id'])?$data['user_id']:'';
 			$this->sort			= isset($data['sort'])?$data['sort']:'';
 			$this->order		= isset($data['order'])?$data['order']:'';
+			$this->status_id	= isset($data['status_id'])?$data['status_id']:'';
 			$this->cat_id		= isset($data['cat_id'])?$data['cat_id']:'';
 			$this->district_id	= isset($data['district_id'])?$data['district_id']:'';
 			$this->allrows		= isset($data['allrows'])?$data['allrows']:'';
@@ -239,21 +209,22 @@
 			return $status;
 		}
 
-		function _get_status_text()
+		function get_status_text()
 		{
 			$status_text = array(
-				'R' => 'Re-opened',
-				'X' => 'Closed',
-				'O' => 'Opened',
-				'A' => 'Re-assigned',
-				'G' => 'Re-assigned group',
-				'P' => 'Priority changed',
-				'T' => 'Category changed',
-				'S' => 'Subject changed',
-				'B' => 'Billing rate',
-				'H' => 'Billing hours',
-				'F' => 'finnish date',
-				'SC' => 'Status changed'
+				'R' => lang('Re-opened'),
+				'X' => lang('Closed'),
+				'O' => lang('Opened'),
+				'A' => lang('Re-assigned'),
+				'G' => lang('Re-assigned group'),
+				'P' => lang('Priority changed'),
+				'T' => lang('Category changed'),
+				'S' => lang('Subject changed'),
+				'B' => lang('Billing rate'),
+				'H' => lang('Billing hours'),
+				'F' => lang('finnish date'),
+				'SC' => lang('Status changed'),
+				'M' => lang('Sendt by email to')
 			);
 
 			$custom_status	= $this->so->get_custom_status();
@@ -268,17 +239,20 @@
 
 		function get_priority_list($selected='')
 		{
-			if(!$selected && isset($GLOBALS['phpgw_info']['user']['preferences']['property']['prioritydefault']))
+
+			$prioritylevels = isset($this->config->config_data['prioritylevels']) && $this->config->config_data['prioritylevels'] ? $this->config->config_data['prioritylevels'] : 3;
+
+			if(!$selected)
 			{
-				$selected = $GLOBALS['phpgw_info']['user']['preferences']['property']['prioritydefault'];
+				$selected = isset($GLOBALS['phpgw_info']['user']['preferences']['property']['prioritydefault']) ? $GLOBALS['phpgw_info']['user']['preferences']['property']['prioritydefault'] : $prioritylevels;
 			}
 
-			$priority_comment[1]=' - '.lang('Lowest');
-			$priority_comment[5]=' - '.lang('Medium');
-			$priority_comment[10]=' - '.lang('Highest');
+			$priority_comment[$prioritylevels]=' - '.lang('Lowest');
+//			$priority_comment[2]=' - '.lang('Medium');
+			$priority_comment[1]=' - '.lang('Highest');
 
 			$priorities = array();
-			for ($i=1; $i<=10; $i++)
+			for ($i=1; $i<= $prioritylevels; $i++)
 			{
 				$priorities[$i]['id'] =$i;
 				$priorities[$i]['name'] =$i . (isset($priority_comment[$i])?$priority_comment[$i]:'');
@@ -294,50 +268,93 @@
 		}
 
 
-		function read($start_date='',$end_date='', $external='')
+		function get_origin_entity_type()
 		{
+			$related = $this->so->get_origin_entity_type();
+			$this->uicols_related = $this->so->uicols_related;
+			return $related;
+		}
+
+		function read($start_date='',$end_date='', $external='',$dry_run = '', $download = '')
+		{
+			$category_name = array();
+			$account = array();
+			
+			$interlink 	= CreateObject('property.interlink');
 			$start_date	= $this->bocommon->date_to_timestamp($start_date);
 			$end_date	= $this->bocommon->date_to_timestamp($end_date);
 
 			$tickets = $this->so->read(array('start' => $this->start,'query' => $this->query,'sort' => $this->sort,'order' => $this->order,
-											'filter' => $this->filter,'cat_id' => $this->cat_id,'district_id' => $this->district_id,
+											'status_id' => $this->status_id,'cat_id' => $this->cat_id,'district_id' => $this->district_id,
 											'start_date'=>$start_date,'end_date'=>$end_date,
-											'allrows'=>$this->allrows,'user_filter' => $this->user_filter,'external'=>$external));
+											'allrows'=>$this->allrows,'user_id' => $this->user_id,'external'=>$external, 'dry_run' => $dry_run));
 			$this->total_records = $this->so->total_records;
 			if(!$external)
 			{
-				$entity	= $this->so->get_origin_entity_type();
-				$this->uicols=$this->so->uicols;
+				$entity	= $this->get_origin_entity_type();
+//				$this->uicols_related = $this->so->uicols_related;
 			}
 			else
 			{
-				$entity[0]['type']='project';
-				$this->uicols[]	= lang('project');
+				$entity[0]['type']='.project';
+				$this->uicols_related	= array('project');
 			}
 
 			foreach ($tickets as & $ticket)
 			{
 				if(!$ticket['subject'])
 				{
-					$ticket['subject']= $this->get_category_name($ticket['cat_id']);
+					if(!isset($category_name[$ticket['cat_id']]))
+					{
+						$ticket['subject']= $this->get_category_name($ticket['cat_id']);
+						$category_name[$ticket['cat_id']] = $ticket['subject'];
+					}
+					else
+					{
+						$ticket['subject'] = $category_name[$ticket['cat_id']];
+					}
 				}
 
-				$ticket['user'] = $GLOBALS['phpgw']->accounts->id2name($ticket['user_id']);
-
-				if($ticket['assignedto'])
+				if(!isset($account[$ticket['user_id']]))
 				{
-					$ticket['assignedto'] = $GLOBALS['phpgw']->accounts->id2name($ticket['assignedto']);
+					$ticket['user'] = $GLOBALS['phpgw']->accounts->id2name($ticket['user_id']);
+					$account[$ticket['user_id']] = $ticket['user'];
 				}
 				else
 				{
-					$ticket['assignedto'] = $GLOBALS['phpgw']->accounts->id2name($ticket['group_id']);
+					$ticket['user'] = $account[$ticket['user_id']];
 				}
 
-				$ticket['timestampopened'] = $GLOBALS['phpgw']->common->show_date($ticket['entry_date'],$this->dateformat);
+				if($ticket['assignedto'])
+				{
+					if(!isset($account[$ticket['assignedto']]))
+					{
+						$ticket['assignedto'] = $GLOBALS['phpgw']->accounts->id2name($ticket['assignedto']);
+						$account[$ticket['assignedto']] = $ticket['assignedto'];
+					}
+					else
+					{
+						$ticket['assignedto'] = $account[$ticket['assignedto']];
+					}
+				}
+				else
+				{
+					if(!isset($account[$ticket['group_id']]))
+					{
+						$ticket['assignedto'] = $GLOBALS['phpgw']->accounts->id2name($ticket['group_id']);
+						$account[$ticket['group_id']] = $ticket['assignedto'];
+					}
+					else
+					{
+						 $ticket['assignedto'] = $account[$ticket['group_id']];
+					}
+				}
+
+				$ticket['entry_date'] = $GLOBALS['phpgw']->common->show_date($ticket['entry_date'],$this->dateformat);
 
 				if($ticket['finnish_date2'])
 				{
-					$ticket['delay']=($ticket['finnish_date2']-$ticket['finnish_date'])/(24*3600);
+					$ticket['delay'] = round(($ticket['finnish_date2']-$ticket['finnish_date'])/(24*3600));
 					$ticket['finnish_date']=$ticket['finnish_date2'];
 				}
 				$ticket['finnish_date'] = (isset($ticket['finnish_date']) && $ticket['finnish_date'] ? $GLOBALS['phpgw']->common->show_date($ticket['finnish_date'],$this->dateformat):'');
@@ -347,27 +364,29 @@
 					$history_values = $this->historylog->return_array(array(),array('X'),'history_timestamp','DESC',$ticket['id']);
 					$ticket['timestampclosed'] = $GLOBALS['phpgw']->common->show_date($history_values[0]['datetime'],$this->dateformat);
 				}
-				if (isset($ticket['new_ticket']))
+				if ($ticket['new_ticket'])
 				{
-					$ticket['new_ticket'] = lang('New');
+					$ticket['new_ticket'] = '*';
 				}
 
 				if(isset($entity) && is_array($entity))
 				{
 					for ($j=0;$j<count($entity);$j++)
 					{
-						$ticket['child_date'][$j] = $this->so->get_child_date($ticket['id'],$entity[$j]['type'],(isset($entity[$j]['entity_id'])?$entity[$j]['entity_id']:''),(isset($entity[$j]['cat_id'])?$entity[$j]['cat_id']:''));
+						$ticket['child_date'][$j] = $interlink->get_child_date('property', '.ticket', $entity[$j]['type'], $ticket['id'], isset($entity[$j]['entity_id'])?$entity[$j]['entity_id']:'',isset($entity[$j]['cat_id'])?$entity[$j]['cat_id']:'');
+						if($ticket['child_date'][$j]['date_info'] && !$download)
+						{
+							$ticket['child_date'][$j]['statustext'] = $interlink->get_relation_info(array('location' => $entity[$j]['type']), $ticket['child_date'][$j]['date_info'][0]['target_id']);
+						}
 					}
 				}
 			}
 
-//_debug_array($tickets);
 			return $tickets;
 		}
 
 		function read_single($id)
 		{
-
 			$this->so->update_view($id);
 
 			$ticket = $this->so->read_single($id);
@@ -375,7 +394,10 @@
 			$ticket['user_lid'] = $GLOBALS['phpgw']->accounts->id2name($ticket['user_id']);
 			$ticket['group_lid'] = $GLOBALS['phpgw']->accounts->id2name($ticket['group_id']);
 
-
+			$interlink 	= CreateObject('property.interlink');
+			$ticket['origin'] = $interlink->get_relation('property', '.ticket', $id, 'origin');
+			$ticket['target'] = $interlink->get_relation('property', '.ticket', $id, 'target');
+//_debug_array($ticket);
 			if(isset($ticket['finnish_date2']) && $ticket['finnish_date2'])
 			{
 				$ticket['finnish_date']=$ticket['finnish_date2'];
@@ -422,7 +444,8 @@
 
 
 			$history_values = $this->historylog->return_array(array(),array('O'),'history_timestamp','DESC',$id);
-			$ticket['timestampopened'] = $GLOBALS['phpgw']->common->show_date($history_values[0]['datetime'],$this->dateformat);
+			$ticket['timestamp'] = $history_values[0]['datetime'];
+			$ticket['entry_date'] = $GLOBALS['phpgw']->common->show_date($history_values[0]['datetime'],$this->dateformat);
 			// Figure out when it was opened and last closed
 
 			$history_values = $this->historylog->return_array(array(),array('O'),'history_timestamp','ASC',$id);
@@ -435,9 +458,9 @@
 				$ticket['timestampclosed']= $GLOBALS['phpgw']->common->show_date($history_values[0]['datetime'],$this->dateformat);
 			}
 
-			$status_text = $this->_get_status_text();
+			$status_text = $this->get_status_text();
 
-			$ticket['status_name'] = lang($status_text[$ticket['status']]);
+			$ticket['status_name'] = $status_text[$ticket['status']];
 			$ticket['user_lid']=$GLOBALS['phpgw']->accounts->id2name($ticket['user_id']);
 			$ticket['category_name']=ucfirst($this->get_category_name($ticket['cat_id']));
 
@@ -465,8 +488,9 @@
 
 		function read_additional_notes($id)
 		{
+			$additional_notes = array();
 			$history_array = $this->historylog->return_array(array(),array('C'),'','',$id);
-			$i=1;
+			$i=2;
 			while (is_array($history_array) && list(,$value) = each($history_array))
 			{
 				$additional_notes[] = array
@@ -478,20 +502,18 @@
 					);
 				$i++;
 			}
-
-			if(isset ($additional_notes))
-			{
-				return $additional_notes;
-			}
+			return $additional_notes;
 		}
 
 
 		function read_record_history($id)
 		{
 			$history_array = $this->historylog->return_array(array('C','O'),array(),'','',$id);
-			$status_text = $this->_get_status_text();
+
+			$status_text = $this->get_status_text();
 			$record_history = array();
 			$i=0;
+
 			if (is_array($history_array))
 			{
 				foreach ($history_array as $value)
@@ -510,25 +532,35 @@
 						case 'T': $type = lang('Category changed'); break;
 						case 'S': $type = lang('Subject changed'); break;
 						case 'H': $type = lang('Billable hours changed'); break;
-						case 'B': $type = lang('Billable rate changed'); break;
+						case 'B': $type = lang('Budget changed'); break;
+	//					case 'B': $type = lang('Billable rate changed'); break;
 						case 'F': $type = lang('finnish date changed'); break;
 						case 'IF': $type = lang('Initial finnish date'); break;
+						case 'L': $type = lang('Location changed'); break;
+						case 'M':
+							$type = lang('Sendt by email to');
+							$this->order_sent_adress = $value['new_value']; // in case we want to resend the order as an reminder
+							break;
 						default: break;
 					}
 
-					switch ($value['new_value'])
+					if ( $value['status'] == 'X' || $value['status'] == 'R' || (strlen($value['status']) == 2 && substr($value['new_value'], 0, 1) == 'C') ) // if custom status
 					{
-						case 'O': $value['new_value']=lang('Opened'); break;
-						case 'X': $value['new_value']=lang('Closed'); break;
-						case 'I': $value['new_value']=lang('In Progress'); break; //initiated
-						case 'C': $value['new_value']=lang('custom'); break; // FIXME: make configurable
-						default: break;
-					}
-
-					if(strlen($value['new_value']) == 2 && substr($value['new_value'], 0, 1) == 'C') // if custom status
-					{
-						$type = lang('Status changed');
+						switch ($value['status'])
+						{
+							case 'R': 
+								$type = lang('Re-opened');
+								break;
+							case 'X':
+								$type = lang('Closed');
+								break;
+							default:
+								$type = lang('Status changed')
+								;break;
+						}
+						
 						$value['new_value'] = $status_text[$value['new_value']];
+						$value['old_value'] = $status_text[$value['old_value']];
 					}
 
 					$record_history[$i]['value_action']	= $type?$type:'';
@@ -538,15 +570,18 @@
 						if ((int)$value['new_value']>0)
 						{
 							$record_history[$i]['value_new_value']	= $GLOBALS['phpgw']->accounts->id2name($value['new_value']);
+							$record_history[$i]['value_old_value'] = $value['old_value'] ? $GLOBALS['phpgw']->accounts->id2name($value['old_value']) : '';
 						}
 						else
 						{
 							$record_history[$i]['value_new_value']	= lang('None');
+							$record_history[$i]['value_old_value']	= lang('None');
 						}
 					}
 					else if ($value['status'] == 'T')
 					{
 						$record_history[$i]['value_new_value']	= $this->get_category_name($value['new_value']);
+						$record_history[$i]['value_old_value']	= $this->get_category_name($value['old_value']);
 					}
 					else if (($value['status'] == 'F') || ($value['status'] =='IF'))
 					{
@@ -555,15 +590,18 @@
 					else if ($value['status'] != 'O' && $value['new_value'])
 					{
 						$record_history[$i]['value_new_value']	= $value['new_value'];
+						$record_history[$i]['value_old_value']	= $value['old_value'];
 					}
 					else
 					{
 						$record_history[$i]['value_new_value']	= '';
+
 					}
 
 					$i++;
 				}
 			}
+
 			return $record_history;
 		}
 
@@ -586,32 +624,85 @@
 
 			$receipt = $this->so->add($ticket);
 
-			$this->config->read_repository();
+			$this->config->read();
 
 			if (isset($this->config->config_data['mailnotification']) && $this->config->config_data['mailnotification'] && isset($ticket['send_mail']) && $ticket['send_mail'])
 			{
-				$receipt = $this->mail_ticket($receipt['id'],$fields_updated,$receipt,$ticket['location_code']);
+				$receipt_mail = $this->mail_ticket($receipt['id'],$fields_updated,$receipt,$ticket['location_code']);
 			}
 
-			$custom = createObject('property.custom_functions');
-			$custom_functions = $custom->find(array('appname'=>'property','location' => $this->acl_location,'allrows'=>true));
+			$criteria = array
+			(
+				'appname'	=> 'property',
+				'location'	=> $this->acl_location,
+				'allrows'	=> true
+			);
 
-			if (isSet($custom_functions) AND is_array($custom_functions))
+			$custom_functions = $GLOBALS['phpgw']->custom_functions->find($criteria);
+
+			foreach ( $custom_functions as $entry )
 			{
-				foreach($custom_functions as $entry)
+				// prevent path traversal
+				if ( preg_match('/\.\./', $entry['file_name']) )
 				{
-					if (is_file(PHPGW_APP_INC . "/custom/{$entry['file_name']}") && $entry['active'])
-					{
-						include_once(PHPGW_APP_INC . "/custom/{$entry['file_name']}");
-					}
+					continue;
+				}
+
+				$file = PHPGW_SERVER_ROOT . "/property/inc/custom/{$GLOBALS['phpgw_info']['user']['domain']}/{$entry['file_name']}";
+				if ( $entry['active'] && is_file($file) )
+				{
+					require_once $file;
 				}
 			}
 
+			if(isset($receipt_mail) && is_array($receipt_mail))
+			{
+				$receipt = array_merge($receipt, $receipt_mail);
+			}
 			return $receipt;
 		}
 
 
-		function mail_ticket($id,$fields_updated,$receipt=0,$location_code='')
+		function get_address_element($location_code = '')
+		{
+			$address_element = array();
+			if($location_code)
+			{
+				$solocation 		= CreateObject('property.solocation');
+				$custom = createObject('property.custom_fields');
+				$location_data 		= $solocation->read_single($location_code);
+
+				$location_types = execMethod('property.soadmin_location.select_location_type');
+				$type_id=count(explode('-',$location_code));
+
+				for ($i=1; $i<$type_id+1; $i++)
+				{
+					$address_element[] = array
+					(
+						'text' => $location_types[($i-1)]['name'],
+						'value'=> $location_data["loc{$i}"] . '  ' . $location_data["loc{$i}_name"]
+					);
+				}
+
+				$fm_location_cols = $custom->find('property','.location.' . $type_id, 0, '', 'ASC', 'attrib_sort', true, true);
+				$i=0;
+				foreach($fm_location_cols as $location_entry)
+				{
+					if($location_entry['lookup_form'])
+					{
+						$address_element[] = array
+						(
+							'text' => $location_entry['input_text'],
+							'value'=> $location_data[$location_entry['column_name']]
+						);
+					}
+					$i++;
+				}
+			}
+			return $address_element;
+		}
+		
+		function mail_ticket($id, $fields_updated, $receipt = array(),$location_code='')
 		{
 			$this->send			= CreateObject('phpgwapi.send');
 
@@ -619,31 +710,10 @@
 
 			$ticket	= $this->so->read_single($id);
 
-			if($ticket['location_code'])
-			{
-				$solocation 		= CreateObject('property.solocation');
-				$custom = createObject('property.custom_fields');
-				$location_data 		= $solocation->read_single($ticket['location_code']);
-
-				$type_id=count(explode('-',$ticket['location_code']));
-				$fm_location_cols = $custom->find('property','.location.' . $type_id, 0, '', 'ASC', 'attrib_sort', true, true);
-				$i=0;
-				if (isset($fm_location_cols) AND is_array($fm_location_cols))
-				{
-					foreach($fm_location_cols as $location_entry)
-					{
-						if($location_entry['lookup_form'])
-						{
-							$address_element[$i]['text']=$location_entry['input_text'];
-							$address_element[$i]['value']=$location_data[$location_entry['column_name']];
-						}
-						$i++;
-					}
-				}
-			}
+			$address_element = $this->get_address_element($ticket['location_code']);
 
 			$history_values = $this->historylog->return_array(array(),array('O'),'history_timestamp','DESC',$id);
-			$timestampopened = $GLOBALS['phpgw']->common->show_date($history_values[0]['datetime'],$this->dateformat);
+			$entry_date = $GLOBALS['phpgw']->common->show_date($history_values[0]['datetime'],$this->dateformat);
 
 			if($ticket['status']=='X')
 			{
@@ -655,7 +725,7 @@
 			$m=count($history_2)-1;
 			$ticket['status']=$history_2[$m]['status'];
 
-		//	$status = $this->_get_status_text();
+		//	$status = $this->get_status_text();
 
 			$group_name= $GLOBALS['phpgw']->accounts->id2name($ticket['group_id']);
 
@@ -692,8 +762,8 @@
 		// build body
 			$body  = '';
 	//		$body .= lang('Ticket').' #'.$id."\n";
-			$body .= '<a href ="http://' . $GLOBALS['phpgw_info']['server']['hostname'] . $GLOBALS['phpgw']->link('/index.php','menuaction='.'property.uitts.view&id=' . $id).'">' . lang('Ticket').' #' .$id .'</a>'."\n";
-			$body .= lang('Date Opened').': '.$timestampopened."\n";
+			$body .= '<a href ="http://' . $GLOBALS['phpgw_info']['server']['hostname'] . $GLOBALS['phpgw']->link('/index.php', array('menuaction' => 'property.uitts.view', 'id' => $id)).'">' . lang('Ticket').' #' .$id .'</a>'."\n";
+			$body .= lang('Date Opened').': '.$entry_date."\n";
 			$body .= lang('Category').': '. $this->get_category_name($ticket['cat_id']) ."\n";
 //			$body .= lang('Subject').': '. $ticket['subject'] ."\n";
 			$body .= lang('Location').': '. $ticket['location_code'] ."\n";
@@ -825,7 +895,7 @@
 				$receipt['error'][] = array('msg'=> 'group: '.$group_name);
 				$receipt['error'][] = array('msg'=> 'err_code: '.$this->send->err['code']);
 				$receipt['error'][] = array('msg'=> 'err_msg: '. htmlspecialchars($this->send->err['msg']));
-				$receipt['error'][] = array('msg'=> 'err_desc: '. $GLOBALS['phpgw']->err['desc']);
+				$receipt['error'][] = array('msg'=> 'err_desc: '. $this->send->err['desc']);
 			}
 
 //_debug_array($receipt);
@@ -848,4 +918,17 @@
 			return $this->so->get_custom_status();
 		}
 
+		public function update_status($data, $id = 0)
+		{
+			$receipt 	= $this->so->update_status($data, $id);
+			$this->fields_updated = $this->so->fields_updated;
+			return $receipt;
+		}
+
+		public function update_ticket($data, $id)
+		{
+			$receipt 	= $this->so->update_ticket($data, $id);
+			$this->fields_updated = $this->so->fields_updated;		
+			return $receipt;
+		}
 	}

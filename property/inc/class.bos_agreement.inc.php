@@ -42,11 +42,12 @@
 		var $cat_id;
 		var $role;
 		var $member_id;
+		var $uicols = array();
 
 		/**
 		* @var object $custom reference to custom fields object
 		*/
-		protected $custom;
+		public $custom;
 
 		var $public_functions = array
 		(
@@ -59,9 +60,12 @@
 
 		function property_bos_agreement($session=false)
 		{
-			$this->so = CreateObject('property.sos_agreement');
-			$this->bocommon = CreateObject('property.bocommon');
+			$this->so			= CreateObject('property.sos_agreement');
+			$this->bocommon		= CreateObject('property.bocommon');
 			$this->custom 		= createObject('property.custom_fields');
+			$this->cats					= CreateObject('phpgwapi.categories');
+			$this->cats->app_name 		= 'fm_vendor';
+			$this->cats->supress_info	= true;
 
 			if ($session)
 			{
@@ -84,51 +88,15 @@
 			$this->role	= $role;
 			$this->so->role	= $role;
 
-			if ($start)
-			{
-				$this->start=$start;
-			}
-			else
-			{
-				$this->start=0;
-			}
-
-			if(isset($query))
-			{
-				$this->query = $query;
-			}
-			if(!empty($filter))
-			{
-				$this->filter = $filter;
-			}
-			if(isset($sort))
-			{
-				$this->sort = $sort;
-			}
-			if(isset($order))
-			{
-				$this->order = $order;
-			}
-			if(isset($cat_id) && !empty($cat_id))
-			{
-				$this->cat_id = $cat_id;
-			}
-			else
-			{
-				$this->cat_id = '';
-			}
-			if(isset($allrows))
-			{
-				$this->allrows = $allrows;
-			}
-			if(isset($member_id))
-			{
-				$this->member_id = $member_id;
-			}
-			if(isset($vendor_id))
-			{
-				$this->vendor_id = $vendor_id;
-			}
+			$this->start			= $start ? $start : 0;
+			$this->query			= isset($query) ? $query : $this->query;
+			$this->sort				= isset($sort) && $sort ? $sort : '';
+			$this->order			= isset($order) && $order ? $order : '';
+			$this->filter			= isset($filter) && $filter ? $filter : '';
+			$this->cat_id			= isset($cat_id) && $cat_id ? $cat_id : '';
+			$this->member_id		= isset($member_id) && $member_id ? $member_id : '';
+			$this->vendor_id		= isset($vendor_id) && $vendor_id ? $vendor_id : '';
+			$this->allrows			= isset($allrows) && $allrows ? $allrows : '';
 		}
 
 		function save_sessiondata($data)
@@ -236,10 +204,10 @@
 
 		function read_event($data)
 		{
-			$boalarm		= CreateObject('property.boalarm');
-			$event	= $this->so->read_single($data);
-			$event['alarm_date']=$event['termination_date'];
-			$event['alarm']	= $boalarm->read_alarms($type='s_agreement',$data['s_agreement_id']);
+			$boalarm			= CreateObject('property.boalarm');
+			$event				= $this->so->read_single($data['s_agreement_id']);
+			$event['alarm_date']= $event['termination_date'];
+			$event['alarm']		= $boalarm->read_alarms($type='s_agreement',$data['s_agreement_id']);
 			return $event;
 		}
 
@@ -309,6 +277,20 @@
 			}
 
 			return $values;
+		}
+
+		/**
+		* Arrange attributes within groups
+		*
+		* @param string  $location    the name of the location of the attribute
+		* @param array   $attributes  the array of the attributes to be grouped
+		*
+		* @return array the grouped attributes
+		*/
+
+		public function get_attribute_groups($location, $attributes = array())
+		{
+			return $this->custom->get_attribute_groups('property', $location, $attributes);
 		}
 
 		function save($values,$values_attribute='',$action='')
@@ -428,7 +410,8 @@
 				$selected=$GLOBALS['phpgw_info']['user']['preferences']['property']['s_agreement_columns'];
 			}
 
-			$columns = $this->custom->find('property','.s_agreement', 0, '','','',true);
+			$filter = array('list' => ''); // translates to "list IS NULL"
+			$columns = $this->custom->find('property','.s_agreement', 0, '','','',true, false, $filter);
 
 			$column_list=$this->bocommon->select_multi_list($selected,$columns);
 
@@ -455,5 +438,59 @@
 			$historylog = CreateObject('property.historylog','s_agreement');
 			$historylog->delete_single_record($data['history_id']);
 		}
+
+		function get_year_list($agreement_id = '')
+		{
+			if($agreement_id)
+			{
+				$list = $this->so->get_year_filter_list($agreement_id);
+			}
+			else
+			{
+				$list = array();
+			}
+			$year = date('Y');
+			$limit = $year + 4;
+			
+			while ($year < $limit)
+			{
+				$list[] =  $year;
+				$year++;
+			}
+
+			$list = array_unique($list);
+			sort($list);
+			
+			$values;
+			foreach($list as $entry)
+			{
+				$values[] = array
+				(
+					'id'	=> $entry,
+					'name'	=> $entry
+				);
+			}
+			return $values;
+		}
+
+		function get_budget($agreement_id)
+		{
+			$values = $this->so->get_budget($agreement_id);
+
+			$this->cats->app_name		= 'property.project';
+			foreach($values as & $entry)
+			{
+				$category = $this->cats->return_single($entry['cat_id']);
+				$entry['category']		= $category[0]['name'];
+			}
+			$this->cats->app_name 		= 'fm_vendor';	
+			return $values;		
+		}
+
+		function delete_year_from_budget($data,$agreement_id)
+		{
+			return $this->so->delete_year_from_budget($data,$agreement_id);
+		}
+
 	}
 

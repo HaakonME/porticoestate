@@ -7,7 +7,7 @@
 	* @author Philipp Kamps <pkamps@probusiness.de>
 	* @author Dave Hall <skwashd@phpgroupware.org>
 	* @copyright Copyright (C) 2000-2008 Free Software Foundation, Inc. http://www.fsf.org/
-	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v3 or later
+	* @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License v2 or later
 	* @package phpgroupware
 	* @subpackage phpgwapi
 	* @version $Id$
@@ -16,7 +16,7 @@
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU Lesser General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -92,6 +92,11 @@
 			$this->join = $this->db->join;
 
 			$this->set_account($account_id, $account_type);
+		}
+
+		public function get_id()
+		{
+			return $this->account_id;
 		}
 
 		/**
@@ -226,7 +231,7 @@
 		 *
 		 * @return void
 		 */
-		abstract public function read_repository();
+		abstract protected function read_repository();
 
 		/**
 		 * Save/update account information to database
@@ -309,11 +314,10 @@
 		 */
 		public function create($account, $group, $acls = array(), $modules = array())
 		{
-			$this->db->transaction_begin();
-
+		// FIXME: Conflicting transactions - there is a transaction in acl::save_repository()
+		//	$this->db->transaction_begin();
 			try
 			{
-
 				$class = get_class($account);
 				switch( $class )
 				{
@@ -337,27 +341,28 @@
 				$this->_cache_account($account);
 
 				$aclobj =& $GLOBALS['phpgw']->acl;
-				$aclobj->set_account_id($account->id);
+				$aclobj->set_account_id($account->id, true);
 				foreach ( $acls as $acl )
 				{
 					$aclobj->add($acl['appname'], $acl['location'], $acl['rights']);
 				}
 
-				foreach ( $modules as $module )
+				// application permissions
+				foreach ( $modules as $module)
 				{
 					$aclobj->add($module, 'run', phpgwapi_acl::READ);
 				}
-				$aclobj->save_repository();
 
+				$aclobj->save_repository();
 			}
 			catch (Exception $e)
 			{
-				$this->db->transaction_abort();
+		//		$this->db->transaction_abort();
 				// throw it again so it can be caught higher up
 				throw $e;
 			}
 
-			$this->db->transaction_commit();
+		//	$this->db->transaction_commit();
 			return $account->id;
 		}
 
@@ -575,17 +580,21 @@
 				{
 					$this->account_id = $account;
 					$user = $this->read_repository();
+
 					$principal = array
 					(
 						'per_prefix'		=> '',
 						'per_first_name'	=> $user->firstname,
 						'per_last_name'		=> $user->lastname,
 						'access'			=> 'public',
-						'owner'				=> $GLOBALS['phpgw_info']['server']['addressmaster']
+						'owner'				=> isset ($GLOBALS['phpgw_info']['server']['addressmaster']) ? $GLOBALS['phpgw_info']['server']['addressmaster'] : ''
 					);
+
 					$contact_type = $contacts->search_contact_type('Persons');
 					$user->person_id = $contacts->add_contact($contact_type, $principal);
-					$this->update_data($user_account);
+
+		//			$this->update_data($user);
+					$this->account = $user;
 					$this->save_repository();
 				}
 			}
@@ -603,6 +612,7 @@
 		public function update_group($group, $users, $modules = null)
 		{
 			$this->account = $group;
+			$this->account_id = $group->id;
 			$this->save_repository();
 
 			// handle group memberships
@@ -611,7 +621,7 @@
 			$drop_users = array_diff($old_users, $new_users);
 			if ( is_array($drop_users) && count($drop_users) )
 			{
-				foreach ( $drop_user as $user )
+				foreach ( $drop_users as $user )
 				{
 					$this->delete_account4group($user, $group->id);
 				}
@@ -651,7 +661,7 @@
 		 *
 		 * @return void
 		 */
-		public function update_user($user, $groups, $permissions = null, $modules = null)
+		public function update_user($user, $groups, $acls = array(), $modules = null)
 		{
 			$this->set_account($user->id);
 			$this->account = $user;
@@ -680,11 +690,23 @@
 
 			//FIXME need permissions here
 
+			$aclobj =& $GLOBALS['phpgw']->acl;
+			$aclobj->set_account_id($user->id, true);
+			$aclobj->delete_repository('preferences', 'changepassword', $user->id);
+			$aclobj->delete_repository('phpgwapi', 'anonymous', $user->id);
+			$aclobj->set_account_id($user->id, true); //reread the current repository
+			foreach ( $acls as $acl )
+			{
+				$aclobj->add($acl['appname'], $acl['location'], $acl['rights']);
+			}
+
+			$aclobj->save_repository();
+
 			// application permissions
 			if ( is_array($modules) )
 			{
 				$apps = createObject('phpgwapi.applications', $user->id);
-				$apps->update_data(array_keys($modules));
+				$apps->update_data($modules);
 				$apps->save_repository();
 			}
 
@@ -702,7 +724,7 @@
 		 */
 		public function update_data($data)
 		{
-			if ( $data['account_type'] == 'g' )
+			if ( $this->get_type($data->id) == 'g' )
 			{
 				$account = new phpgwapi_group();
 			}
@@ -867,7 +889,7 @@
 			$contacts = createObject('phpgwapi.contacts');
 
 			// does the user already exist in the addressbook?
-			if ( $group->person_id && $group->exist_contact($group->person_id) )
+			if ( $group->person_id && $contacts->exist_contact($group->person_id) )
 			{
 				return !!$contacts->edit_org($group->person_id, $primary);
 			}

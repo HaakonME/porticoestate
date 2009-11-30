@@ -8,13 +8,13 @@
 	 * @package phpgroupware
 	 * @subpackage property
 	 * @category core
- 	 * @version $Id: class.botts.inc.php 836 2008-03-15 14:39:28Z sigurd $
+ 	 * @version $Id$
 	 */
 
 	/*
 	   This program is free software: you can redistribute it and/or modify
 	   it under the terms of the GNU General Public License as published by
-	   the Free Software Foundation, either version 3 of the License, or
+	   the Free Software Foundation, either version 2 of the License, or
 	   (at your option) any later version.
 
 	   This program is distributed in the hope that it will be useful,
@@ -58,6 +58,21 @@
 				$this->fakebase = $fakebase;
 			}
 			$this->vfs->fakebase = $this->fakebase;
+		}
+
+		/**
+		 * Set the account id used for cron jobs where there is no user-session
+		 *
+		 * @param integer $account_id the account id to use - 0 = current user
+		 *
+		 * @return null
+		 */
+		public function set_account_id($account_id = 0)
+		{
+			if($account_id)
+			{
+				$this->vfs->working_id = $account_id;
+			}
 		}
 
 		/**
@@ -179,7 +194,7 @@
 		* @return null
 		*/
 
-		function view_file($type = '', $file = '')
+		function view_file($type = '', $file = '', $jasper = '')
 		{
 			$GLOBALS['phpgw_info']['flags']['noheader'] = true;
 			$GLOBALS['phpgw_info']['flags']['nofooter'] = true;
@@ -187,9 +202,14 @@
 
 			if(!$file)
 			{
-				$file_name = realpath(urldecode(phpgw::get_var('file_name')));
-				$id        = phpgw::get_var('id', 'int');
+				$file_name = urldecode(phpgw::get_var('file_name'));
+				$id        = phpgw::get_var('id');
 				$file      = "{$this->fakebase}/{$type}/{$id}/{$file_name}";
+			}
+			// prevent path traversal
+			if ( preg_match('/\.\./', $file) )
+			{
+				return false;
 			}
 
 			if($this->vfs->file_exists(array(
@@ -204,18 +224,66 @@
 						'nofiles'		=> true
 					));
 
-				$this->vfs->override_acl = 1;
-
-				$document = $this->vfs->read(array(
-					'string' 	=> $file,
-					'relatives' => array(RELATIVE_NONE)));
-
-				$this->vfs->override_acl = 0;
-
 				$browser = CreateObject('phpgwapi.browser');
-				$browser->content_header($ls_array[0]['name'],$ls_array[0]['mime_type'],$ls_array[0]['size']);
 
-				echo $document;
+				if(!$jasper)
+				{
+					$this->vfs->override_acl = 1;
+
+					$document = $this->vfs->read(array(
+						'string' 	=> $file,
+						'relatives' => array(RELATIVE_NONE)));
+
+					$this->vfs->override_acl = 0;
+
+					$browser->content_header($ls_array[0]['name'],$ls_array[0]['mime_type'],$ls_array[0]['size']);
+					echo $document;
+				}
+				else //Execute the jasper report
+				{
+					//class_path
+				//	$dirname = PHPGW_API_INC . '/jasper/lib';
+					$dirname = 'phpgwapi/inc/jasper/lib';
+					$file_list = array();
+				//	$file_list[] = PHPGW_API_INC . '/jasper/bin';
+					$file_list[] = 'phpgwapi/inc/jasper/bin';
+					$dir = new DirectoryIterator($dirname); 
+					if ( is_object($dir) )
+					{
+						foreach ( $dir as $_file )
+						{
+							if ( $_file->isDot()
+								|| !$_file->isFile()
+								|| !$_file->isReadable()
+								|| mime_content_type($_file->getPathname()) == 'text/xml')
+							{
+								continue;
+							}
+
+							$file_list[] = (string) "{$dirname}/{$_file}";
+						}
+					}
+					
+					if (stristr(PHP_OS, 'WIN')) 
+					{ 
+						$sep = ';';// Win 
+					}
+					else
+					{ 
+						$sep = ':';// Other
+					}
+
+					$class_path = implode($sep, $file_list);
+					$type = 'pdf';
+					$select_criteria = '//Record';
+					$template = "{$this->rootdir}/{$file}";
+
+					$cmd = "java -Djava.awt.headless=true -cp {$class_path} XmlJasperInterface -o{$type} -f{$template} -x{$select_criteria} < " . PHPGW_SERVER_ROOT . "/catch/test_data/jasper/tilstand.xml";
+
+					$browser->content_header('report.pdf','application/pdf');
+
+					passthru($cmd);
+				}
 			}
 		}
 
@@ -231,7 +299,7 @@
 		{
 			$attachments = array();
 
-			foreach ($values['file_action'] as $file_name)
+			foreach ($values as $file_name)
 			{
 				$file = "{$this->fakebase}{$path}{$file_name}";
 

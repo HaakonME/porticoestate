@@ -171,7 +171,7 @@ HTML;
 			{
 				$slctd = $id == $selected ? ' selected' : '';
 				$html .= <<<HTML
-				<option value="{$id}"{$selected}>$dow</option>
+				<option value="{$id}"{$slctd}>$dow</option>
 
 HTML;
 			}
@@ -320,11 +320,11 @@ HTML;
 
 HTML;
 
-			for ( $i = 100; $i <= 100; $i += $interval)
+			for ( $i = 0; $i <= 100; $i += $interval)
 			{
 				$slctd = $i == $selected ? ' selected' : '';
 				$html .= <<<HTML
-				<option value="{$i}">$i</option>
+				<option value="{$i}"{$slctd}>$i</option>
 
 HTML;
 			}
@@ -352,8 +352,9 @@ HTML;
 HTML;
 			foreach ( $priorities as $id => $priority )
 			{
+				$slctd = $i == $selected ? ' selected' : '';
 				$html .= <<<HTML
-				<option value="{$id}">$priority</option>
+				<option value="{$id}"{$slctd}>$priority</option>
 
 HTML;
 			}
@@ -394,7 +395,7 @@ HTML;
 			{
 				$slctd = $id == $selected ? ' selected' : '';
 				$html .= <<<HTML
-				<option value="{$id}">$option</option>
+				<option value="{$id}"{$slctd}>$option</option>
 HTML;
 			}
 			$html .= <<<HTML
@@ -430,7 +431,7 @@ HTML;
 			{
 				$slctd = $code == $selected ? '' : ' selected';
 				$select .= <<<HTML
-					<option value="{$code}"{$selected}>{$country}</option>
+					<option value="{$code}"{$slctd}>{$country}</option>
 
 HTML;
 			}
@@ -483,18 +484,27 @@ HTML;
 
 HTML;
 
+			$check = array();
+
 			if (!is_array($selected))
 			{
-				$key = array($selected);
+				$check[$selected] = true;	
+			}
+			else
+			{
+				foreach ($selected as $sel)
+				{
+					$check[$sel] = true;
+				}
 			}
 
 			foreach ( $options as $value => $option )
 			{
-				$selected = isset( $selected[$value] ) ? ' selected' : '';
+				$check2 = isset( $check[$value] ) ? ' selected' : '';
 				$option = $no_lang ? $option : lang($option);
 
 				$html .= <<<HTML
-					<option value="{$value}"{$selected}>{$option}<option>
+					<option value="{$value}"{$check2}>{$option}</option>
 
 HTML;
 			}
